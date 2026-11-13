@@ -1,0 +1,33 @@
+// Umbrella header for the Skia C API (headers from mono/skia, matching the
+// prebuilt libSkiaSharp fetched by scripts/bootstrap.sh).
+#ifndef CSKIA_H
+#define CSKIA_H
+#include "include/c/sk_types.h"
+#include "include/c/sk_general.h"
+#include "include/c/sk_bitmap.h"
+#include "include/c/sk_blender.h"
+#include "include/c/sk_canvas.h"
+#include "include/c/sk_codec.h"
+#include "include/c/sk_colorfilter.h"
+#include "include/c/sk_colorspace.h"
+#include "include/c/sk_data.h"
+#include "include/c/sk_font.h"
+#include "include/c/sk_image.h"
+#include "include/c/sk_imagefilter.h"
+#include "include/c/sk_maskfilter.h"
+#include "include/c/sk_matrix.h"
+#include "include/c/sk_paint.h"
+#include "include/c/sk_path.h"
+#include "include/c/sk_pathbuilder.h"
+#include "include/c/sk_patheffect.h"
+#include "include/c/sk_picture.h"
+#include "include/c/sk_pixmap.h"
+#include "include/c/sk_rrect.h"
+#include "include/c/sk_runtimeeffect.h"
+#include "include/c/sk_shader.h"
+#include "include/c/sk_stream.h"
+#include "include/c/sk_string.h"
+#include "include/c/sk_surface.h"
+#include "include/c/sk_textblob.h"
+#include "include/c/sk_typeface.h"
+#endif
