@@ -35,6 +35,7 @@ final class Runtime {
     var pendingActions: [() -> Void] = []
     /// Set when state changes after the tree was resolved, so the renderer does another pass.
     var needsAnotherPass = false
+    var runningTasks = 0
     private(set) var warnings: [String] = []
     private var warningSet: Set<String> = []
     var config: RenderConfiguration
