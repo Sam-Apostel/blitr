@@ -179,7 +179,7 @@ final class CustomLayoutNode<L: Layout>: Node {
         currentLayoutPlaceContext = ctx
         // Bounds are expressed in the parent's coordinate space, as in SwiftUI.
         let bounds = CGRect(origin: frame.origin, size: size)
-        layout.placeSubviews(in: bounds, proposal: ProposedViewSize(size), subviews: subviews, cache: &cache)
+        layout.placeSubviews(in: bounds, proposal: proposal(forSize: size), subviews: subviews, cache: &cache)
         currentLayoutPlaceContext = saved
         for s in subviews {
             let slot = s.slot
@@ -207,9 +207,9 @@ final class CustomLayoutNode<L: Layout>: Node {
     override func explicitAlignment(_ key: AlignmentKey, size: CGSize) -> CGFloat? {
         let bounds = CGRect(origin: .zero, size: size)
         if key.axis == .horizontal {
-            return layout.explicitAlignment(of: HorizontalAlignment(key.id), in: bounds, proposal: ProposedViewSize(size), subviews: subviews, cache: &cache)
+            return layout.explicitAlignment(of: HorizontalAlignment(key.id), in: bounds, proposal: proposal(forSize: size), subviews: subviews, cache: &cache)
         }
-        return layout.explicitAlignment(of: VerticalAlignment(key.id), in: bounds, proposal: ProposedViewSize(size), subviews: subviews, cache: &cache)
+        return layout.explicitAlignment(of: VerticalAlignment(key.id), in: bounds, proposal: proposal(forSize: size), subviews: subviews, cache: &cache)
     }
 }
 

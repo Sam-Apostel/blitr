@@ -106,7 +106,7 @@ final class StackNode: Node {
     override func measure(_ proposal: ProposedViewSize) -> CGSize { compute(proposal).size }
 
     override func layout(size: CGSize, _ ctx: PlaceContext) {
-        let r = compute(ProposedViewSize(size))
+        let r = compute(proposal(forSize: size))
         // If the stack was given more cross-axis room than it needs, keep children aligned within it.
         for (i, child) in children.enumerated() {
             child.place(at: CGPoint(axis: axis, main: r.mainOffsets[i], cross: r.crossOffsets[i]), size: r.sizes[i], ctx)
@@ -114,7 +114,7 @@ final class StackNode: Node {
     }
 
     override func explicitAlignment(_ key: AlignmentKey, size: CGSize) -> CGFloat? {
-        let r = compute(ProposedViewSize(size))
+        let r = compute(proposal(forSize: size))
         guard !children.isEmpty else { return nil }
         if key.axis == axis.cross {
             if key == crossAlignment {
@@ -159,7 +159,7 @@ final class ZStackNode: Node {
     override func measure(_ proposal: ProposedViewSize) -> CGSize { arrange(proposal).size }
 
     override func layout(size: CGSize, _ ctx: PlaceContext) {
-        let a = arrange(ProposedViewSize(size))
+        let a = arrange(proposal(forSize: size))
         // Center the arrangement's own bounds in the space we were actually given.
         let dx = (size.width - a.size.width) * (alignment.horizontal == .leading ? 0 : alignment.horizontal == .trailing ? 1 : 0.5)
         let dy = (size.height - a.size.height) * (alignment.vertical == .top ? 0 : alignment.vertical == .bottom ? 1 : 0.5)
@@ -169,7 +169,7 @@ final class ZStackNode: Node {
     }
 
     override func explicitAlignment(_ key: AlignmentKey, size: CGSize) -> CGFloat? {
-        let a = arrange(ProposedViewSize(size))
+        let a = arrange(proposal(forSize: size))
         for i in children.indices {
             if let v = children[i].explicitAlignment(key, size: a.sizes[i]) {
                 return (key.axis == .horizontal ? a.offsets[i].x : a.offsets[i].y) + v

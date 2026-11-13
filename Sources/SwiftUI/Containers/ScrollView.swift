@@ -7,7 +7,6 @@
 enum ScrollClipDisabledKey: EnvironmentKey { static let defaultValue = false }
 enum ScrollContentMarginsKey: EnvironmentKey { static let defaultValue = EdgeInsets() }
 enum IsScrollEnabledKey: EnvironmentKey { static let defaultValue = true }
-enum ScrollContentBackgroundKey: EnvironmentKey { static let defaultValue = Visibility.automatic }
 
 extension EnvironmentValues {
     var scrollClipDisabled: Bool {
@@ -19,11 +18,6 @@ extension EnvironmentValues {
     var scrollContentMargins: EdgeInsets {
         get { self[ScrollContentMarginsKey.self] }
         set { self[ScrollContentMarginsKey.self] = newValue }
-    }
-    /// Set by `scrollContentBackground`; read by List/Form/TextEditor.
-    var scrollContentBackgroundVisibility: Visibility {
-        get { self[ScrollContentBackgroundKey.self] }
-        set { self[ScrollContentBackgroundKey.self] = newValue }
     }
     public var isScrollEnabled: Bool {
         get { self[IsScrollEnabledKey.self] }
@@ -64,7 +58,7 @@ final class ScrollNode: Node {
     }
 
     override func layout(size: CGSize, _ ctx: PlaceContext) {
-        let c = content.sizeThatFits(contentProposal(for: ProposedViewSize(size)))
+        let c = content.sizeThatFits(contentProposal(for: proposal(forSize: size)))
         let availW = size.width - margins.horizontal, availH = size.height - margins.vertical
         // Top (vertical) / leading (horizontal) on the scroll axis, centred across.
         let x = scrollsH ? margins.leading : margins.leading + (availW - c.width) / 2
@@ -281,7 +275,7 @@ extension View {
     public func scrollEdgeEffectHidden(_ hidden: Bool = true, for edges: Edge.Set = .all) -> some View { self }
     public func defaultScrollAnchor(_ anchor: UnitPoint?) -> some View { self }
     public func defaultScrollAnchor(_ anchor: UnitPoint?, for role: ScrollAnchorRole) -> some View { self }
-    public func scrollContentBackground(_ visibility: Visibility) -> some View { env { $0.scrollContentBackgroundVisibility = visibility } }
+    public func scrollContentBackground(_ visibility: Visibility) -> some View { env { $0.scrollContentBackground = visibility } }
     public func onScrollGeometryChange<T: Equatable>(for type: T.Type, of transform: @escaping (ScrollGeometry) -> T,
                                                       action: @escaping (T, T) -> Void) -> some View { self }
     public func onScrollPhaseChange(_ action: @escaping (ScrollPhase, ScrollPhase) -> Void) -> some View { self }

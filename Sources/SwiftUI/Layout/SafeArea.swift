@@ -68,7 +68,7 @@ final class SafeAreaInsetNode: Node {
     }
 
     override func layout(size: CGSize, _ ctx: PlaceContext) {
-        let i = insetSize(ProposedViewSize(size))
+        let i = insetSize(proposal(forSize: size))
         let reserved = (isVertical ? i.height : i.width) + spacing
         var contentRect = CGRect(origin: .zero, size: size)
         var insetOrigin = CGPoint.zero

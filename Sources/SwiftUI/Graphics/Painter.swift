@@ -20,18 +20,21 @@ final class Painter {
     func rotate(_ angle: Angle) { sk_canvas_rotate_radians(canvas, Float(angle.radians)) }
 
     func concat(_ t: CGAffineTransform) {
-        var m = sk_matrix44_t(m00: Float(t.a), m01: Float(t.c), m02: 0, m03: Float(t.tx),
-                              m10: Float(t.b), m11: Float(t.d), m12: 0, m13: Float(t.ty),
-                              m20: 0, m21: 0, m22: 1, m23: 0,
-                              m30: 0, m31: 0, m32: 0, m33: 1)
-        sk_canvas_concat(canvas, &m)
+        concat(matrix44: [Float(t.a), Float(t.c), 0, Float(t.tx),
+                          Float(t.b), Float(t.d), 0, Float(t.ty),
+                          0, 0, 1, 0,
+                          0, 0, 0, 1])
     }
 
-    /// Full 4x4 (row-major) transform, used for perspective effects.
+    /// Full 4x4 transform in row-major order (`m[row * 4 + column]`, points are column vectors),
+    /// used for perspective effects. The C API's struct is laid out column-major despite its field
+    /// names, hence the transposition here.
     func concat(matrix44 m: [Float]) {
-        var m = sk_matrix44_t(m00: m[0], m01: m[1], m02: m[2], m03: m[3], m10: m[4], m11: m[5], m12: m[6], m13: m[7],
-                              m20: m[8], m21: m[9], m22: m[10], m23: m[11], m30: m[12], m31: m[13], m32: m[14], m33: m[15])
-        sk_canvas_concat(canvas, &m)
+        var sk = sk_matrix44_t(m00: m[0], m01: m[4], m02: m[8], m03: m[12],
+                               m10: m[1], m11: m[5], m12: m[9], m13: m[13],
+                               m20: m[2], m21: m[6], m22: m[10], m23: m[14],
+                               m30: m[3], m31: m[7], m32: m[11], m33: m[15])
+        sk_canvas_concat(canvas, &sk)
     }
 
     func clip(_ rect: CGRect) {

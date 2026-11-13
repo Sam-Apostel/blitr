@@ -34,18 +34,18 @@ final class ViewThatFitsNode: Node {
 
     override func layout(size: CGSize, _ ctx: PlaceContext) {
         guard !children.isEmpty else { return }
-        let i = choose(ProposedViewSize(size))
+        let i = choose(proposal(forSize: size))
         lastChoice = i
         let child = children[i]
-        child.place(at: .zero, size: child.sizeThatFits(ProposedViewSize(size)), ctx)
+        child.place(at: .zero, size: child.sizeThatFits(proposal(forSize: size)), ctx)
     }
 
     override func drawContent(_ p: Painter) { chosen?.draw(p) }
     override func spacing(_ edge: Edge) -> CGFloat? { chosen?.spacing(edge) }
     override func explicitAlignment(_ key: AlignmentKey, size: CGSize) -> CGFloat? {
         guard !children.isEmpty else { return nil }
-        let child = children[choose(ProposedViewSize(size))]
-        return child.explicitAlignment(key, size: child.sizeThatFits(ProposedViewSize(size)))
+        let child = children[choose(proposal(forSize: size))]
+        return child.explicitAlignment(key, size: child.sizeThatFits(proposal(forSize: size)))
     }
 }
 

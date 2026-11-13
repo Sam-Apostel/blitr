@@ -200,7 +200,7 @@ public struct GraphicsContext: @unchecked Sendable {
             painter.clip(clip.path.applying(inverse), evenOdd: clip.evenOdd)
         }
         let delta = transform.concatenating(inverse)
-        if !delta.isIdentity { painter.concat(matrix44: [Float(delta.a), Float(delta.b), 0, 0, Float(delta.c), Float(delta.d), 0, 0, 0, 0, 1, 0, Float(delta.tx), Float(delta.ty), 0, 1]) }
+        if !delta.isIdentity { painter.concat(delta) }
         if opacityAndBlend, opacity < 1 || blendMode != .normal {
             painter.saveLayer(.init(opacity: opacity, blendMode: blendMode))
             saves += 1
