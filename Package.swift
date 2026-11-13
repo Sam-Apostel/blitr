@@ -10,6 +10,8 @@ let package = Package(
         // A Linux reimplementation of the SwiftUI API surface, named `SwiftUI`
         // so unmodified app code (`import SwiftUI`) compiles against it.
         .library(name: "SwiftUI", type: .dynamic, targets: ["SwiftUI"]),
+        // The command-line tool: compiles user sources against the module above and renders them.
+        .executable(name: "swiftui-screenshot", targets: ["swiftui-screenshot"]),
     ],
     targets: [
         .target(
@@ -26,5 +28,6 @@ let package = Package(
             dependencies: ["CSkia", "CHarfBuzz"],
             swiftSettings: [.swiftLanguageMode(.v5), .unsafeFlags(["-enable-library-evolution"])]
         ),
+        .executableTarget(name: "swiftui-screenshot", swiftSettings: [.swiftLanguageMode(.v5)]),
     ]
 )

@@ -62,6 +62,10 @@ enum Renderer {
         env.colorScheme = config.colorScheme
         env.displayScale = scale
         env.dynamicTypeSize = config.dynamicTypeSize
+        // An app's accent color comes from the "AccentColor" asset when there is one.
+        if let accent = AssetCatalog.shared.color(named: "AccentColor", scheme: config.colorScheme) {
+            env.accentColor = Color(accent)
+        }
 
         var canvasSize = CGSize.zero
         var root: Node = Node()
