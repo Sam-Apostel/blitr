@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  render:
+    name: Build and render examples
+    runs-on: ubuntu-24.04
+    container: swift:6.4.2-noble
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system packages
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends libharfbuzz-dev curl unzip binutils ca-certificates
+
+      - name: Fetch pinned Skia and fonts
+        run: scripts/bootstrap.sh
+
+      - name: Build
+        run: swift build
+
+      - name: Render every example in light and dark
+        run: |
+          bin="$(swift build --show-bin-path)"
+          "$bin/swiftui-screenshot" doctor
+          for file in Examples/*.swift; do
+            "$bin/swiftui-screenshot" render "$file" --all --out-dir out --scheme both
+          done
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: out/*.png
+          if-no-files-found: error
