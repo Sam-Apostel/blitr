@@ -294,7 +294,9 @@ public struct Path: Equatable, Sendable {
             defer { sk_paint_delete(paint) }
             Painter.applyStroke(style, to: paint!)
             let builder = sk_pathbuilder_new()
-            _ = sk_paint_get_fill_path(paint, sk, builder, nil, nil)
+            // Skia dereferences the matrix, so identity must be passed explicitly.
+            var identity = sk_matrix_t(scaleX: 1, skewX: 0, transX: 0, skewY: 0, scaleY: 1, transY: 0, persp0: 0, persp1: 0, persp2: 1)
+            _ = sk_paint_get_fill_path(paint, sk, builder, nil, &identity)
             let out = sk_pathbuilder_detach_path(builder)
             sk_pathbuilder_delete(builder)
             defer { sk_path_delete(out) }
