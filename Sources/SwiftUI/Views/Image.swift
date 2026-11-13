@@ -332,7 +332,9 @@ final class SymbolLibrary {
     var provider: ((String) -> (viewBox: CGSize, layers: [SymbolGlyph.Layer])?)?
 
     func glyph(named name: String, variants: SymbolVariants, font: ResolvedFont, scale: Image.Scale) -> SymbolGlyph? {
-        guard let provider else { return nil }
+        // Without an installed provider, fall back to the bundled Phosphor-based artwork (Symbols/).
+        let lookup: (String) -> (viewBox: CGSize, layers: [SymbolGlyph.Layer])? = provider
+            ?? { SymbolArtwork.shared.art(named: $0, weight: font.weight) }
         // Environment variants are appended to the name when that variant exists (heart -> heart.fill).
         var candidates = [name]
         if !variants.suffixes.isEmpty {
@@ -341,7 +343,7 @@ final class SymbolLibrary {
             if !extra.isEmpty { candidates.insert((parts + extra).joined(separator: "."), at: 0) }
         }
         for candidate in candidates {
-            guard let art = provider(candidate) else { continue }
+            guard let art = lookup(candidate) else { continue }
             let factor: CGFloat = scale == .small ? 0.82 : scale == .large ? 1.28 : 1
             // SF Symbols are drawn roughly 1.2x the point size tall at medium scale.
             let height = font.size * 1.2 * factor
