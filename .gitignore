@@ -3,3 +3,4 @@ Vendor/
 *.swp
 .DS_Store
 /out/
+.claude/worktrees/
