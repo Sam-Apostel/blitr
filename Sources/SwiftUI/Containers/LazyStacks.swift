@@ -29,7 +29,7 @@ final class LazyStackNode: WrapperNode {
 
     override func layout(size: CGSize, _ ctx: PlaceContext) {
         // The stack's own cross size is what its content needs; align it inside the room we were given.
-        let c = child.sizeThatFits(ProposedViewSize(size))
+        let c = child.sizeThatFits(proposal(forSize: size))
         placeAligned(child, childSize: c, in: size, alignment: alignment, ctx)
     }
 
@@ -220,7 +220,7 @@ final class LazyGridNode: Node {
     override func measure(_ proposal: ProposedViewSize) -> CGSize { compute(proposal).size }
 
     override func layout(size: CGSize, _ ctx: PlaceContext) {
-        let l = compute(ProposedViewSize(size))
+        let l = compute(proposal(forSize: size))
         let n = max(1, l.tracks.count)
         // The tracks sit at the start of the cross extent, shifted by the grid's alignment if there is spare room.
         let spare = size[trackAxis] - l.trackExtent

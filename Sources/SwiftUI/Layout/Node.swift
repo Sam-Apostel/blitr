@@ -23,6 +23,9 @@ class Node {
     final var traits = Traits()
     final var preferences = PreferenceStore()
     private var sizeCache: [ProposedViewSize: CGSize] = [:]
+    /// Recent (proposal -> size) answers, newest last. Placement hands a node only its final size,
+    /// so this is how a node recovers the proposal that size was computed for.
+    private var measurements: [(proposal: ProposedViewSize, size: CGSize)] = []
 
     init(children: [Node] = []) {
         self.children = children
@@ -32,12 +35,35 @@ class Node {
     // MARK: Layout
 
     final func sizeThatFits(_ proposal: ProposedViewSize) -> CGSize {
-        if let cached = sizeCache[proposal] { return cached }
-        var size = measure(proposal)
-        if size.width.isNaN { size.width = 0 }
-        if size.height.isNaN { size.height = 0 }
-        sizeCache[proposal] = size
+        let size: CGSize
+        if let cached = sizeCache[proposal] {
+            size = cached
+        } else {
+            var measured = measure(proposal)
+            if measured.width.isNaN { measured.width = 0 }
+            if measured.height.isNaN { measured.height = 0 }
+            sizeCache[proposal] = measured
+            size = measured
+        }
+        if measurements.last?.proposal != proposal {
+            measurements.removeAll { $0.proposal == proposal }
+            measurements.append((proposal, size))
+            if measurements.count > 32 { measurements.removeFirst() }
+        }
         return size
+    }
+
+    /// The proposal this node was measured with when it answered `size`.
+    ///
+    /// `sizeThatFits(p) == s` does not imply `sizeThatFits(s) == s` (a stack offered exactly its
+    /// own width divides it differently), so layout must reuse the original proposal, as SwiftUI
+    /// does. Falls back to the size itself when the parent chose a size we never returned.
+    final func proposal(forSize size: CGSize) -> ProposedViewSize {
+        for entry in measurements.reversed()
+        where abs(entry.size.width - size.width) < 0.01 && abs(entry.size.height - size.height) < 0.01 {
+            return entry.proposal
+        }
+        return ProposedViewSize(size)
     }
 
     /// Override: the size this node wants for the proposal.
@@ -103,6 +129,8 @@ class WrapperNode: Node {
 
     override func measure(_ proposal: ProposedViewSize) -> CGSize { child.sizeThatFits(proposal) }
     override func layout(size: CGSize, _ ctx: PlaceContext) { child.place(at: .zero, size: size, ctx) }
+    /// What this wrapper proposes to its child when it has been given `size`.
+    func childProposal(forOwnSize size: CGSize) -> ProposedViewSize { proposal(forSize: size) }
     override func spacing(_ edge: Edge) -> CGFloat? { child.spacing(edge) }
     override func explicitAlignment(_ key: AlignmentKey, size: CGSize) -> CGFloat? {
         child.explicitAlignment(key, size: size)

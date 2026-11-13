@@ -223,7 +223,7 @@ final class GridNode: Node {
     override func measure(_ proposal: ProposedViewSize) -> CGSize { compute(proposal).size }
 
     override func layout(size: CGSize, _ ctx: PlaceContext) {
-        let r = compute(ProposedViewSize(size))
+        let r = compute(proposal(forSize: size))
         // Leftover room (a grid with no flexible cells in a bigger frame) is shared by alignment.
         for (i, row) in rows.enumerated() {
             let rowRect = CGRect(x: 0, y: r.rowY[i], width: r.size.width, height: r.rowHeights[i])

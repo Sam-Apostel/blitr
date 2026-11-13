@@ -19,8 +19,9 @@ final class FrameNode: WrapperNode {
         let c = child.sizeThatFits(childProposal(proposal))
         return CGSize(width: width ?? c.width, height: height ?? c.height)
     }
+    override func childProposal(forOwnSize size: CGSize) -> ProposedViewSize { childProposal(proposal(forSize: size)) }
     override func layout(size: CGSize, _ ctx: PlaceContext) {
-        let c = child.sizeThatFits(ProposedViewSize(size))
+        let c = child.sizeThatFits(childProposal(forOwnSize: size))
         placeAligned(child, childSize: c, in: size, alignment: alignment, ctx)
     }
     override func explicitAlignment(_ key: AlignmentKey, size: CGSize) -> CGFloat? {
@@ -31,7 +32,7 @@ final class FrameNode: WrapperNode {
 extension WrapperNode {
     /// A child's explicit guide, translated through a frame that aligns the child inside `size`.
     func alignmentThroughFrame(_ key: AlignmentKey, size: CGSize, alignment: Alignment) -> CGFloat? {
-        let c = child.sizeThatFits(ProposedViewSize(size))
+        let c = child.sizeThatFits(childProposal(forOwnSize: size))
         guard let v = child.explicitAlignment(key, size: c) else { return nil }
         let parent = ViewDimensions(node: nil, size: size)
         if key.axis == .horizontal {
@@ -64,6 +65,11 @@ final class FlexFrameNode: WrapperNode {
         if let hi { r = min(hi, max(r, proposed ?? r)) }
         return r
     }
+    private func childProposal(_ proposal: ProposedViewSize) -> ProposedViewSize {
+        ProposedViewSize(width: FlexFrameNode.clampProposal(proposal.width ?? idealW, minW, maxW),
+                         height: FlexFrameNode.clampProposal(proposal.height ?? idealH, minH, maxH))
+    }
+    override func childProposal(forOwnSize size: CGSize) -> ProposedViewSize { childProposal(proposal(forSize: size)) }
     override func measure(_ proposal: ProposedViewSize) -> CGSize {
         let pw = FlexFrameNode.clampProposal(proposal.width ?? idealW, minW, maxW)
         let ph = FlexFrameNode.clampProposal(proposal.height ?? idealH, minH, maxH)
@@ -72,9 +78,11 @@ final class FlexFrameNode: WrapperNode {
                       height: FlexFrameNode.result(c.height, ph, minH, maxH))
     }
     override func layout(size: CGSize, _ ctx: PlaceContext) {
-        let c = child.sizeThatFits(ProposedViewSize(size))
+        let c = child.sizeThatFits(measuredChildProposal(size))
         placeAligned(child, childSize: c, in: size, alignment: alignment, ctx)
     }
+    /// Exactly what `measure` proposed to the child for the proposal that produced `size`.
+    private func measuredChildProposal(_ size: CGSize) -> ProposedViewSize { childProposal(proposal(forSize: size)) }
     override func explicitAlignment(_ key: AlignmentKey, size: CGSize) -> CGFloat? {
         alignmentThroughFrame(key, size: size, alignment: alignment)
     }
@@ -281,7 +289,7 @@ final class AspectRatioNode: WrapperNode {
     }
     override func measure(_ proposal: ProposedViewSize) -> CGSize { child.sizeThatFits(fitted(proposal)) }
     override func layout(size: CGSize, _ ctx: PlaceContext) {
-        let c = child.sizeThatFits(fitted(ProposedViewSize(size)))
+        let c = child.sizeThatFits(fitted(proposal(forSize: size)))
         child.place(at: CGPoint(x: (size.width - c.width) / 2, y: (size.height - c.height) / 2), size: c, ctx)
     }
 }
