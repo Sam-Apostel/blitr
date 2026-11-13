@@ -39,6 +39,8 @@ struct RenderConfiguration {
     var assetDirectories: [String] = []
     var padding: CGFloat = 0
     var locale: String?
+    /// Seconds async `.task` work may run before the frame is taken.
+    var taskBudget: TimeInterval = 0.5
 }
 
 struct RenderResult {
@@ -94,7 +96,9 @@ enum Renderer {
             let actions = runtime.pendingActions
             runtime.pendingActions = []
             for action in actions { action() }
-            if !runtime.needsAnotherPass { break }
+            runtime.drainTasks()
+            // Actions may mutate reference types we cannot observe, so any action means another pass.
+            if actions.isEmpty && !runtime.needsAnotherPass { break }
         }
 
         let pixelWidth = max(1, Int((canvasSize.width * scale).rounded())), pixelHeight = max(1, Int((canvasSize.height * scale).rounded()))

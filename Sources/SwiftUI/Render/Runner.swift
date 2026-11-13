@@ -70,6 +70,7 @@ public enum _ScreenshotRunner {
                 let hex = value(flag).trimmingCharacters(in: CharacterSet(charactersIn: "#"))
                 if hex == "clear" || hex == "transparent" { config.background = .clear }
                 else if let v = UInt32(hex, radix: 16) { config.background = RGBA(hex: v) }
+            case "--task-budget": config.taskBudget = Double(value(flag)) ?? 0.5
             case "--fonts": config.fontDirectories.append(value(flag))
             case "--assets": config.assetDirectories.append(value(flag))
             default: fail("unknown option \(flag)")
