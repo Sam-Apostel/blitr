@@ -348,3 +348,34 @@ extension View {
     public func position(_ position: CGPoint) -> some View { modifier(PositionModifier(position: position)) }
     public func position(x: CGFloat = 0, y: CGFloat = 0) -> some View { modifier(PositionModifier(position: CGPoint(x: x, y: y))) }
 }
+
+// MARK: - alignmentGuide
+
+final class AlignmentGuideNode: WrapperNode {
+    let key: AlignmentKey
+    let compute: (ViewDimensions) -> CGFloat
+    init(child: Node, key: AlignmentKey, compute: @escaping (ViewDimensions) -> CGFloat) {
+        self.key = key
+        self.compute = compute
+        super.init(child: child)
+    }
+    override func explicitAlignment(_ key: AlignmentKey, size: CGSize) -> CGFloat? {
+        // The closure sees the child's own dimensions, so `d[.leading]` inside it means the default guide.
+        key == self.key ? compute(ViewDimensions(node: child, size: size)) : child.explicitAlignment(key, size: size)
+    }
+}
+
+struct AlignmentGuideModifier: ViewModifier, NodeModifier {
+    let key: AlignmentKey
+    let compute: (ViewDimensions) -> CGFloat
+    func makeNode(child: Node, _ ctx: ResolveContext) -> Node { AlignmentGuideNode(child: child, key: key, compute: compute) }
+}
+
+extension View {
+    public func alignmentGuide(_ g: HorizontalAlignment, computeValue: @escaping (ViewDimensions) -> CGFloat) -> some View {
+        modifier(AlignmentGuideModifier(key: g.key, compute: computeValue))
+    }
+    public func alignmentGuide(_ g: VerticalAlignment, computeValue: @escaping (ViewDimensions) -> CGFloat) -> some View {
+        modifier(AlignmentGuideModifier(key: g.key, compute: computeValue))
+    }
+}
