@@ -242,7 +242,10 @@ extension Image {
             let side = font.size * 1.2
             _ = side
             return .missing(name)
-        case .named(let name), .file(let name):
+        case .file(let path):
+            guard let bitmap = Bitmap(path: path, scale: 1) else { return .missing(path) }
+            return .bitmap(bitmap, template: renderingMode == .template ? foreground : nil)
+        case .named(let name):
             guard let bitmap = AssetCatalog.shared.bitmap(named: name, scheme: env.colorScheme) else {
                 Runtime.current?.warn("Image asset \"\(name)\" not found (pass --assets <dir>); rendered as a placeholder")
                 return .missing(name)
