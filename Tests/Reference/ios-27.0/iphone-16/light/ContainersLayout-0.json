@@ -230,11 +230,11 @@
       "class": "AccessibilityNode",
       "frame": {
         "height": 20.33,
-        "width": 63,
+        "width": 66.67,
         "x": 16,
         "y": 688.67
       },
-      "label": "2:48\u202fAM",
+      "label": "12:51\u202fPM",
       "role": "staticText",
       "traits": [
         "staticText"
