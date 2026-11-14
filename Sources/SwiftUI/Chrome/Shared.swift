@@ -34,7 +34,21 @@ extension EnvironmentValues {
 /// Screen-level layout constants that vary with device width.
 enum ChromeMetrics {
     /// The system layout margin: 16pt on regular phones, 20pt on the wide ones.
-    static func layoutMargin(forWidth width: CGFloat) -> CGFloat { width >= 414 ? 20 : 16 }
+    static func layoutMargin(forWidth width: CGFloat) -> CGFloat {
+        // A landscape iPhone is wider than any phone is in portrait but keeps the margin of its portrait width.
+        let config = _currentConfiguration()
+        if width >= 700, config.device.idiom == .phone, config.device.orientation.isLandscape, config.width == nil {
+            return config.device.portraitSize.width >= 414 ? 20 : 16
+        }
+        return width >= 414 ? 20 : 16
+    }
+    /// Side margin of inset(-grouped) lists: on iPad they keep to the readable content width (672pt at the default text size).
+    static let readableContentWidth: CGFloat = 672
+    static func insetListMargin(forWidth width: CGFloat) -> CGFloat {
+        let margin = layoutMargin(forWidth: width)
+        guard width > readableContentWidth + margin * 2, _currentConfiguration().device.idiom == .pad else { return margin }
+        return (width - readableContentWidth) / 2
+    }
     static let hairline: CGFloat = 1.0 / 3
     static let navigationBarHeight: CGFloat = 44
     static let largeTitleHeight: CGFloat = 52

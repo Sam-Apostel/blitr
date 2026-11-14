@@ -180,7 +180,7 @@ final class ListNode: Node {
         cards = []
         separators = []
         let margin = ChromeMetrics.layoutMargin(forWidth: size.width)
-        let cardX: CGFloat = (style == .insetGrouped || style == .inset) ? margin : 0
+        let cardX: CGFloat = (style == .insetGrouped || style == .inset) ? ChromeMetrics.insetListMargin(forWidth: size.width) : 0
         let cardW = max(0, size.width - cardX * 2)
         let radius: CGFloat = style == .insetGrouped ? ListMetrics.cardCornerRadius : 0
         let plainInset = margin + ListMetrics.plainRowExtraInset

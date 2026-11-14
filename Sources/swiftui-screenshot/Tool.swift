@@ -24,7 +24,10 @@ Render options:
       --out-dir <dir>    Output directory (used with --all / --scheme both)
       --preview <n|name> Which preview (default 0)
       --all              Render every preview
-      --device <name>    Device profile (default iphone-16); see `devices`
+      --device <name>    Device profile (default iphone-16); see `devices`. "iPhone 16 Pro", iphone-16-pro, iphone16pro all work
+      --orientation <o>  portrait (default) | landscape (= landscape-left) | landscape-right
+      --rounded-corners  Clip to the device's rounded display shape, corners transparent
+      --show-island     Draw the Dynamic Island / notch over the content (simulator screenshots do not show it)
       --scheme <s>       light | dark | both (default light)
       --layout <l>       device (full screen, default) | fit (size of the view) | fixed
       --width <pt>       Canvas width (fixed), or width proposed to the view (fit)
@@ -189,6 +192,8 @@ func parse(_ arguments: [String]) -> Options {
         case "--device", "--layout", "--width", "--height", "--scale", "--padding", "--background", "--dynamic-type", "--task-budget":
             options.runnerArguments += [arg, value(arg)]
         case "--no-chrome": options.runnerArguments.append(arg)
+        case "--orientation": options.runnerArguments += [arg, value(arg)]
+        case "--rounded-corners", "--show-island": options.runnerArguments.append(arg)
         case "-h", "--help":
             print(usage)
             exit(0)
@@ -371,9 +376,8 @@ enum Tool {
                 print("\(preview.index)\t\(preview.name.isEmpty ? "(unnamed)" : preview.name)")
             }
         case "devices":
-            // Mirrors the device table in the runtime module (Render/Renderer.swift).
-            print(["iphone-se", "iphone-16", "iphone-16-plus", "iphone-16-pro", "iphone-16-pro-max",
-                   "iphone-17", "iphone-17-pro", "iphone-17-pro-max", "ipad", "ipad-pro-11"].joined(separator: "\n"))
+            // The table lives in the runtime module (Render/Devices.swift); ask a runner for it.
+            listDevices(Installation.locate())
         case "doctor":
             doctor(Installation.locate())
         case "-h", "--help", "help":

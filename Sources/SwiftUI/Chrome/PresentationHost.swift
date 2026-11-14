@@ -20,6 +20,9 @@ enum SheetMetrics {
     static let grabberSize = CGSize(width: 36, height: 5)
     static let grabberTop: CGFloat = 5
     static let elevatedDarkBackground = SystemColor.secondaryBackground   // 1C1C1E
+    /// iPad (regular width): a centred form sheet over a dimmed presenter.
+    static let formSheetSize = CGSize(width: 540, height: 620)
+    static let formSheetCornerRadius: CGFloat = 10
 }
 
 enum AlertMetrics {
@@ -177,6 +180,7 @@ final class SheetLayerNode: PresentationLayerNode {
     let env: EnvironmentValues
     private var cardRect = CGRect.zero
     private var showsGrabber = false
+    private var isFormSheet = false
 
     init(content: Node, env: EnvironmentValues) {
         self.content = content
@@ -208,6 +212,8 @@ final class SheetLayerNode: PresentationLayerNode {
     }
 
     override func layout(size: CGSize, _ ctx: PlaceContext) {
+        isFormSheet = _currentConfiguration().device.idiom == .pad && env.horizontalSizeClass == .regular
+        if isFormSheet { layoutFormSheet(size: size, ctx); return }
         let largeTop = deviceInsets.top + SheetMetrics.largeTopOffset
         let detents = options.detents ?? [.large]
         let tops = detents.map { top(for: $0, size: size) }
@@ -239,9 +245,26 @@ final class SheetLayerNode: PresentationLayerNode {
         content.place(at: CGPoint(x: safeLocal.midX - c.width / 2, y: safeLocal.midY - c.height / 2), size: c, inner)
     }
 
+    /// iPad: a form sheet, 540x620 centred, never taller than the screen minus the status bar; detents do not apply.
+    private func layoutFormSheet(size: CGSize, _ ctx: PlaceContext) {
+        showsGrabber = false
+        backdrop = .dim(env.colorScheme == .dark ? SheetMetrics.partialDimDark : SheetMetrics.partialDimLight)
+        let fit = CGSize(width: min(SheetMetrics.formSheetSize.width, size.width - 40),
+                         height: min(SheetMetrics.formSheetSize.height, size.height - deviceInsets.top - deviceInsets.bottom - 40))
+        cardRect = CGRect(x: (size.width - fit.width) / 2, y: (size.height - fit.height) / 2, width: fit.width, height: fit.height)
+        let absCard = cardRect.offsetBy(dx: ctx.origin.x, dy: ctx.origin.y)
+        var inner = ctx
+        inner.container = absCard
+        inner.safeRect = absCard
+        options.backgroundNode?.place(at: cardRect.origin, size: cardRect.size, inner)
+        let c = content.sizeThatFits(ProposedViewSize(cardRect.size))
+        content.place(at: CGPoint(x: cardRect.midX - c.width / 2, y: cardRect.midY - c.height / 2), size: c, inner)
+    }
+
     override func drawContent(_ p: Painter) {
-        let radius = options.cornerRadius ?? SheetMetrics.cornerRadius
-        let shape = Path(roundedRect: cardRect, cornerRadii: RectangleCornerRadii(topLeading: radius, topTrailing: radius), style: .continuous)
+        let radius = options.cornerRadius ?? (isFormSheet ? SheetMetrics.formSheetCornerRadius : SheetMetrics.cornerRadius)
+        let shape = isFormSheet ? Path(roundedRect: cardRect, cornerRadius: radius, style: .continuous)
+            : Path(roundedRect: cardRect, cornerRadii: RectangleCornerRadii(topLeading: radius, topTrailing: radius), style: .continuous)
         p.save()
         p.clip(shape)
         if let bg = options.backgroundNode {
