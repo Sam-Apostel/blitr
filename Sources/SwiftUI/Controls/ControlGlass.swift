@@ -27,9 +27,12 @@ enum ControlGlassMetrics {
     // Stepper: same size as before, capsule ends.
     static let stepperSize = CGSize(width: 94, height: 32)
 
-    // Segmented picker: capsule track, capsule selection.
-    static let segmentedTrackHeight: CGFloat = 36                // est.
-    static let segmentedInset: CGFloat = 3                       // est.
+    // Segmented picker: capsule track, capsule selection. measured: iOS 27.0 simulator
+    // (ControlsInputs): 32pt track, selection inset 2pt, no separators and no selection shadow;
+    // selection white / 5A5A5F.
+    static let segmentedTrackHeight: CGFloat = 32
+    static let segmentedInset: CGFloat = 2
+    static let segmentedSelection = DynamicColor(0xFFFFFF, 0x5A5A5F)
     static let segmentedFontSize: CGFloat = 14                   // est. (13 to 14)
 
     // Containers.
