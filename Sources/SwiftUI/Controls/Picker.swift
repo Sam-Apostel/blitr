@@ -78,10 +78,12 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
         }
 
         let view: AnyView
+        var valueText: String?
         switch kind {
         case .menu:
             let nodes = options({ $0.foregroundStyle = AnyShapeStyle(Color.accentColor) }, key: "menu")
             let selected = selectedIndex(nodes).map { nodes[$0] }
+            valueText = selected.map { axText([$0]) }
             view = AnyView(HStack(spacing: 8) {
                 if !labelNodes.isEmpty { labelView }
                 HStack(spacing: 5) {
@@ -92,6 +94,7 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
         case .navigationLink:
             let nodes = options({ $0.foregroundStyle = AnyShapeStyle(Color(SystemColor.secondaryLabel)) }, key: "nav")
             let selected = selectedIndex(nodes).map { nodes[$0] }
+            valueText = selected.map { axText([$0]) }
             view = AnyView(HStack(spacing: 8) {
                 labelView
                 Spacer(minLength: 8)
@@ -115,6 +118,12 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
                             if pair.offset == sel { Checkmark() }
                         }
                         .padding(.vertical, 11)
+                        .axInfo {
+                            $0.isElement = true
+                            $0.addTraits = pair.offset == sel ? [.button, .selected] : [.button]
+                            $0.children = .combine
+                            $0.isTapTarget = true
+                        }
                         if pair.offset < nodes.count - 1 { Divider() }
                     }
                 }
@@ -122,10 +131,32 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
         case .wheel:
             let nodes = options({ $0.font = .system(size: 21) }, key: "wheel")
             let sel = selectedIndex(nodes) ?? 0
+            valueText = nodes.indices.contains(sel) ? axText([nodes[sel]]) : nil
             view = AnyView(WheelBody(nodes: nodes, selected: sel))
         }
         let result = view.opacity(enabled ? 1 : 0.4)
-        resolveView(result, ctx.child("picker"), into: &out)
+        let labelText = axText(labelNodes)
+        let info = AccessibilityInfo {
+            $0.isElement = true
+            $0.role = "picker"
+            $0.label = labelText.isEmpty ? nil : labelText
+            $0.isEnabled = enabled
+            switch kind {
+            case .menu:
+                $0.addTraits = [.button, .hasPopup]; $0.children = .ignore; $0.value = valueText
+                $0.isTapTarget = true; $0.systemHitSlop = true
+            case .navigationLink:
+                $0.addTraits = [.button]; $0.children = .ignore; $0.value = valueText; $0.isTapTarget = true
+            case .wheel:
+                $0.addTraits = [.adjustable]; $0.children = .ignore; $0.value = valueText
+                $0.isTapTarget = true; $0.systemHitSlop = true
+            case .segmented:
+                $0.role = "segmentedControl"; $0.children = .contain
+            case .inline:
+                $0.children = .contain
+            }
+        }
+        resolveView(result.modifier(AXModifier(shared: true) { _ in info }), ctx.child("picker"), into: &out)
     }
 }
 
@@ -148,6 +179,13 @@ struct SegmentedBody: View {
                 .lineLimit(1)
                 .frame(maxWidth: .infinity)
                 .frame(height: 28)
+                .axInfo {
+                    $0.isElement = true
+                    $0.addTraits = isSel ? [.button, .selected] : [.button]
+                    $0.children = .combine
+                    $0.isTapTarget = true
+                    $0.systemHitSlop = true
+                }
                 .background {
                     if isSel {
                         RoundedRectangle(cornerRadius: 7)

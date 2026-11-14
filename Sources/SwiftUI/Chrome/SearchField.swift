@@ -57,6 +57,8 @@ public struct SearchSuggestionsPlacement: Sendable {
 final class SearchFieldNode: Node {
     let fill: _Paint
     let glass: _Paint
+    /// True while the field shows its prompt rather than typed text (accessibility value vs label).
+    let showsPrompt: Bool
     var label: Node { children[0] }
 
     init(configuration: SearchConfiguration, env: EnvironmentValues) {
@@ -68,6 +70,7 @@ final class SearchFieldNode: Node {
         textEnv.lineLimit = 1
         textEnv.fontWeight = nil
         let showsText = !configuration.text.isEmpty
+        showsPrompt = !showsText
         textEnv.foregroundStyle = AnyShapeStyle(_FixedPaintStyle(.color((showsText ? SystemColor.label : SystemColor.secondaryLabel).resolve(scheme))))
         textEnv.foregroundStyleLevels = nil
         let text = showsText ? Text(verbatim: configuration.text) : (configuration.prompt ?? Text(verbatim: "Search"))

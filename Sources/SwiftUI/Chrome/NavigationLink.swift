@@ -50,6 +50,7 @@ public struct NavigationLink<Label: View, Destination: View>: View, PrimitiveVie
         let start = out.count
         resolveView(label, labelCtx, into: &out)
         for node in out[start...] { node.traits[ListRowAccessoryTraitKey.self] = .disclosureIndicator }
+        axApplyShared(out[start...], .button(enabled: ctx.env.isEnabled))
         if isActive, let destination, out.count > start {
             let first = out[start]
             var chrome = first.preferences[NavigationChromeKey.self]

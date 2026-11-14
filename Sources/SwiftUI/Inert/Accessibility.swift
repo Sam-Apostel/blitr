@@ -1,6 +1,7 @@
-// Accessibility modifiers. A screenshot has no assistive technology, so all of these accept their
-// arguments and leave the view alone. (`AccessibilityHeadingLevel`, `AccessibilityTextContentType`
-// and the Text-level accessibility modifiers live in Text/Text.swift.)
+// Accessibility modifiers. A screenshot has no assistive technology, so none of these changes layout
+// or pixels; the common ones record into `AccessibilityInfo` (Accessibility/AccessibilityInfo.swift) for
+// `--accessibility-tree`. (`AccessibilityHeadingLevel`, `AccessibilityTextContentType` and the
+// Text-level accessibility modifiers live in Text/Text.swift.)
 
 // MARK: - Value types
 
@@ -234,29 +235,33 @@ extension View {
     // Label, hint, value
     // Text has its own Text-returning versions (Text/Text.swift); prefer those on a Text receiver.
     @_disfavoredOverload
-    public func accessibilityLabel(_ label: Text) -> some View { self }
+    public func accessibilityLabel(_ label: Text) -> some View { let s = label.plainString; return axInfo { $0.label = s } }
     @_disfavoredOverload
-    public func accessibilityLabel(_ labelKey: LocalizedStringKey) -> some View { self }
+    public func accessibilityLabel(_ labelKey: LocalizedStringKey) -> some View { let s = labelKey.plainString; return axInfo { $0.label = s } }
     @_disfavoredOverload
-    public func accessibilityLabel<S: StringProtocol>(_ label: S) -> some View { self }
-    public func accessibilityHint(_ hint: Text) -> some View { self }
-    public func accessibilityHint(_ hintKey: LocalizedStringKey) -> some View { self }
-    public func accessibilityHint<S: StringProtocol>(_ hint: S) -> some View { self }
-    public func accessibilityValue(_ value: Text) -> some View { self }
-    public func accessibilityValue(_ valueKey: LocalizedStringKey) -> some View { self }
-    public func accessibilityValue<S: StringProtocol>(_ value: S) -> some View { self }
-    public func accessibilityInputLabels(_ inputLabels: [Text]) -> some View { self }
-    public func accessibilityInputLabels(_ inputLabelKeys: [LocalizedStringKey]) -> some View { self }
-    public func accessibilityInputLabels<S: StringProtocol>(_ inputLabels: [S]) -> some View { self }
+    public func accessibilityLabel<S: StringProtocol>(_ label: S) -> some View { let s = String(label); return axInfo { $0.label = s } }
+    public func accessibilityHint(_ hint: Text) -> some View { let s = hint.plainString; return axInfo { $0.hint = s } }
+    public func accessibilityHint(_ hintKey: LocalizedStringKey) -> some View { let s = hintKey.plainString; return axInfo { $0.hint = s } }
+    public func accessibilityHint<S: StringProtocol>(_ hint: S) -> some View { let s = String(hint); return axInfo { $0.hint = s } }
+    public func accessibilityValue(_ value: Text) -> some View { let s = value.plainString; return axInfo { $0.value = s } }
+    public func accessibilityValue(_ valueKey: LocalizedStringKey) -> some View { let s = valueKey.plainString; return axInfo { $0.value = s } }
+    public func accessibilityValue<S: StringProtocol>(_ value: S) -> some View { let s = String(value); return axInfo { $0.value = s } }
+    public func accessibilityInputLabels(_ inputLabels: [Text]) -> some View { let l = inputLabels.map(\.plainString); return axInfo { $0.inputLabels = l } }
+    public func accessibilityInputLabels(_ inputLabelKeys: [LocalizedStringKey]) -> some View { let l = inputLabelKeys.map(\.plainString); return axInfo { $0.inputLabels = l } }
+    public func accessibilityInputLabels<S: StringProtocol>(_ inputLabels: [S]) -> some View { let l = inputLabels.map { String($0) }; return axInfo { $0.inputLabels = l } }
 
     // Visibility, identity, structure
-    public func accessibilityHidden(_ hidden: Bool) -> some View { self }
-    public func accessibilityIdentifier(_ identifier: String) -> some View { self }
-    public func accessibilityAddTraits(_ traits: AccessibilityTraits) -> some View { self }
-    public func accessibilityRemoveTraits(_ traits: AccessibilityTraits) -> some View { self }
-    public func accessibilityElement(children: AccessibilityChildBehavior = .ignore) -> some View { self }
-    public func accessibilitySortPriority(_ sortPriority: Double) -> some View { self }
-    public func accessibilityHeading(_ level: AccessibilityHeadingLevel) -> some View { self }
+    public func accessibilityHidden(_ hidden: Bool) -> some View { axInfo { $0.hidden = hidden } }
+    public func accessibilityIdentifier(_ identifier: String) -> some View { axInfo { $0.identifier = identifier } }
+    public func accessibilityAddTraits(_ traits: AccessibilityTraits) -> some View { axInfo { $0.addTraits = AXTrait(traits) } }
+    public func accessibilityRemoveTraits(_ traits: AccessibilityTraits) -> some View { axInfo { $0.removeTraits = AXTrait(traits) } }
+    public func accessibilityElement(children: AccessibilityChildBehavior = .ignore) -> some View {
+        axInfo { $0.isElement = true; $0.children = AXChildren(children) }
+    }
+    public func accessibilitySortPriority(_ sortPriority: Double) -> some View { axInfo { $0.sortPriority = sortPriority } }
+    public func accessibilityHeading(_ level: AccessibilityHeadingLevel) -> some View {
+        axInfo { if level != .unspecified { $0.addTraits = [.header] } }
+    }
     public func accessibilityTextContentType(_ textContentType: AccessibilityTextContentType) -> some View { self }
     public func accessibilityRespondsToUserInteraction(_ respondsToUserInteraction: Bool = true) -> some View { self }
     public func accessibilityIgnoresInvertColors(_ active: Bool = true) -> some View { self }
@@ -265,7 +270,15 @@ extension View {
     public func accessibilityDirectTouch(_ isDirectTouchArea: Bool = true, options: AccessibilityDirectTouchOptions = []) -> some View { self }
     public func accessibilityShowsLargeContentViewer() -> some View { self }
     public func accessibilityShowsLargeContentViewer<V: View>(@ViewBuilder _ label: () -> V) -> some View { self }
-    public func accessibilityRepresentation<V: View>(@ViewBuilder representation: () -> V) -> some View { self }
+    public func accessibilityRepresentation<V: View>(@ViewBuilder representation: () -> V) -> some View {
+        let view = representation()
+        return axInfo(context: { ctx in
+            AccessibilityInfo {
+                $0.isElement = true
+                $0.representation = resolveNodes(view, ctx.child("accessibilityRepresentation"))
+            }
+        })
+    }
     public func accessibilityChildren<V: View>(@ViewBuilder children: () -> V) -> some View { self }
     public func accessibilityLabeledPair<ID: Hashable>(role: AccessibilityLabeledPairRole, id: ID, in namespace: Namespace.ID) -> some View { self }
     public func accessibilityLinkedGroup<ID: Hashable>(id: ID, in namespace: Namespace.ID) -> some View { self }
@@ -275,16 +288,37 @@ extension View {
     public func accessibilityFocused<V: Hashable>(_ binding: AccessibilityFocusState<V>.Binding, equals value: V) -> some View { self }
 
     // Actions
-    public func accessibilityAction(_ actionKind: AccessibilityActionKind = .default, _ handler: @escaping () -> Void) -> some View { self }
-    public func accessibilityAction(named name: Text, _ handler: @escaping () -> Void) -> some View { self }
-    public func accessibilityAction(named nameKey: LocalizedStringKey, _ handler: @escaping () -> Void) -> some View { self }
-    public func accessibilityAction<S: StringProtocol>(named name: S, _ handler: @escaping () -> Void) -> some View { self }
-    public func accessibilityAction<L: View>(action: @escaping () -> Void, @ViewBuilder label: () -> L) -> some View { self }
+    public func accessibilityAction(_ actionKind: AccessibilityActionKind = .default, _ handler: @escaping () -> Void) -> some View {
+        let name = actionKind.name
+        return axInfo {
+            if name == "default" {
+                $0.isTapTarget = true
+                $0.activate = { handler() }
+            } else {
+                $0.actions = [name]
+            }
+        }
+    }
+    public func accessibilityAction(named name: Text, _ handler: @escaping () -> Void) -> some View { let s = name.plainString; return axInfo { $0.actions = [s] } }
+    public func accessibilityAction(named nameKey: LocalizedStringKey, _ handler: @escaping () -> Void) -> some View { let s = nameKey.plainString; return axInfo { $0.actions = [s] } }
+    public func accessibilityAction<S: StringProtocol>(named name: S, _ handler: @escaping () -> Void) -> some View { let s = String(name); return axInfo { $0.actions = [s] } }
+    public func accessibilityAction<L: View>(action: @escaping () -> Void, @ViewBuilder label: () -> L) -> some View {
+        let view = label()
+        return axInfo(context: { ctx in AccessibilityInfo { $0.actions = axActionNames(view, ctx) } })
+    }
     @_disfavoredOverload
     public func accessibilityAction(_ category: AccessibilityActionCategory, _ handler: @escaping () -> Void) -> some View { self }
-    public func accessibilityActions<C: View>(@ViewBuilder _ content: () -> C) -> some View { self }
-    public func accessibilityActions<C: View>(category: AccessibilityActionCategory, @ViewBuilder _ content: () -> C) -> some View { self }
-    public func accessibilityAdjustableAction(_ handler: @escaping (AccessibilityAdjustmentDirection) -> Void) -> some View { self }
+    public func accessibilityActions<C: View>(@ViewBuilder _ content: () -> C) -> some View {
+        let view = content()
+        return axInfo(context: { ctx in AccessibilityInfo { $0.actions = axActionNames(view, ctx) } })
+    }
+    public func accessibilityActions<C: View>(category: AccessibilityActionCategory, @ViewBuilder _ content: () -> C) -> some View {
+        let view = content()
+        return axInfo(context: { ctx in AccessibilityInfo { $0.actions = axActionNames(view, ctx) } })
+    }
+    public func accessibilityAdjustableAction(_ handler: @escaping (AccessibilityAdjustmentDirection) -> Void) -> some View {
+        axInfo { $0.addTraits = [.adjustable] }
+    }
     public func accessibilityScrollAction(_ handler: @escaping (Edge) -> Void) -> some View { self }
 
     // Drag and drop
@@ -325,17 +359,17 @@ extension View {
     public func accessibilityRotor<L: StringProtocol, M: Identifiable>(_ label: L, entries: [M], entryLabel: KeyPath<M, String>) -> some View { self }
 
     // Deprecated spellings
-    public func accessibility(label: Text) -> some View { self }
-    public func accessibility(hint: Text) -> some View { self }
-    public func accessibility(value: Text) -> some View { self }
-    public func accessibility(hidden: Bool) -> some View { self }
-    public func accessibility(identifier: String) -> some View { self }
-    public func accessibility(addTraits traits: AccessibilityTraits) -> some View { self }
-    public func accessibility(removeTraits traits: AccessibilityTraits) -> some View { self }
-    public func accessibility(sortPriority: Double) -> some View { self }
+    public func accessibility(label: Text) -> some View { let s = label.plainString; return axInfo { $0.label = s } }
+    public func accessibility(hint: Text) -> some View { let s = hint.plainString; return axInfo { $0.hint = s } }
+    public func accessibility(value: Text) -> some View { let s = value.plainString; return axInfo { $0.value = s } }
+    public func accessibility(hidden: Bool) -> some View { axInfo { $0.hidden = hidden } }
+    public func accessibility(identifier: String) -> some View { axInfo { $0.identifier = identifier } }
+    public func accessibility(addTraits traits: AccessibilityTraits) -> some View { axInfo { $0.addTraits = AXTrait(traits) } }
+    public func accessibility(removeTraits traits: AccessibilityTraits) -> some View { axInfo { $0.removeTraits = AXTrait(traits) } }
+    public func accessibility(sortPriority: Double) -> some View { axInfo { $0.sortPriority = sortPriority } }
     public func accessibility(activationPoint: CGPoint) -> some View { self }
     public func accessibility(activationPoint: UnitPoint) -> some View { self }
-    public func accessibility(inputLabels: [Text]) -> some View { self }
+    public func accessibility(inputLabels: [Text]) -> some View { let l = inputLabels.map(\.plainString); return axInfo { $0.inputLabels = l } }
 
     // Speech
     public func speechAdjustedPitch(_ value: Double) -> some View { self }
@@ -368,4 +402,17 @@ extension ForEach where ID == Data.Element.ID, Content: AccessibilityRotorConten
     public init(_ data: Data, @AccessibilityRotorContentBuilder content: @escaping (Data.Element) -> Content) {
         self.init(data, id: \.id, content: content)
     }
+}
+
+/// The names of the actions a view builds for `accessibilityActions` (the text of each button inside).
+@MainActor
+func axActionNames<V: View>(_ view: V, _ ctx: ResolveContext) -> [String] {
+    var names: [String] = []
+    for node in resolveNodes(view, ctx.child("accessibilityActions")) {
+        var parts: [AXLabelPart] = []
+        axLabelParts(node, into: &parts, geometry: false)
+        let name = parts.map(\.text).joined(separator: " ")
+        if !name.isEmpty { names.append(name) }
+    }
+    return names
 }

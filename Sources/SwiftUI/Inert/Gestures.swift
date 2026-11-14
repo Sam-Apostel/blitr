@@ -275,28 +275,51 @@ extension Gesture where Value: Equatable {
 
 // MARK: - View modifiers
 
-extension View {
-    public func gesture<T: Gesture>(_ gesture: T, including mask: GestureMask = .all) -> some View { self }
-    public func gesture<T: Gesture>(_ gesture: T, isEnabled: Bool) -> some View { self }
-    public func highPriorityGesture<T: Gesture>(_ gesture: T, including mask: GestureMask = .all) -> some View { self }
-    public func highPriorityGesture<T: Gesture>(_ gesture: T, isEnabled: Bool) -> some View { self }
-    public func simultaneousGesture<T: Gesture>(_ gesture: T, including mask: GestureMask = .all) -> some View { self }
-    public func simultaneousGesture<T: Gesture>(_ gesture: T, isEnabled: Bool) -> some View { self }
+/// Gestures that make a view a touch target (taps and long presses, also after `onEnded`, `updating`...).
+protocol AXTapGesture {}
+extension TapGesture: AXTapGesture {}
+extension SpatialTapGesture: AXTapGesture {}
+extension LongPressGesture: AXTapGesture {}
+extension _ChangedGesture: AXTapGesture where Base: AXTapGesture {}
+extension _EndedGesture: AXTapGesture where Base: AXTapGesture {}
+extension GestureStateGesture: AXTapGesture where Base: AXTapGesture {}
+extension _ModifiersGesture: AXTapGesture where Base: AXTapGesture {}
 
-    public func onTapGesture(count: Int = 1, perform action: @escaping () -> Void) -> some View { self }
+extension View {
+    /// A tap target without a default action the tool could simulate (`.gesture` does not keep its handler).
+    func axTappable(enabled: Bool = true, activate: (@MainActor () -> Void)? = nil) -> ModifiedContent<Self, AXModifier> {
+        axInfo(context: { ctx in
+            AccessibilityInfo {
+                guard enabled else { return }
+                $0.isElement = true
+                $0.isTapTarget = true
+                $0.isEnabled = ctx.env.isEnabled
+                $0.activate = activate
+            }
+        })
+    }
+
+    public func gesture<T: Gesture>(_ gesture: T, including mask: GestureMask = .all) -> some View { axTappable(enabled: gesture is AXTapGesture) }
+    public func gesture<T: Gesture>(_ gesture: T, isEnabled: Bool) -> some View { axTappable(enabled: isEnabled && gesture is AXTapGesture) }
+    public func highPriorityGesture<T: Gesture>(_ gesture: T, including mask: GestureMask = .all) -> some View { axTappable(enabled: gesture is AXTapGesture) }
+    public func highPriorityGesture<T: Gesture>(_ gesture: T, isEnabled: Bool) -> some View { axTappable(enabled: isEnabled && gesture is AXTapGesture) }
+    public func simultaneousGesture<T: Gesture>(_ gesture: T, including mask: GestureMask = .all) -> some View { axTappable(enabled: gesture is AXTapGesture) }
+    public func simultaneousGesture<T: Gesture>(_ gesture: T, isEnabled: Bool) -> some View { axTappable(enabled: isEnabled && gesture is AXTapGesture) }
+
+    public func onTapGesture(count: Int = 1, perform action: @escaping () -> Void) -> some View { axTappable(activate: { action() }) }
     @_disfavoredOverload
     public func onTapGesture(count: Int = 1, coordinateSpace: CoordinateSpace,
-                             perform action: @escaping (CGPoint) -> Void) -> some View { self }
+                             perform action: @escaping (CGPoint) -> Void) -> some View { axTappable() }
     public func onTapGesture(count: Int = 1, coordinateSpace: some CoordinateSpaceProtocol = .local,
-                             perform action: @escaping (CGPoint) -> Void) -> some View { self }
+                             perform action: @escaping (CGPoint) -> Void) -> some View { axTappable() }
 
     public func onLongPressGesture(minimumDuration: Double = 0.5, maximumDistance: CGFloat = 10,
                                    perform action: @escaping () -> Void,
-                                   onPressingChanged: ((Bool) -> Void)? = nil) -> some View { self }
+                                   onPressingChanged: ((Bool) -> Void)? = nil) -> some View { axTappable() }
     @_disfavoredOverload
     public func onLongPressGesture(minimumDuration: Double = 0.5, maximumDistance: CGFloat = 10,
                                    pressing onPressingChanged: ((Bool) -> Void)? = nil,
-                                   perform action: @escaping () -> Void) -> some View { self }
+                                   perform action: @escaping () -> Void) -> some View { axTappable() }
 
     public func allowsHitTesting(_ enabled: Bool) -> some View { self }
 }

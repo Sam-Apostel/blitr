@@ -42,6 +42,10 @@ Render options:
       --fonts <dir>      Extra font directory, searched first (repeatable)
       --open-fonts       Use the open substitute fonts even if Apple's fonts are installed
       --task-budget <s>  Seconds .task closures may run before the frame is taken (default 0.5)
+      --accessibility-tree <file.json>  Write the accessibility tree, tap-target data and issues as JSON
+      --tap-targets <file.png>          Write the screenshot dimmed with every tap target outlined
+                                        (green >= 44x44pt, red below)
+      --accessibility-outline           Print the accessibility tree as indented text on stdout
       --json             Print one JSON object per image instead of text
       --no-cache         Recompile even if an identical build is cached
   -v, --verbose          Show the compiler invocation
@@ -175,6 +179,7 @@ struct Options {
     var runnerArguments: [String] = []
     var userAssetDirectories: [String] = []
     var userFontDirectories: [String] = []
+    var accessibility = AccessibilityCLIOptions()
 }
 
 func parse(_ arguments: [String]) -> Options {
@@ -207,6 +212,8 @@ func parse(_ arguments: [String]) -> Options {
         case "--no-chrome": options.runnerArguments.append(arg)
         case "--orientation": options.runnerArguments += [arg, value(arg)]
         case "--rounded-corners", "--show-island": options.runnerArguments.append(arg)
+        case "--accessibility-tree", "--tap-targets": options.accessibility.record(arg, value: value(arg))
+        case "--accessibility-outline": options.accessibility.record(arg, value: nil)
         case "-h", "--help":
             print(usage)
             exit(0)
@@ -332,6 +339,7 @@ func render(_ options: Options, _ installation: Installation) {
                 path = (options.outDir ?? ".") + "/" + name + ".png"
             }
             var arguments = ["--out", path, "--preview", "\(preview.index)", "--scheme", scheme] + options.runnerArguments
+            arguments += options.accessibility.arguments(png: path, stem: stem, multiple: multiple, outDir: options.outDir)
             let apple = options.openFonts ? [] : [installation.appleFontDirectory].compactMap { $0 }
             for dir in options.userFontDirectories + apple + installation.fontDirectories { arguments += ["--fonts", dir] }
             for dir in options.userAssetDirectories + autoAssets { arguments += ["--assets", dir] }
@@ -351,6 +359,7 @@ func render(_ options: Options, _ installation: Installation) {
             } else {
                 print(path)
             }
+            options.accessibility.report(line, json: options.json)
             if !result.stderr.isEmpty { note(result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)) }
         }
     }

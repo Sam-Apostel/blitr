@@ -62,7 +62,10 @@ public struct TextField<Label: View>: View {
         self.placeholder = placeholder
     }
 
-    public var body: some View { _FieldBody(text: text, placeholder: placeholder) }
+    public var body: some View {
+        _FieldBody(text: text, placeholder: placeholder)
+            .axInfo(context: { ctx in .textInput(role: "textField", text: text, placeholder: placeholder, ctx) })
+    }
 }
 
 extension TextField where Label == Text {
@@ -121,7 +124,10 @@ public struct SecureField<Label: View>: View {
         self.placeholder = placeholder
     }
 
-    public var body: some View { _FieldBody(text: text, placeholder: placeholder, secure: true) }
+    public var body: some View {
+        _FieldBody(text: text, placeholder: placeholder, secure: true)
+            .axInfo(context: { ctx in .textInput(role: "secureTextField", text: text, placeholder: placeholder, ctx) })
+    }
 }
 
 extension SecureField where Label == Text {
@@ -156,5 +162,6 @@ public struct TextEditor: View {
             .padding(.horizontal, 5)
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .axInfo(context: { ctx in .textInput(role: "textEditor", text: text, placeholder: nil, ctx) })
     }
 }

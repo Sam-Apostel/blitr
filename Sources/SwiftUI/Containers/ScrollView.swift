@@ -32,7 +32,7 @@ final class ScrollNode: Node {
     let margins: EdgeInsets
     let clips: Bool
     var content: Node { children[0] }
-    private var clipRect = CGRect.zero
+    private(set) var clipRect = CGRect.zero
 
     init(content: Node, axes: Axis.Set, margins: EdgeInsets, clips: Bool) {
         self.axes = axes

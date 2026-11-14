@@ -8,6 +8,7 @@ public struct Slider<Label: View, ValueLabel: View>: View {
     let fraction: Double
     let minLabel: AnyView?
     let maxLabel: AnyView?
+    var axLabel: String?
     @Environment(\.isEnabled) private var isEnabled
 
     init<V: BinaryFloatingPoint>(value: Binding<V>, bounds: ClosedRange<V>, minLabel: AnyView?, maxLabel: AnyView?) {
@@ -24,6 +25,17 @@ public struct Slider<Label: View, ValueLabel: View>: View {
             if let maxLabel { maxLabel }
         }
         .opacity(isEnabled ? 1 : 0.5)
+        .axInfo {
+            $0.isElement = true
+            $0.role = "slider"
+            $0.addTraits = [.adjustable]
+            $0.children = .ignore
+            $0.label = axLabel
+            $0.value = "\(Int((fraction * 100).rounded()))%"
+            $0.isTapTarget = true
+            $0.systemHitSlop = true
+            $0.isEnabled = isEnabled
+        }
     }
 
     private var track: some View {
@@ -54,18 +66,22 @@ extension Slider where Label == EmptyView, ValueLabel == EmptyView {
 extension Slider where ValueLabel == EmptyView {
     public init<V: BinaryFloatingPoint>(value: Binding<V>, in bounds: ClosedRange<V> = 0...1, @ViewBuilder label: () -> Label, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where V.Stride: BinaryFloatingPoint {
         self.init(value: value, bounds: bounds, minLabel: nil, maxLabel: nil)
+        axLabel = axPlainString(label())
     }
     public init<V: BinaryFloatingPoint>(value: Binding<V>, in bounds: ClosedRange<V>, step: V.Stride = 1, @ViewBuilder label: () -> Label, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where V.Stride: BinaryFloatingPoint {
         self.init(value: value, bounds: bounds, minLabel: nil, maxLabel: nil)
+        axLabel = axPlainString(label())
     }
 }
 
 extension Slider {
     public init<V: BinaryFloatingPoint>(value: Binding<V>, in bounds: ClosedRange<V> = 0...1, @ViewBuilder label: () -> Label, @ViewBuilder minimumValueLabel: () -> ValueLabel, @ViewBuilder maximumValueLabel: () -> ValueLabel, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where V.Stride: BinaryFloatingPoint {
         self.init(value: value, bounds: bounds, minLabel: AnyView(minimumValueLabel()), maxLabel: AnyView(maximumValueLabel()))
+        axLabel = axPlainString(label())
     }
     public init<V: BinaryFloatingPoint>(value: Binding<V>, in bounds: ClosedRange<V>, step: V.Stride = 1, @ViewBuilder label: () -> Label, @ViewBuilder minimumValueLabel: () -> ValueLabel, @ViewBuilder maximumValueLabel: () -> ValueLabel, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where V.Stride: BinaryFloatingPoint {
         self.init(value: value, bounds: bounds, minLabel: AnyView(minimumValueLabel()), maxLabel: AnyView(maximumValueLabel()))
+        axLabel = axPlainString(label())
     }
 }
 
@@ -75,12 +91,14 @@ public struct Stepper<Label: View>: View {
     let label: Label
     let canDecrement: Bool
     let canIncrement: Bool
+    var axValue: String?
     @Environment(\.isEnabled) private var isEnabled
 
-    init(label: Label, canDecrement: Bool, canIncrement: Bool) {
+    init(label: Label, canDecrement: Bool, canIncrement: Bool, axValue: String? = nil) {
         self.label = label
         self.canDecrement = canDecrement
         self.canIncrement = canIncrement
+        self.axValue = axValue
     }
 
     public var body: some View {
@@ -89,6 +107,16 @@ public struct Stepper<Label: View>: View {
             control
         }
         .opacity(isEnabled ? 1 : 0.5)
+        .axInfo {
+            $0.isElement = true
+            $0.role = "stepper"
+            $0.addTraits = [.adjustable]
+            $0.children = .combine
+            $0.value = axValue
+            $0.isTapTarget = true
+            $0.systemHitSlop = true
+            $0.isEnabled = isEnabled
+        }
     }
 
     private var control: some View {
@@ -112,10 +140,10 @@ public struct Stepper<Label: View>: View {
 
 extension Stepper {
     public init<V: Strideable>(value: Binding<V>, step: V.Stride = 1, @ViewBuilder label: () -> Label, onEditingChanged: @escaping (Bool) -> Void = { _ in }) {
-        self.init(label: label(), canDecrement: true, canIncrement: true)
+        self.init(label: label(), canDecrement: true, canIncrement: true, axValue: "\(value.wrappedValue)")
     }
     public init<V: Strideable>(value: Binding<V>, in bounds: ClosedRange<V>, step: V.Stride = 1, @ViewBuilder label: () -> Label, onEditingChanged: @escaping (Bool) -> Void = { _ in }) {
-        self.init(label: label(), canDecrement: value.wrappedValue > bounds.lowerBound, canIncrement: value.wrappedValue < bounds.upperBound)
+        self.init(label: label(), canDecrement: value.wrappedValue > bounds.lowerBound, canIncrement: value.wrappedValue < bounds.upperBound, axValue: "\(value.wrappedValue)")
     }
     public init(onIncrement: (() -> Void)?, onDecrement: (() -> Void)?, onEditingChanged: @escaping (Bool) -> Void = { _ in }, @ViewBuilder label: () -> Label) {
         self.init(label: label(), canDecrement: onDecrement != nil, canIncrement: onIncrement != nil)
@@ -124,16 +152,16 @@ extension Stepper {
 
 extension Stepper where Label == Text {
     public init<V: Strideable>(_ titleKey: LocalizedStringKey, value: Binding<V>, step: V.Stride = 1, onEditingChanged: @escaping (Bool) -> Void = { _ in }) {
-        self.init(label: Text(titleKey), canDecrement: true, canIncrement: true)
+        self.init(label: Text(titleKey), canDecrement: true, canIncrement: true, axValue: "\(value.wrappedValue)")
     }
     public init<V: Strideable>(_ titleKey: LocalizedStringKey, value: Binding<V>, in bounds: ClosedRange<V>, step: V.Stride = 1, onEditingChanged: @escaping (Bool) -> Void = { _ in }) {
-        self.init(label: Text(titleKey), canDecrement: value.wrappedValue > bounds.lowerBound, canIncrement: value.wrappedValue < bounds.upperBound)
+        self.init(label: Text(titleKey), canDecrement: value.wrappedValue > bounds.lowerBound, canIncrement: value.wrappedValue < bounds.upperBound, axValue: "\(value.wrappedValue)")
     }
     public init<S: StringProtocol, V: Strideable>(_ title: S, value: Binding<V>, step: V.Stride = 1, onEditingChanged: @escaping (Bool) -> Void = { _ in }) {
-        self.init(label: Text(title), canDecrement: true, canIncrement: true)
+        self.init(label: Text(title), canDecrement: true, canIncrement: true, axValue: "\(value.wrappedValue)")
     }
     public init<S: StringProtocol, V: Strideable>(_ title: S, value: Binding<V>, in bounds: ClosedRange<V>, step: V.Stride = 1, onEditingChanged: @escaping (Bool) -> Void = { _ in }) {
-        self.init(label: Text(title), canDecrement: value.wrappedValue > bounds.lowerBound, canIncrement: value.wrappedValue < bounds.upperBound)
+        self.init(label: Text(title), canDecrement: value.wrappedValue > bounds.lowerBound, canIncrement: value.wrappedValue < bounds.upperBound, axValue: "\(value.wrappedValue)")
     }
     public init(_ titleKey: LocalizedStringKey, onIncrement: (() -> Void)?, onDecrement: (() -> Void)?, onEditingChanged: @escaping (Bool) -> Void = { _ in }) {
         self.init(label: Text(titleKey), canDecrement: onDecrement != nil, canIncrement: onIncrement != nil)
@@ -279,6 +307,16 @@ public struct ProgressView<Label: View, CurrentValueLabel: View>: View {
     }
 
     public var body: some View {
+        styled.axInfo {
+            $0.isElement = true
+            $0.role = "progress"
+            $0.children = .combine
+            $0.addTraits = [.updatesFrequently]
+            if let fraction { $0.value = "\(Int((fraction * 100).rounded()))%" }
+        }
+    }
+
+    @ViewBuilder private var styled: some View {
         if let custom = styleBox.custom {
             custom(ProgressViewStyleConfiguration(fractionCompleted: fraction, label: .init(view: label), currentValueLabel: .init(view: currentValueLabel)))
         } else {
@@ -410,6 +448,15 @@ public struct Gauge<Label: View, CurrentValueLabel: View, BoundsLabel: View, Mar
     }
 
     public var body: some View {
+        gaugeBody.axInfo {
+            $0.isElement = true
+            $0.role = "gauge"
+            $0.children = .combine
+            $0.value = "\(Int((fraction * 100).rounded()))%"
+        }
+    }
+
+    @ViewBuilder private var gaugeBody: some View {
         switch kind {
         case .linearCapacity, .accessoryLinearCapacity, .accessoryLinear: linear
         case .accessoryCircular: circular(open: true)
