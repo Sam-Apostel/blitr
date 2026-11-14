@@ -35,7 +35,9 @@ package struct DynamicColor: Hashable, Sendable {
     func resolve(_ scheme: ColorScheme) -> RGBA { scheme == .dark ? dark : light }
     /// Picks the iOS 26+ palette when the environment draws that design on iOS.
     func resolve(in env: EnvironmentValues) -> RGBA {
+        // tvOS keeps its palette, also where its controls resolve colours in a fresh environment.
         if env.designLanguage.isGlass, env.renderPlatform != .tvOS,
+           MainActor.assumeIsolated({ Runtime.current?.config.platform }) != .tvOS,
            let glass = env.colorScheme == .dark ? glassDark : glassLight { return glass }
         return resolve(env.colorScheme)
     }

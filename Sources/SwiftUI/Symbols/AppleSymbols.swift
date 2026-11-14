@@ -57,7 +57,7 @@ final class AppleSymbols {
     }
 
     /// The outline of a symbol at a weight and point size, positioned with its top-left at the origin.
-    func glyph(named name: String, weight: CGFloat, pointSize: CGFloat) -> SymbolGlyph? {
+    func glyph(named name: String, weight: CGFloat, pointSize: CGFloat, imageBounds: Bool = true) -> SymbolGlyph? {
         load()
         guard let font, let codePoint = codePoints[name] else { return nil }
         let instance = font.instance([fourCC("wght"): font.axisWeight(Float(weight)), fourCC("opsz"): Float(pointSize)])
@@ -71,6 +71,10 @@ final class AppleSymbols {
         let outline = Path(skPath: skPath)
         let bounds = outline.boundingRect
         guard bounds.width > 0, bounds.height > 0 else { return nil }
+        if !imageBounds {
+            let placed = outline.offsetBy(dx: -bounds.minX, dy: -bounds.minY)
+            return SymbolGlyph(size: bounds.size, viewBox: bounds.size, layers: [.init(path: placed, stroke: nil, evenOdd: false)])
+        }
         // The image is as wide as the glyph's advance, the outline at its left side bearing, and
         // as tall as the outline plus `verticalPadding` x the point size above and below.
         // measured: iOS 27.0 simulator (Symbols, ControlsButtons): images in an HStack(spacing: 14)

@@ -282,7 +282,8 @@ extension Image {
         switch source {
         case .system(let name):
             let font = font ?? (env.font ?? .body).resolve(in: env)
-            if let glyph = SymbolLibrary.shared.glyph(named: name, variants: env.symbolVariants, font: font, scale: env.imageScale) {
+            if let glyph = SymbolLibrary.shared.glyph(named: name, variants: env.symbolVariants, font: font, scale: env.imageScale,
+                                                      imageBounds: env.renderPlatform != .tvOS) {
                 return .symbol(glyph, paint: foreground)
             }
             Runtime.current?.warn("SF Symbol \"\(name)\" has no open-source equivalent mapped; rendered as a placeholder")
@@ -403,7 +404,9 @@ final class SymbolLibrary {
     /// Looks up artwork for a (variant-qualified) SF Symbol name; installed by the icon set.
     var provider: ((String) -> (viewBox: CGSize, layers: [SymbolGlyph.Layer])?)?
 
-    func glyph(named name: String, variants: SymbolVariants, font: ResolvedFont, scale: Image.Scale) -> SymbolGlyph? {
+    /// `imageBounds`: size Apple's symbols like UIKit's symbol images (advance width, vertical
+    /// padding) rather than to their outline (kept for tvOS, which is not calibrated yet).
+    func glyph(named name: String, variants: SymbolVariants, font: ResolvedFont, scale: Image.Scale, imageBounds: Bool = true) -> SymbolGlyph? {
         // Without an installed provider, fall back to the bundled Phosphor-based artwork (Symbols/).
         let lookup: (String) -> (viewBox: CGSize, layers: [SymbolGlyph.Layer])? = provider
             ?? { SymbolArtwork.shared.art(named: $0, weight: font.weight) }
@@ -418,7 +421,7 @@ final class SymbolLibrary {
         // Apple's own artwork, when the user has installed SF Pro and a symbol name map.
         if provider == nil, AppleSymbols.shared.isAvailable {
             for candidate in candidates {
-                if let glyph = AppleSymbols.shared.glyph(named: candidate, weight: font.weight, pointSize: font.size * factor) { return glyph }
+                if let glyph = AppleSymbols.shared.glyph(named: candidate, weight: font.weight, pointSize: font.size * factor, imageBounds: imageBounds) { return glyph }
             }
         }
         for candidate in candidates {
