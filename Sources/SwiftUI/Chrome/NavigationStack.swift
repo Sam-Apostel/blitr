@@ -451,6 +451,9 @@ final class NavigationStackNode: Node {
 
         let tv = env.renderPlatform == .tvOS
         self.tv = tv
+        if tv, chrome.titleDisplayMode != nil {
+            Runtime.current?.warn("navigationBarTitleDisplayMode is not available on tvOS: a real tvOS build fails to compile")
+        }
         let glass: NavigationGlassMetrics? = !tv && env.designLanguage.isGlass ? .forDesign(env.designLanguage) : nil
         self.glass = glass
 
