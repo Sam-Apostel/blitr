@@ -271,8 +271,19 @@ extension View {
     public func scrollClipDisabled(_ disabled: Bool = true) -> some View { env { $0.scrollClipDisabled = disabled } }
     public func scrollDismissesKeyboard(_ mode: ScrollDismissesKeyboardMode) -> some View { self }
     public func scrollInputBehavior(_ behavior: ScrollInputBehavior, for input: ScrollInputKind) -> some View { self }
-    public func scrollEdgeEffectStyle(_ style: ScrollEdgeEffectStyle?, for edges: Edge.Set) -> some View { self }
-    public func scrollEdgeEffectHidden(_ hidden: Bool = true, for edges: Edge.Set = .all) -> some View { self }
+    /// Read by the Liquid Glass bars of the enclosing navigation stack (top and bottom edges).
+    public func scrollEdgeEffectStyle(_ style: ScrollEdgeEffectStyle?, for edges: Edge.Set) -> some View {
+        navigationChrome { chrome, _ in
+            if edges.contains(.top) { chrome.topEdgeEffectStyle = style ?? .automatic }
+            if edges.contains(.bottom) { chrome.bottomEdgeEffectStyle = style ?? .automatic }
+        }
+    }
+    public func scrollEdgeEffectHidden(_ hidden: Bool = true, for edges: Edge.Set = .all) -> some View {
+        navigationChrome { chrome, _ in
+            if edges.contains(.top) { chrome.topEdgeEffectHidden = hidden }
+            if edges.contains(.bottom) { chrome.bottomEdgeEffectHidden = hidden }
+        }
+    }
     public func defaultScrollAnchor(_ anchor: UnitPoint?) -> some View { self }
     public func defaultScrollAnchor(_ anchor: UnitPoint?, for role: ScrollAnchorRole) -> some View { self }
     public func scrollContentBackground(_ visibility: Visibility) -> some View { env { $0.scrollContentBackground = visibility } }

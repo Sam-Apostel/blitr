@@ -251,6 +251,19 @@ final class AXExtractor {
         case let n as SearchFieldNode: return searchField(n, ctx)
         case let n as BackButtonNode: return backButton(n, ctx)
         case let n as EllipsisCircleNode: return moreButton(n, ctx)
+        case let n as ToolbarGlassGroupNode where n.appearance != nil && n.cellRects.count == n.items.count:
+            // Liquid Glass bar items: a button's frame is its cell on the glass, not just its glyph.
+            var result: [AXElement] = []
+            for (item, cell) in zip(n.items, n.cellRects) {
+                var elements = visitChildren([item], ctx)
+                if elements.count == 1, elements[0].interactive, geometry {
+                    elements[0].frame = cell
+                    elements[0].rawHitFrame = cell
+                    elements[0].hitFrame = expand(cell)
+                }
+                result += elements
+            }
+            return result
         case let n as ScrollNode:
             var inner = ctx
             inner.visible = intersect(ctx.visible, n.clipRect.offsetBy(dx: n.absoluteOrigin.x, dy: n.absoluteOrigin.y))
@@ -464,8 +477,11 @@ final class AXExtractor {
         if let principal = n.principal { bar += visitChildren([principal], barCtx) }
         if let inline = n.inlineTitle { bar += promoteToHeader(visit(inline, ctx)) }
         if let large = n.largeTitle { bar += promoteToHeader(visit(large, ctx)) }
+        if let subtitle = n.subtitle { bar += visit(subtitle, ctx) }
         bar += visitChildren(n.trailing, barCtx)
-        if let search = n.search { bar += visit(search, ctx) }
+        // A Liquid Glass search field at the bottom of the screen is not part of the navigation bar.
+        let searchAtBottom = n.search.map { $0.glassStyle == .bottom || $0.glassStyle == .minimized } ?? false
+        if let search = n.search, !searchAtBottom { bar += visit(search, ctx) }
 
         var result: [AXElement] = []
         if !bar.isEmpty {
@@ -482,6 +498,7 @@ final class AXExtractor {
         result += visit(n.content, ctx)
         if let status = n.statusItem { result += visitChildren([status], barCtx) }
         if let bottom = n.bottomItems { result += visitChildren([bottom], barCtx) }
+        if let search = n.search, searchAtBottom { result += visit(search, ctx) }
         return result
     }
 
