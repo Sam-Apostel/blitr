@@ -233,7 +233,8 @@ final class TextNode: Node {
     let runs: [TextRun]
     let options: TextLayoutOptions
     let reservesSpace: Bool
-    private var layouts: [CGFloat?: TextLayout] = [:]
+    private var layouts: [LayoutKey: TextLayout] = [:]
+    private struct LayoutKey: Hashable { var width: CGFloat?; var height: CGFloat? }
 
     init(runs: [TextRun], options: TextLayoutOptions, reservesSpace: Bool = false) {
         self.runs = runs
@@ -242,16 +243,19 @@ final class TextNode: Node {
         super.init()
     }
 
-    func textLayout(width: CGFloat?) -> TextLayout {
-        let key = width.map { $0.isFinite ? $0 : nil } ?? nil
+    func textLayout(width: CGFloat?, height: CGFloat? = nil) -> TextLayout {
+        let width = width.map { $0.isFinite ? $0 : nil } ?? nil
+        // The height only matters to text that may shrink to fit it.
+        let height = options.minimumScaleFactor < 1 ? (height.map { $0.isFinite ? $0 : nil } ?? nil) : nil
+        let key = LayoutKey(width: width, height: height)
         if let cached = layouts[key] { return cached }
-        let layout = TextLayout(runs: runs, width: key, options: options)
+        let layout = TextLayout(runs: runs, width: width, height: height, options: options)
         layouts[key] = layout
         return layout
     }
 
     override func measure(_ proposal: ProposedViewSize) -> CGSize {
-        var size = textLayout(width: proposal.width).size
+        var size = textLayout(width: proposal.width, height: proposal.height).size
         if reservesSpace, let limit = options.lineLimit, let line = textLayout(width: nil).lines.first {
             let lineHeight = line.ascent + line.descent
             size.height = max(size.height, lineHeight * CGFloat(limit) + (options.lineSpacing + line.leading) * CGFloat(limit - 1))
@@ -267,7 +271,7 @@ final class TextNode: Node {
     }
 
     override func drawContent(_ p: Painter) {
-        textLayout(width: frame.width).draw(p, in: CGRect(origin: .zero, size: frame.size))
+        textLayout(width: frame.width, height: frame.height).draw(p, in: CGRect(origin: .zero, size: frame.size))
     }
 }
 

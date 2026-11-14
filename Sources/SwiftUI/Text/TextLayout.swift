@@ -77,13 +77,15 @@ final class TextLayout {
     private static var shapeCache: [ShapeKey: [Glyph]] = [:]
     private struct ShapeKey: Hashable { var text: String; var font: ResolvedFont; var kerning: CGFloat }
 
-    init(runs: [TextRun], width: CGFloat?, options: TextLayoutOptions) {
+    init(runs: [TextRun], width: CGFloat?, height: CGFloat? = nil, options: TextLayoutOptions) {
         self.runs = runs
         self.options = options
         var factor: CGFloat = 1
         layout(width: width, fontScale: factor)
-        // minimumScaleFactor: shrink in steps until the text fits untruncated.
-        while isTruncated, options.minimumScaleFactor < 1, factor > options.minimumScaleFactor {
+        // minimumScaleFactor: shrink in steps until the text fits untruncated, and within the
+        // height offered (SwiftUI shrinks text that a full stack squeezes vertically).
+        func overflows() -> Bool { isTruncated || height.map { size.height > $0 + 0.01 } ?? false }
+        while overflows(), options.minimumScaleFactor < 1, factor > options.minimumScaleFactor {
             factor = max(options.minimumScaleFactor, factor - 0.05)
             layout(width: width, fontScale: factor)
         }
