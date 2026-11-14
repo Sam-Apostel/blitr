@@ -1,0 +1,651 @@
+{
+  "devices": {
+    "iphone-16": {
+      "captured": "2026-11-14T02:01:43Z",
+      "colorSpace": "sRGB",
+      "dynamicType": "large",
+      "locale": "en_US",
+      "name": "iPhone 16",
+      "reduceMotion": true,
+      "schemes": [
+        "light",
+        "dark"
+      ],
+      "simulatorDate": "2026-11-14T03:01:42+0100",
+      "simulatorTimeZone": "Europe/Brussels",
+      "statusBar": {
+        "battery": "charged 100%",
+        "cellularBars": 4,
+        "time": "9:41",
+        "wifiBars": 3
+      }
+    }
+  },
+  "iosVersion": "27.0",
+  "runtimeBuild": "24A434",
+  "screens": [
+    {
+      "key": "01_Settings",
+      "module": "Screen_01_Settings",
+      "previews": [
+        {
+          "index": 0
+        },
+        {
+          "index": 1,
+          "name": "Dark"
+        }
+      ],
+      "source": "Tests/Corpus/01_Settings.swift"
+    },
+    {
+      "key": "02_SocialFeed",
+      "module": "Screen_02_SocialFeed",
+      "previews": [
+        {
+          "index": 0
+        },
+        {
+          "index": 1,
+          "name": "Dark"
+        }
+      ],
+      "source": "Tests/Corpus/02_SocialFeed.swift"
+    },
+    {
+      "key": "03_AppShell",
+      "module": "Screen_03_AppShell",
+      "previews": [
+        {
+          "index": 0
+        },
+        {
+          "index": 1,
+          "name": "Dark"
+        }
+      ],
+      "source": "Tests/Corpus/03_AppShell.swift"
+    },
+    {
+      "key": "04_Login",
+      "module": "Screen_04_Login",
+      "previews": [
+        {
+          "index": 0
+        },
+        {
+          "index": 1,
+          "name": "Dark"
+        }
+      ],
+      "source": "Tests/Corpus/04_Login.swift"
+    },
+    {
+      "key": "05_ProductDetail",
+      "module": "Screen_05_ProductDetail",
+      "previews": [
+        {
+          "index": 0
+        },
+        {
+          "index": 1,
+          "name": "Dark"
+        }
+      ],
+      "source": "Tests/Corpus/05_ProductDetail.swift"
+    },
+    {
+      "key": "06_Chat",
+      "module": "Screen_06_Chat",
+      "previews": [
+        {
+          "index": 0
+        },
+        {
+          "index": 1,
+          "name": "Dark"
+        }
+      ],
+      "source": "Tests/Corpus/06_Chat.swift"
+    },
+    {
+      "key": "07_FitnessDashboard",
+      "module": "Screen_07_FitnessDashboard",
+      "previews": [
+        {
+          "index": 0
+        },
+        {
+          "index": 1,
+          "name": "Dark"
+        }
+      ],
+      "source": "Tests/Corpus/07_FitnessDashboard.swift"
+    },
+    {
+      "key": "08_Onboarding",
+      "module": "Screen_08_Onboarding",
+      "previews": [
+        {
+          "index": 0
+        },
+        {
+          "index": 1,
+          "name": "Dark"
+        }
+      ],
+      "source": "Tests/Corpus/08_Onboarding.swift"
+    },
+    {
+      "key": "09_MusicPlayer",
+      "module": "Screen_09_MusicPlayer",
+      "previews": [
+        {
+          "index": 0
+        },
+        {
+          "index": 1,
+          "name": "Paused"
+        }
+      ],
+      "source": "Tests/Corpus/09_MusicPlayer.swift"
+    },
+    {
+      "key": "10_Agenda",
+      "module": "Screen_10_Agenda",
+      "previews": [
+        {
+          "index": 0
+        },
+        {
+          "index": 1,
+          "name": "New event sheet"
+        }
+      ],
+      "source": "Tests/Corpus/10_Agenda.swift"
+    },
+    {
+      "key": "11_Profile",
+      "module": "Screen_11_Profile",
+      "previews": [
+        {
+          "index": 0
+        },
+        {
+          "index": 1,
+          "name": "Alert"
+        }
+      ],
+      "source": "Tests/Corpus/11_Profile.swift"
+    },
+    {
+      "key": "12_ComponentGallery",
+      "module": "Screen_12_ComponentGallery",
+      "previews": [
+        {
+          "index": 0
+        },
+        {
+          "index": 1,
+          "name": "Dark"
+        }
+      ],
+      "source": "Tests/Corpus/12_ComponentGallery.swift"
+    },
+    {
+      "key": "Accessibility",
+      "module": "Screen_Accessibility",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/Accessibility.swift"
+    },
+    {
+      "key": "ContainersBasics",
+      "module": "Screen_ContainersBasics",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/ContainersBasics.swift"
+    },
+    {
+      "key": "ContainersGrids",
+      "module": "Screen_ContainersGrids",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/ContainersGrids.swift"
+    },
+    {
+      "key": "ContainersLayout",
+      "module": "Screen_ContainersLayout",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/ContainersLayout.swift"
+    },
+    {
+      "key": "ControlsButtons",
+      "module": "Screen_ControlsButtons",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/ControlsButtons.swift"
+    },
+    {
+      "key": "ControlsIndicators",
+      "module": "Screen_ControlsIndicators",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/ControlsIndicators.swift"
+    },
+    {
+      "key": "ControlsInputs",
+      "module": "Screen_ControlsInputs",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/ControlsInputs.swift"
+    },
+    {
+      "key": "Devices",
+      "module": "Screen_Devices",
+      "previews": [
+        {
+          "index": 0,
+          "name": "Device info"
+        },
+        {
+          "index": 1,
+          "name": "Device info (landscape)",
+          "orientation": "landscape"
+        }
+      ],
+      "source": "Examples/Devices.swift"
+    },
+    {
+      "key": "GlassControls",
+      "module": "Screen_GlassControls",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/GlassControls.swift"
+    },
+    {
+      "key": "GlassNavigation",
+      "module": "Screen_GlassNavigation",
+      "previews": [
+        {
+          "index": 0,
+          "name": "Large title"
+        },
+        {
+          "index": 1,
+          "name": "Pushed"
+        },
+        {
+          "index": 2,
+          "name": "Confirm and cancel"
+        },
+        {
+          "index": 3,
+          "name": "Text items"
+        }
+      ],
+      "source": "Examples/GlassNavigation.swift"
+    },
+    {
+      "key": "GlassTabsAndSheets",
+      "module": "Screen_GlassTabsAndSheets",
+      "previews": [
+        {
+          "index": 0,
+          "name": "Tabs"
+        },
+        {
+          "index": 1,
+          "name": "Search tab and accessory"
+        },
+        {
+          "index": 2,
+          "name": "Medium sheet"
+        },
+        {
+          "index": 3,
+          "name": "Two-button alert"
+        },
+        {
+          "index": 4,
+          "name": "Three-button alert"
+        },
+        {
+          "index": 5,
+          "name": "Confirmation dialog"
+        }
+      ],
+      "source": "Examples/GlassTabsAndSheets.swift"
+    },
+    {
+      "key": "Hello",
+      "module": "Screen_Hello",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/Hello.swift"
+    },
+    {
+      "key": "ListCustomRows",
+      "module": "Screen_ListCustomRows",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/ListCustomRows.swift"
+    },
+    {
+      "key": "Lists",
+      "module": "Screen_Lists",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/Lists.swift"
+    },
+    {
+      "key": "Presentations",
+      "module": "Screen_Presentations",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/Presentations.swift"
+    },
+    {
+      "key": "SplitView",
+      "module": "Screen_SplitView",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/SplitView.swift"
+    },
+    {
+      "key": "StyleEnvironment",
+      "module": "Screen_StyleEnvironment",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/StyleEnvironment.swift"
+    },
+    {
+      "key": "Symbols",
+      "module": "Screen_Symbols",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/Symbols.swift"
+    },
+    {
+      "key": "TVFocus",
+      "module": "Screen_TVFocus",
+      "previews": [
+        {
+          "index": 0,
+          "name": "Poster Grid"
+        },
+        {
+          "index": 1,
+          "name": "Top Bar"
+        },
+        {
+          "index": 2,
+          "name": "Viewer"
+        },
+        {
+          "index": 3,
+          "name": "Shelves"
+        },
+        {
+          "index": 4,
+          "name": "Unreachable"
+        },
+        {
+          "index": 5,
+          "name": "Focus Section"
+        },
+        {
+          "index": 6,
+          "name": "Settings Tabs"
+        },
+        {
+          "index": 7,
+          "name": "Default Focus"
+        },
+        {
+          "index": 8,
+          "name": "Focus On Appear"
+        }
+      ],
+      "skipped": "does not compile for iOS with real SwiftUI",
+      "source": "Examples/TVFocus.swift"
+    },
+    {
+      "key": "Compat-AppOnly",
+      "module": "Screen_Compat_AppOnly",
+      "previews": [],
+      "skipped": "no previews (an App's WindowGroup cannot be shown on its own)",
+      "source": "Examples/Compat/AppOnly.swift"
+    },
+    {
+      "key": "Compat-Collision",
+      "module": "Screen_Compat_Collision",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/Compat/Collision.swift"
+    },
+    {
+      "key": "Compat-MVVM",
+      "module": "Screen_Compat_MVVM",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/Compat/MVVM.swift"
+    },
+    {
+      "key": "NavigationTabs-BarBackground",
+      "module": "Screen_NavigationTabs_BarBackground",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/NavigationTabs/BarBackground.swift"
+    },
+    {
+      "key": "NavigationTabs-Inline",
+      "module": "Screen_NavigationTabs_Inline",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/NavigationTabs/Inline.swift"
+    },
+    {
+      "key": "NavigationTabs-LargeTitle",
+      "module": "Screen_NavigationTabs_LargeTitle",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/NavigationTabs/LargeTitle.swift"
+    },
+    {
+      "key": "NavigationTabs-Misc",
+      "module": "Screen_NavigationTabs_Misc",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/NavigationTabs/Misc.swift"
+    },
+    {
+      "key": "NavigationTabs-Pages",
+      "module": "Screen_NavigationTabs_Pages",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/NavigationTabs/Pages.swift"
+    },
+    {
+      "key": "NavigationTabs-Path",
+      "module": "Screen_NavigationTabs_Path",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/NavigationTabs/Path.swift"
+    },
+    {
+      "key": "NavigationTabs-Principal",
+      "module": "Screen_NavigationTabs_Principal",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/NavigationTabs/Principal.swift"
+    },
+    {
+      "key": "NavigationTabs-Search",
+      "module": "Screen_NavigationTabs_Search",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/NavigationTabs/Search.swift"
+    },
+    {
+      "key": "NavigationTabs-Tabs",
+      "module": "Screen_NavigationTabs_Tabs",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/NavigationTabs/Tabs.swift"
+    },
+    {
+      "key": "NavigationTabs-TabsShort",
+      "module": "Screen_NavigationTabs_TabsShort",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/NavigationTabs/TabsShort.swift"
+    },
+    {
+      "key": "Widgets-DeliveryLiveActivity",
+      "module": "Screen_Widgets_DeliveryLiveActivity",
+      "previews": [
+        {
+          "index": 0
+        },
+        {
+          "index": 1
+        },
+        {
+          "index": 2
+        },
+        {
+          "index": 3
+        }
+      ],
+      "skipped": "does not compile for iOS with real SwiftUI",
+      "source": "Examples/Widgets/DeliveryLiveActivity.swift"
+    },
+    {
+      "key": "Widgets-HabitWidget",
+      "module": "Screen_Widgets_HabitWidget",
+      "previews": [
+        {
+          "index": 0
+        },
+        {
+          "index": 1
+        }
+      ],
+      "skipped": "does not compile for iOS with real SwiftUI",
+      "source": "Examples/Widgets/HabitWidget.swift"
+    },
+    {
+      "key": "Widgets-LockScreenWidgets",
+      "module": "Screen_Widgets_LockScreenWidgets",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "skipped": "does not compile for iOS with real SwiftUI",
+      "source": "Examples/Widgets/LockScreenWidgets.swift"
+    },
+    {
+      "key": "Widgets-WeatherWidget",
+      "module": "Screen_Widgets_WeatherWidget",
+      "previews": [
+        {
+          "index": 0
+        },
+        {
+          "index": 1
+        },
+        {
+          "index": 2
+        }
+      ],
+      "skipped": "does not compile for iOS with real SwiftUI",
+      "source": "Examples/Widgets/WeatherWidget.swift"
+    }
+  ],
+  "xcode": "Xcode 27.2",
+  "xcodeBuild": "27B52"
+}

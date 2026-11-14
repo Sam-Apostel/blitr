@@ -1,0 +1,150 @@
+{
+  "colorScheme": "dark",
+  "device": "agent-calibrate-iphone16-ios27",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 36,
+        "width": 53.33,
+        "x": 20,
+        "y": 63
+      },
+      "label": "Edit",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 36,
+        "width": 39,
+        "x": 221,
+        "y": 63
+      },
+      "label": "Share",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 36,
+        "width": 41,
+        "x": 276,
+        "y": 63
+      },
+      "label": "Love",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 36,
+        "width": 27.33,
+        "x": 341.33,
+        "y": 63
+      },
+      "label": "Add",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "UILabel",
+      "frame": {
+        "height": 40.67,
+        "width": 111.67,
+        "x": 16,
+        "y": 119.67
+      },
+      "label": "Library",
+      "role": "header",
+      "traits": [
+        "header"
+      ]
+    },
+    {
+      "class": "UILabel",
+      "frame": {
+        "height": 13.33,
+        "width": 61.67,
+        "x": 16.17,
+        "y": 158
+      },
+      "label": "128 albums",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 36,
+        "width": 43.67,
+        "x": 33,
+        "y": 782
+      },
+      "label": "Filter",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "UISearchBarTextField",
+      "frame": {
+        "height": 28,
+        "width": 219.33,
+        "x": 85.67,
+        "y": 786
+      },
+      "label": "Albums",
+      "role": "searchField",
+      "traits": [
+        "searchField"
+      ],
+      "value": "Albums"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 36,
+        "width": 28.67,
+        "x": 326.67,
+        "y": 782
+      },
+      "label": "Compose",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 0,
+  "previewName": "Large title",
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "GlassNavigation",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "27.0",
+  "version": 1
+}

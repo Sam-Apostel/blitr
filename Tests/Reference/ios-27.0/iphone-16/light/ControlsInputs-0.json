@@ -1,0 +1,387 @@
+{
+  "colorScheme": "light",
+  "device": "agent-calibrate-iphone16-ios27",
+  "elements": [
+    {
+      "class": "UIKitIconPreferringButton",
+      "frame": {
+        "height": 34.33,
+        "width": 89.67,
+        "x": 20,
+        "y": 53.33
+      },
+      "label": "Flavor, Vanilla",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "UISegment",
+      "frame": {
+        "height": 32,
+        "width": 88,
+        "x": 20,
+        "y": 101.67
+      },
+      "label": "Day",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "UISegment",
+      "frame": {
+        "height": 32,
+        "width": 88,
+        "x": 108,
+        "y": 101.67
+      },
+      "label": "Week",
+      "role": "button",
+      "traits": [
+        "button",
+        "selected"
+      ]
+    },
+    {
+      "class": "UISegment",
+      "frame": {
+        "height": 32,
+        "width": 88,
+        "x": 196,
+        "y": 101.67
+      },
+      "label": "Month",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "UISegment",
+      "frame": {
+        "height": 32,
+        "width": 89,
+        "x": 284,
+        "y": 101.67
+      },
+      "label": "Year",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 353,
+        "x": 20,
+        "y": 146.67
+      },
+      "label": "Flavor",
+      "role": "staticText",
+      "traits": [
+        "staticText",
+        "notEnabled"
+      ]
+    },
+    {
+      "class": "UIAccessibilityPickerComponent",
+      "frame": {
+        "height": 75,
+        "width": 335,
+        "x": 29,
+        "y": 143.5
+      },
+      "label": "",
+      "role": "adjustable",
+      "traits": [
+        "adjustable"
+      ],
+      "value": "Vanilla"
+    },
+    {
+      "class": "UIKitTextField",
+      "frame": {
+        "height": 22,
+        "width": 353,
+        "x": 20,
+        "y": 195
+      },
+      "label": "",
+      "role": "group",
+      "traits": [],
+      "value": "Name"
+    },
+    {
+      "class": "UIKitTextField",
+      "frame": {
+        "height": 34,
+        "width": 353,
+        "x": 20,
+        "y": 231
+      },
+      "label": "",
+      "role": "group",
+      "traits": [],
+      "value": "sam@example.com"
+    },
+    {
+      "class": "UIKitTextField",
+      "frame": {
+        "height": 34,
+        "width": 353,
+        "x": 20,
+        "y": 279
+      },
+      "label": "",
+      "role": "group",
+      "traits": [],
+      "value": "Placeholder"
+    },
+    {
+      "class": "UIKitTextField",
+      "frame": {
+        "height": 34,
+        "width": 353,
+        "x": 20,
+        "y": 327
+      },
+      "label": "",
+      "role": "group",
+      "traits": [],
+      "value": "\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
+    },
+    {
+      "class": "TextEditorTextView",
+      "frame": {
+        "height": 70,
+        "width": 353,
+        "x": 20,
+        "y": 375
+      },
+      "label": "",
+      "role": "group",
+      "traits": [],
+      "value": "Some multi-line notes\nin a text editor."
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 36,
+        "x": 20,
+        "y": 466.67
+      },
+      "label": "Date",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "_UIDatePickerCompactDateLabel",
+      "frame": {
+        "height": 36,
+        "width": 120.67,
+        "x": 161.33,
+        "y": 459
+      },
+      "label": "Jan 15, 2027",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "_UIDatePickerCompactTimeLabel",
+      "frame": {
+        "height": 36,
+        "width": 87,
+        "x": 286,
+        "y": 459
+      },
+      "label": "9:00\u202fAM",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 73.33,
+        "x": 20,
+        "y": 515.83
+      },
+      "label": "Only date",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "_UIDatePickerIOSCompactView",
+      "frame": {
+        "height": 34.33,
+        "width": 120.67,
+        "x": 252.33,
+        "y": 509
+      },
+      "label": "Date Picker",
+      "role": "button",
+      "traits": [
+        "button"
+      ],
+      "value": "Jan 15, 2027"
+    },
+    {
+      "class": "UIColorWell",
+      "frame": {
+        "height": 28,
+        "width": 353,
+        "x": 20,
+        "y": 557.33
+      },
+      "label": "Color",
+      "role": "button",
+      "traits": [
+        "button"
+      ],
+      "value": "orange"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 28.33,
+        "width": 353,
+        "x": 20,
+        "y": 599.33
+      },
+      "label": "Details",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 117.67,
+        "x": 137.67,
+        "y": 627.5
+      },
+      "label": "Hidden content",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 28.33,
+        "width": 353,
+        "x": 20,
+        "y": 662
+      },
+      "label": "Collapsed",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 63,
+        "x": 36,
+        "y": 720.17
+      },
+      "label": "Storage",
+      "role": "header",
+      "traits": [
+        "header",
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 168.67,
+        "x": 112.17,
+        "y": 742.5
+      },
+      "label": "42 GB of 128 GB used",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "UISegment",
+      "frame": {
+        "height": 32,
+        "width": 0,
+        "x": 20,
+        "y": 793
+      },
+      "label": "Cut",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "UISegment",
+      "frame": {
+        "height": 32,
+        "width": 0,
+        "x": 20,
+        "y": 793
+      },
+      "label": "Copy",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "UISegment",
+      "frame": {
+        "height": 32,
+        "width": 0,
+        "x": 20,
+        "y": 793
+      },
+      "label": "Paste",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 0,
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "ControlsInputs",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "27.0",
+  "version": 1
+}

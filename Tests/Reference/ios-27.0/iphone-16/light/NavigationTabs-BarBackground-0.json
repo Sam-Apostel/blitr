@@ -1,0 +1,120 @@
+{
+  "colorScheme": "light",
+  "device": "agent-calibrate-iphone16-ios27",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 48.33,
+        "x": 172.33,
+        "y": 176.83
+      },
+      "label": "Item 0",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 45.33,
+        "x": 173.83,
+        "y": 220.83
+      },
+      "label": "Item 1",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 47.67,
+        "x": 172.67,
+        "y": 264.83
+      },
+      "label": "Item 2",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 48,
+        "x": 172.5,
+        "y": 308.83
+      },
+      "label": "Item 3",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 48.33,
+        "x": 172.33,
+        "y": 352.83
+      },
+      "label": "Item 4",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 48,
+        "x": 172.5,
+        "y": 396.83
+      },
+      "label": "Item 5",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "UILabel",
+      "frame": {
+        "height": 40.67,
+        "width": 168,
+        "x": 16,
+        "y": 116.67
+      },
+      "label": "Visible Bar",
+      "role": "header",
+      "traits": [
+        "header"
+      ]
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 0,
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "NavigationTabs-BarBackground",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "27.0",
+  "version": 1
+}
