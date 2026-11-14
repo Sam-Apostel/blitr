@@ -121,10 +121,22 @@ enum AlertMetrics {
         var buttonFill = SystemColor.fill
         var tintLight = RGBA(1, 1, 1, 0.7)          // (est.)
         var tintDark = RGBA(0.13, 0.13, 0.14, 0.7)  // (est.)
+        /// iOS 27: the colours behind the card show through more. measured: iOS 27.0 simulator
+        /// (least-squares fits of the cards of GlassTabsAndSheets-3/4/5: light 33% of the backdrop + 163
+        /// levels, then saturation 2.46; dark 60% + 37 levels, then 2.0, which also keeps the card over
+        /// the dimmed black of 11_Profile at 37)
+        var tint27Light = RGBA(0.961, 0.961, 0.961, 0.667)
+        var saturation27Light: Float = 2.46
+        var tint27Dark = RGBA(0.04, 0.04, 0.04, 0.4)
+        var saturation27Dark: Float = 2.0
 
         func appearance(_ scheme: ColorScheme, design: DesignLanguage) -> GlassAppearance {
             var a = GlassAppearance.system(.regular, scheme: scheme, design: design)
             a.tint = scheme == .dark ? tintDark : tintLight
+            if design == .liquidGlass27 {
+                a.tint = scheme == .dark ? tint27Dark : tint27Light
+                a.saturation = scheme == .dark ? saturation27Dark : saturation27Light
+            }
             return a
         }
     }
