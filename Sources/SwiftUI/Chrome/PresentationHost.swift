@@ -168,6 +168,7 @@ final class PresentationHostNode: Node {
     }
 
     private static func makeLayerNode(_ record: PresentationRecord) -> PresentationLayerNode {
+        if record.ctx.env.renderPlatform == .tvOS { return makeTVLayerNode(record) }
         switch record.style {
         case .sheet:
             let ctx = record.ctx.child("sheet").with { $0.isElevatedPresentation = true }
@@ -404,6 +405,8 @@ final class SheetLayerNode: PresentationLayerNode {
 final class CoverLayerNode: PresentationLayerNode {
     let content: Node
     let background: RGBA
+    /// tvOS `.sheet`: drawn over a blurred, dimmed copy of the presenter instead of an opaque background.
+    var tvSheet = false
     init(content: Node, env: EnvironmentValues) {
         self.content = content
         background = SystemColor.background.resolve(env.colorScheme)
@@ -421,7 +424,11 @@ final class CoverLayerNode: PresentationLayerNode {
     }
     override func drawContent(_ p: Painter) {
         let rect = CGRect(origin: .zero, size: frame.size)
-        p.fill(Path(rect), with: .color(background), in: rect)
+        if tvSheet {
+            drawPresentationMaterial(p, Path(rect), tint: background.opacity(0.72))
+        } else {
+            p.fill(Path(rect), with: .color(background), in: rect)
+        }
         content.draw(p)
     }
 }
@@ -439,6 +446,7 @@ final class DimmedCardLayerNode: PresentationLayerNode {
         backdrop = .dim(env.colorScheme == .dark ? AlertMetrics.dimDark : AlertMetrics.dimLight)
     }
     override func layout(size: CGSize, _ ctx: PlaceContext) {
+        if card is TVAlertCardNode { card.place(at: .zero, size: size, ctx); return }
         if atBottom, let dialog = card as? DialogCardNode, dialog.design.isGlass {
             // Glass: inset from the screen edges like a floating sheet.
             let inset = DialogMetrics.forDesign(dialog.design).inset

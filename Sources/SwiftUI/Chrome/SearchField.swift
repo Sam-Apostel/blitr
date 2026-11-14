@@ -97,6 +97,10 @@ final class SearchFieldNode: Node {
     private var glassAppearance: GlassAppearance?
     /// The minimized field is a bar button: its glyph uses the label color.
     private let buttonGlyph: _Paint
+    /// tvOS: the search field of a search screen (Chrome/TV/TVNavigation.swift), and whether it has focus.
+    var tv = false
+    var tvFocused = false
+    var tvScheme = ColorScheme.light
     /// Microphone glyph of the glass field (dictation).
     private var microphone: Node? { children.count > 1 ? children[1] : nil }
 
@@ -112,11 +116,16 @@ final class SearchFieldNode: Node {
         textEnv.fontWeight = nil
         let showsText = !configuration.text.isEmpty
         showsPrompt = !showsText
-        textEnv.foregroundStyle = AnyShapeStyle(_FixedPaintStyle(.color((showsText ? SystemColor.label : SystemColor.secondaryLabel).resolve(scheme))))
+        let isTV = env.renderPlatform == .tvOS
+        // The first search field on screen is the extractor's chrome element "search" #0.
+        let tvFocused = isTV && Runtime.current?.focus.focusedPath == IdentityPath(components: ["chrome", "search", 0])
+        let textScheme: ColorScheme = tvFocused ? .light : scheme
+        if isTV { textEnv.font = TVMetrics.searchFont }
+        textEnv.foregroundStyle = AnyShapeStyle(_FixedPaintStyle(.color((showsText ? SystemColor.label : SystemColor.secondaryLabel).resolve(textScheme))))
         textEnv.foregroundStyleLevels = nil
         let text = showsText ? Text(verbatim: configuration.text) : (configuration.prompt ?? Text(verbatim: "Search"))
         var nodes: [Node] = [text.makeNode(textEnv)]
-        if env.designLanguage.isGlass {
+        if env.designLanguage.isGlass && !isTV {
             var micEnv = env
             micEnv.font = .system(size: 17)
             micEnv.imageScale = .medium
@@ -128,9 +137,13 @@ final class SearchFieldNode: Node {
             glassAppearance = GlassAppearance.system(.regular, scheme: scheme, design: env.designLanguage)
         }
         super.init(children: nodes)
+        tv = isTV
+        self.tvFocused = tvFocused
+        tvScheme = scheme
     }
 
     override func measure(_ proposal: ProposedViewSize) -> CGSize {
+        if tv { return CGSize(width: proposal.width ?? 800, height: TVMetrics.searchFieldHeight) }
         if let style = glassStyle {
             let g = NavigationGlassMetrics.search
             switch style {
@@ -142,6 +155,7 @@ final class SearchFieldNode: Node {
         return CGSize(width: proposal.width ?? 200, height: SearchFieldMetrics.height)
     }
     override func layout(size: CGSize, _ ctx: PlaceContext) {
+        if tv { layoutTV(size: size, ctx); return }
         if let style = glassStyle {
             layoutGlass(style, size: size, ctx)
             return
@@ -152,6 +166,7 @@ final class SearchFieldNode: Node {
         label.place(at: CGPoint(x: m.textLeading, y: (size.height - s.height) / 2), size: CGSize(width: min(width, s.width), height: s.height), ctx)
     }
     override func drawContent(_ p: Painter) {
+        if tv { drawTV(p); return }
         if let style = glassStyle {
             drawGlass(style, p)
             return

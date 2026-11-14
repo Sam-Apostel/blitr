@@ -194,6 +194,7 @@ extension IndexViewStyle where Self == PageIndexViewStyle {
     public static func page(backgroundDisplayMode: PageIndexViewStyle.BackgroundDisplayMode) -> Self { .init(backgroundDisplayMode: backgroundDisplayMode) }
 }
 
+enum TabViewSidebarAdaptableKey: EnvironmentKey { static let defaultValue = false }
 enum TabViewPageModeKey: EnvironmentKey { static let defaultValue: PageTabViewStyle.IndexDisplayMode? = nil }
 enum PageIndexBackgroundKey: EnvironmentKey { static let defaultValue = PageIndexViewStyle.BackgroundDisplayMode.automatic }
 extension EnvironmentValues {
@@ -228,7 +229,8 @@ public struct TabPlacement: Hashable, Sendable {
 extension View {
     public func tabViewStyle<S: TabViewStyle>(_ style: S) -> some View {
         let mode = (style as? PageTabViewStyle)?.indexDisplayMode
-        return env { $0.tabViewPageMode = mode }
+        let sidebar = style is SidebarAdaptableTabViewStyle
+        return env { $0.tabViewPageMode = mode; $0[TabViewSidebarAdaptableKey.self] = sidebar }
     }
     public func indexViewStyle<S: IndexViewStyle>(_ style: S) -> some View {
         let mode = (style as? PageIndexViewStyle)?.backgroundDisplayMode ?? .automatic
@@ -584,8 +586,10 @@ public struct TabView<SelectionValue: Hashable, Content: View>: View, PrimitiveV
         let selected = chosen.flatMap { entries.indices.contains($0) ? $0 : nil }
             ?? target.flatMap { t in entries.firstIndex { $0.tag.map(unwrapOptional) == t } } ?? 0
         if let mode = ctx.env.tabViewPageMode {
-            out.append(PageTabViewNode(content: entries[selected].content(), count: entries.count, selected: selected,
-                                       mode: mode, background: ctx.env.pageIndexBackground))
+            let page = PageTabViewNode(content: entries[selected].content(), count: entries.count, selected: selected,
+                                       mode: mode, background: ctx.env.pageIndexBackground)
+            if ctx.env.renderPlatform == .tvOS { page.dotScale = TVMetrics.pageDotScale }
+            out.append(page)
         } else {
             let accessoryNode: Node? = accessory.flatMap { resolver in
                 guard ctx.env.designLanguage.isGlass else { return nil }
@@ -681,11 +685,15 @@ final class TabViewNode: Node {
     /// The TabView's identity and how to select a tab (focus engine: tab items and remote `select`).
     var focusPath: IdentityPath?
     var selectTab: (@MainActor (Int) -> Void)?
-    private let scheme: ColorScheme
-    private var capsule = CGRect.zero
-    private var itemRects: [CGRect] = []
+    let scheme: ColorScheme
+    var capsule = CGRect.zero
+    var itemRects: [CGRect] = []
+    /// tvOS: the top tab bar or the sidebar (Chrome/TV/TVTabBar.swift); nil on other platforms.
+    let tv: TVTabLayout?
+    /// tvOS: the tab item that has focus, if any.
+    let tvFocusedIndex: Int?
 
-    private(set) var barTop: CGFloat = 0
+    var barTop: CGFloat = 0
     private var barBottom: CGFloat = 0
     private var backgroundX: CGFloat = 0
     private var backgroundWidth: CGFloat = 0
@@ -696,8 +704,8 @@ final class TabViewNode: Node {
     private var accessoryRect = CGRect.zero
     private var pillRect = CGRect.zero
     /// Glass only: each tab's frame and the bar's frame, for the accessibility tree. Nil for the flat bar.
-    private(set) var glassItemFrames: [CGRect]?
-    private(set) var glassBarFrame: CGRect?
+    var glassItemFrames: [CGRect]?
+    var glassBarFrame: CGRect?
 
     init(entries: [TabEntry], selected: Int, ctx: ResolveContext, accessory: Node? = nil) {
         selectedIndex = selected
@@ -712,7 +720,12 @@ final class TabViewNode: Node {
         barVisible = settings.visibility != .hidden
         let scheme = (settings.colorScheme ?? nil) ?? env.colorScheme
         self.scheme = scheme
-        let topBar = barVisible && _currentConfiguration().device.idiom == .pad && env.horizontalSizeClass == .regular
+        let tvFocused = entries.indices.first { ctx.runtime.focus.focusedPath == ctx.path.appending("tab").appending($0) }
+        tvFocusedIndex = tvFocused
+        let tv: TVTabLayout? = env.renderPlatform == .tvOS
+            ? (env[TabViewSidebarAdaptableKey.self] ? .sidebar(expanded: tvFocused != nil) : .topBar) : nil
+        self.tv = tv
+        let topBar = tv == nil && barVisible && _currentConfiguration().device.idiom == .pad && env.horizontalSizeClass == .regular
         self.topBar = topBar
         var barEnv = env
         barEnv.colorScheme = scheme
@@ -733,7 +746,9 @@ final class TabViewNode: Node {
         let iconFont = design.isGlass ? glass.iconFont : TabBarMetrics.iconFont
         let titleFont = design.isGlass ? glass.titleFont : TabBarMetrics.titleFont
         var items: [Item] = []
-        if barVisible {
+        if let tv, barVisible {
+            items = TabViewNode.tvItems(entries, selected: selected, focused: tvFocused, layout: tv, env: barEnv)
+        } else if barVisible {
             for (i, entry) in entries.enumerated() {
                 let color = AnyShapeStyle(_FixedPaintStyle(.color(i == selected ? accent : gray)))
                 func adjust(_ font: Font) -> (inout EnvironmentValues) -> Void {
@@ -778,6 +793,7 @@ final class TabViewNode: Node {
         let safeTop = max(0, ctx.safeRect.minY - ctx.origin.y)
         let safeBottom = min(size.height, ctx.safeRect.maxY - ctx.origin.y)
         if topBar { layoutTopBar(size: size, safeTop: safeTop, safeBottom: safeBottom, ctx); return }
+        if let tv { layoutTV(tv, size: size, ctx); return }
         if design.isGlass, barVisible, !items.isEmpty { layoutGlassBar(size: size, safeTop: safeTop, ctx); return }
         let compact = m.isCompactHeight
         barTop = barVisible ? safeBottom - (compact ? m.compactHeight : m.height) : safeBottom
@@ -1025,6 +1041,7 @@ final class TabViewNode: Node {
     override func drawContent(_ p: Painter) {
         content.draw(p)
         guard barVisible else { return }
+        if let tv { drawTV(tv, p); return }
         if topBar { drawTopBar(p); return }
         if design.isGlass, !items.isEmpty { drawGlassBar(p); return }
         if showsBackground {
@@ -1044,6 +1061,8 @@ final class PageTabViewNode: Node {
     let showsBackground: Bool
     var content: Node { children[0] }
     private var dotsCenterY: CGFloat = 0
+    /// tvOS draws larger page dots (est.).
+    var dotScale: CGFloat = 1
 
     init(content: Node, count: Int, selected: Int, mode: PageTabViewStyle.IndexDisplayMode,
          background: PageIndexViewStyle.BackgroundDisplayMode) {
@@ -1061,23 +1080,24 @@ final class PageTabViewNode: Node {
         let c = content.sizeThatFits(ProposedViewSize(size))
         content.place(at: CGPoint(x: (size.width - c.width) / 2, y: (size.height - c.height) / 2), size: c, ctx)
         let bottom = min(size.height, ctx.safeRect.maxY - ctx.origin.y)
-        dotsCenterY = bottom - TabBarMetrics.pageDotsCenterFromBottom
+        dotsCenterY = bottom - TabBarMetrics.pageDotsCenterFromBottom * dotScale
     }
 
     override func drawContent(_ p: Painter) {
         drawChildren(p)
         guard showsDots, count > 0 else { return }
         let m = TabBarMetrics.self
-        let total = CGFloat(count - 1) * m.pageDotPitch
+        let pitch = m.pageDotPitch * dotScale, diameter = m.pageDotDiameter * dotScale
+        let total = CGFloat(count - 1) * pitch
         let startX = frame.width / 2 - total / 2
         if showsBackground {
-            let bg = CGRect(x: startX - m.pageDotPitch, y: dotsCenterY - m.pageDotsBackgroundHeight / 2,
-                            width: total + m.pageDotPitch * 2, height: m.pageDotsBackgroundHeight)
+            let bg = CGRect(x: startX - pitch, y: dotsCenterY - m.pageDotsBackgroundHeight * dotScale / 2,
+                            width: total + pitch * 2, height: m.pageDotsBackgroundHeight * dotScale)
             p.fill(Path(roundedRect: bg, cornerRadius: bg.height / 2, style: .circular), with: .color(RGBA(0, 0, 0, 0.25)), in: bg)
         }
         for i in 0..<count {
-            let x = startX + CGFloat(i) * m.pageDotPitch
-            let r = CGRect(x: x - m.pageDotDiameter / 2, y: dotsCenterY - m.pageDotDiameter / 2, width: m.pageDotDiameter, height: m.pageDotDiameter)
+            let x = startX + CGFloat(i) * pitch
+            let r = CGRect(x: x - diameter / 2, y: dotsCenterY - diameter / 2, width: diameter, height: diameter)
             let alpha = i == selected ? 1 : m.pageDotInactiveOpacity
             p.fill(Path(ellipseIn: r), with: .color(RGBA(1, 1, 1, alpha)), in: r)
         }

@@ -59,6 +59,23 @@ public struct NavigationLink<Label: View, Destination: View>: View, PrimitiveVie
 
     private func resolveLink(_ ctx: ResolveContext, into out: inout [Node]) {
         let inRow = ctx.env.isInListRow
+        if ctx.env.renderPlatform == .tvOS {
+            // tvOS: a row (the List draws the platter; dark content while focused) or a bordered button.
+            let start = out.count
+            if inRow {
+                resolveView(label, ctx.with { if $0.tvShowsFocus { $0.colorScheme = .light; $0.tvOnFocusedPlatter = true } }, into: &out)
+            } else {
+                resolveView(_TVButtonVisual(kind: .automatic, label: AnyView(label), role: nil), ctx, into: &out)
+            }
+            for node in out[start...] where inRow { node.traits[ListRowAccessoryTraitKey.self] = .disclosureIndicator }
+            axApplyShared(out[start...], .button(enabled: ctx.env.isEnabled))
+            if isActive, let destination, out.count > start {
+                var chrome = out[start].preferences[NavigationChromeKey.self]
+                chrome.presented.append(AnyView(destination))
+                out[start].preferences.set(NavigationChromeKey.self, chrome)
+            }
+            return
+        }
         let labelCtx = ctx.with { env in
             if !inRow {
                 let accent = Color.accentColor.rgba(in: env)
