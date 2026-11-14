@@ -1,6 +1,9 @@
 // MeasurementFormatter, which swift-corelibs-foundation declares unavailable. English names; the default
 // options convert to the locale's measurement system (US: miles, °F, pounds, mph), as on Apple platforms.
+// Apple's Foundation has the real one, so on Darwin this compiles out.
 import Foundation
+
+#if !canImport(Darwin)
 
 open class MeasurementFormatter: Formatter, @unchecked Sendable {
     public struct UnitOptions: OptionSet, Sendable {
@@ -144,3 +147,4 @@ open class MeasurementFormatter: Formatter, @unchecked Sendable {
         return plural ? pair.1 : pair.0
     }
 }
+#endif

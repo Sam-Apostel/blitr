@@ -1,11 +1,14 @@
 // Foundation API that Apple platforms have and swift-corelibs-foundation lacks, which app code uses
 // next to SwiftUI: URLCache's directory initializer, app group containers, RelativeDateTimeFormatter,
 // ListFormatter, Markdown parsing into AttributedString, URLSession byte streams, iCloud key-value store.
+// Apple's Foundation has every one of them, so on Darwin the whole file compiles out.
 
 import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
+
+#if !canImport(Darwin)
 
 extension URLCache {
     public convenience init(memoryCapacity: Int, diskCapacity: Int, directory: URL? = nil) {
@@ -355,4 +358,5 @@ extension URLSessionConfiguration {
         set {}
     }
 }
+#endif
 #endif

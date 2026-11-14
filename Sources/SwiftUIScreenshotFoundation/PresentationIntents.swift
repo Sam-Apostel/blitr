@@ -1,7 +1,10 @@
 // Foundation's Markdown attributes, which swift-foundation declares only on Apple platforms:
 // InlinePresentationIntent, PresentationIntent and their AttributedString keys in the Foundation scope
 // (`run.inlinePresentationIntent`, `a.presentationIntent`). AttributedString(markdown:) sets them.
+// On Darwin, Foundation declares them, so this compiles out.
 import Foundation
+
+#if !canImport(Darwin)
 
 /// Inline Markdown styling of a run: emphasis, strong emphasis, code, strikethrough, breaks and HTML.
 public struct InlinePresentationIntent: OptionSet, Hashable, Codable, Sendable, CustomStringConvertible {
@@ -91,3 +94,4 @@ extension AttributeScopes.FoundationAttributes {
     public var inlinePresentationIntent: InlinePresentationIntentAttribute { fatalError() }
     public var presentationIntent: PresentationIntentAttribute { fatalError() }
 }
+#endif

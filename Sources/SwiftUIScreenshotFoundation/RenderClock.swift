@@ -20,7 +20,13 @@ public final class _RenderClock: @unchecked Sendable {
     /// asks the dynamic linker, which answers with the first library's.
     public static let shared: _RenderClock = {
         typealias Getter = @convention(c) () -> UnsafeMutableRawPointer
-        if let symbol = dlsym(nil, "swiftui_screenshot_render_clock") {
+        // Every loaded image, in load order: a null handle on Linux, RTLD_DEFAULT ((void *)-2) on Darwin.
+        #if canImport(Darwin)
+        let everywhere = UnsafeMutableRawPointer(bitPattern: -2)
+        #else
+        let everywhere: UnsafeMutableRawPointer? = nil
+        #endif
+        if let symbol = dlsym(everywhere, "swiftui_screenshot_render_clock") {
             return Unmanaged<_RenderClock>.fromOpaque(unsafeBitCast(symbol, to: Getter.self)()).takeUnretainedValue()
         }
         return localInstance

@@ -14,6 +14,11 @@ import Foundation
 // Strings resolve through one table (key -> localized value) that the tool flattens from the project's
 // string catalogs and `.strings` files for the chosen locale and names in SWIFTUI_SCREENSHOT_STRINGS.
 // Without a table, a key is its own value, as on a device without a translation.
+//
+// Unlike the gap-fillers in FoundationGaps.swift, this file is not compiled out on Darwin, although Apple's
+// Foundation has the same API: strings must resolve through the tool's table on every host, and the engine
+// reads members Apple's types do not have (`resolved`, `defaultValue` as a String). These declarations
+// shadow Foundation's for every module that imports this one (macOS support is in progress, issue #19).
 
 public enum ScreenshotStrings {
     public static let table: [String: String] = {
