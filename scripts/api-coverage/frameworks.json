@@ -1,0 +1,496 @@
+{
+ "apple_modules": [
+  "SwiftUI",
+  "Foundation",
+  "Combine",
+  "UIKit",
+  "AppKit",
+  "WatchKit",
+  "MapKit",
+  "Charts",
+  "SwiftData",
+  "AVKit",
+  "AVFoundation",
+  "WidgetKit",
+  "CoreLocation",
+  "CoreData",
+  "Photos",
+  "PhotosUI",
+  "StoreKit",
+  "TipKit",
+  "WebKit",
+  "SafariServices",
+  "UserNotifications",
+  "CloudKit",
+  "HealthKit",
+  "CoreMotion",
+  "AppIntents",
+  "ActivityKit",
+  "Observation",
+  "UniformTypeIdentifiers",
+  "CoreGraphics",
+  "QuartzCore",
+  "os",
+  "OSLog",
+  "Intents",
+  "GameKit",
+  "SpriteKit",
+  "SceneKit",
+  "RealityKit",
+  "ARKit",
+  "Vision",
+  "CoreImage",
+  "CoreText",
+  "LocalAuthentication",
+  "MessageUI",
+  "Contacts",
+  "ContactsUI",
+  "EventKit",
+  "EventKitUI",
+  "PDFKit",
+  "QuickLook",
+  "Speech",
+  "NaturalLanguage",
+  "CoreML",
+  "CryptoKit",
+  "Network",
+  "BackgroundTasks",
+  "ImageIO",
+  "AuthenticationServices",
+  "MediaPlayer",
+  "Accelerate",
+  "Metal",
+  "MetalKit",
+  "CoreHaptics",
+  "GroupActivities",
+  "WatchConnectivity",
+  "AVFAudio",
+  "Dispatch",
+  "Security",
+  "SystemConfiguration",
+  "CoreBluetooth",
+  "PassKit",
+  "Translation",
+  "FoundationModels",
+  "Symbols",
+  "Accessibility",
+  "CoreTransferable",
+  "TVServices",
+  "TVUIKit",
+  "ClockKit",
+  "CoreServices",
+  "ServiceManagement",
+  "Carbon",
+  "Cocoa",
+  "IOKit",
+  "UserNotificationsUI",
+  "LinkPresentation",
+  "SwiftUICore",
+  "VisionKit",
+  "CoreSpotlight",
+  "CoreMedia",
+  "CoreAudio",
+  "AudioToolbox",
+  "Darwin",
+  "Glibc",
+  "XCTest",
+  "Testing"
+ ],
+ "swiftui_names": [],
+ "names": {
+  "Widget": "WidgetKit",
+  "WidgetConfiguration": "WidgetKit",
+  "StaticConfiguration": "WidgetKit",
+  "AppIntentConfiguration": "WidgetKit",
+  "TimelineProvider": "WidgetKit",
+  "AppIntentTimelineProvider": "WidgetKit",
+  "TimelineEntry": "WidgetKit",
+  "Timeline": "WidgetKit",
+  "WidgetFamily": "WidgetKit",
+  "WidgetPreviewContext": "WidgetKit",
+  "AccessoryWidgetBackground": "WidgetKit",
+  "WidgetBundle": "WidgetKit",
+  "WidgetBundleBuilder": "WidgetKit",
+  "WidgetRenderingMode": "WidgetKit",
+  "WidgetAccentedRenderingMode": "WidgetKit",
+  "ActivityConfiguration": "WidgetKit",
+  "WidgetURL": "WidgetKit",
+  "WidgetCenter": "WidgetKit",
+  "AppShortcut": "AppIntents",
+  "AppShortcutsProvider": "AppIntents",
+  "AppShortcutsBuilder": "AppIntents",
+  "IntentDialog": "AppIntents",
+  "DisplayRepresentation": "AppIntents",
+  "TypeDisplayRepresentation": "AppIntents",
+  "IntentResult": "AppIntents",
+  "ProvidesDialog": "AppIntents",
+  "ShowsSnippetView": "AppIntents",
+  "IntentDescription": "AppIntents",
+  "ParameterSummary": "AppIntents",
+  "Parameter": "AppIntents",
+  "AppIntent": "AppIntents",
+  "AppEntity": "AppIntents",
+  "AppEnum": "AppIntents",
+  "IntentFile": "AppIntents",
+  "ReturnsValue": "AppIntents",
+  "OpensIntent": "AppIntents",
+  "EntityQuery": "AppIntents",
+  "WidgetConfigurationIntent": "AppIntents",
+  "SnippetIntent": "AppIntents",
+  "AppIntentsPackage": "AppIntents",
+  "EntityStringQuery": "AppIntents",
+  "IntentParameter": "AppIntents",
+  "Query": "SwiftData",
+  "Model": "SwiftData",
+  "Attribute": "SwiftData",
+  "Relationship": "SwiftData",
+  "ModelContainer": "SwiftData",
+  "ModelContext": "SwiftData",
+  "ModelConfiguration": "SwiftData",
+  "FetchDescriptor": "SwiftData",
+  "Schema": "SwiftData",
+  "SchemaMigrationPlan": "SwiftData",
+  "VersionedSchema": "SwiftData",
+  "ModelActor": "SwiftData",
+  "PersistentModel": "SwiftData",
+  "Transient": "SwiftData",
+  "Unique": "SwiftData",
+  "Chart": "Charts",
+  "LineMark": "Charts",
+  "AreaMark": "Charts",
+  "BarMark": "Charts",
+  "PointMark": "Charts",
+  "RuleMark": "Charts",
+  "RectangleMark": "Charts",
+  "SectorMark": "Charts",
+  "AxisMarks": "Charts",
+  "AxisValueLabel": "Charts",
+  "AxisGridLine": "Charts",
+  "AxisTick": "Charts",
+  "ChartContent": "Charts",
+  "ChartContentBuilder": "Charts",
+  "ChartProxy": "Charts",
+  "PlottableValue": "Charts",
+  "AxisContent": "Charts",
+  "AxisMarkBuilder": "Charts",
+  "Map": "MapKit",
+  "MapPin": "MapKit",
+  "MapMarker": "MapKit",
+  "MapAnnotation": "MapKit",
+  "MapPolyline": "MapKit",
+  "MapPolygon": "MapKit",
+  "MapCircle": "MapKit",
+  "Marker": "MapKit",
+  "MapCameraPosition": "MapKit",
+  "MapStyle": "MapKit",
+  "MapUserLocationButton": "MapKit",
+  "MapCompass": "MapKit",
+  "MapScaleView": "MapKit",
+  "MapReader": "MapKit",
+  "MapProxy": "MapKit",
+  "MapItem": "MapKit",
+  "Transferable": "CoreTransferable",
+  "TransferRepresentation": "CoreTransferable",
+  "FileRepresentation": "CoreTransferable",
+  "DataRepresentation": "CoreTransferable",
+  "ProxyRepresentation": "CoreTransferable",
+  "CodableRepresentation": "CoreTransferable",
+  "SentTransferredFile": "CoreTransferable",
+  "ReceivedTransferredFile": "CoreTransferable",
+  "PhotosPicker": "PhotosUI",
+  "PhotosPickerItem": "PhotosUI",
+  "PHPickerViewController": "PhotosUI",
+  "SHA256": "CryptoKit",
+  "SHA512": "CryptoKit",
+  "SHA384": "CryptoKit",
+  "SymmetricKey": "CryptoKit",
+  "HMAC": "CryptoKit",
+  "AES": "CryptoKit",
+  "OSAllocatedUnfairLock": "os",
+  "OSSpinLock": "os",
+  "os_unfair_lock": "os",
+  "Logger": "os",
+  "OSLog": "os",
+  "OSLogStore": "os",
+  "Signposter": "os",
+  "SecItemDelete": "Security",
+  "SecItemAdd": "Security",
+  "SecItemCopyMatching": "Security",
+  "SecItemUpdate": "Security",
+  "SecRandomCopyBytes": "Security",
+  "SecCopyErrorMessageString": "Security",
+  "SecCodeCopyGuestWithAttributes": "Security",
+  "SecCodeCopyStaticCode": "Security",
+  "SecCodeCopySigningInformation": "Security",
+  "SecRequirementCreateWithString": "Security",
+  "SecCodeCheckValidity": "Security",
+  "SecRequirement": "Security",
+  "SecCode": "Security",
+  "SecStaticCode": "Security",
+  "SecCSFlags": "Security",
+  "NWConnection": "Network",
+  "NWBrowser": "Network",
+  "NWListener": "Network",
+  "NWEndpoint": "Network",
+  "NWPathMonitor": "Network",
+  "NWParameters": "Network",
+  "ASAuthorizationController": "AuthenticationServices",
+  "ASAuthorizationPlatformPublicKeyCredentialProvider": "AuthenticationServices",
+  "ASAuthorizationPasswordProvider": "AuthenticationServices",
+  "ASAuthorizationRequest": "AuthenticationServices",
+  "ASAuthorizationControllerPresentationContextProviding": "AuthenticationServices",
+  "TVTopShelfAction": "TVServices",
+  "TVTopShelfItemCollection": "TVServices",
+  "TVTopShelfSectionedItem": "TVServices",
+  "TVTopShelfSectionedContent": "TVServices",
+  "TVTopShelfContentProvider": "TVServices",
+  "TVTopShelfCarouselContent": "TVServices",
+  "TVTopShelfInsetContent": "TVServices",
+  "LocalizedStringResource": "Foundation",
+  "ListFormatter": "Foundation",
+  "RelativeDateTimeFormatter": "Foundation",
+  "natural_t": "Foundation",
+  "INShortcut": "Intents",
+  "INIntent": "Intents",
+  "mach_port_t": "system C APIs",
+  "task_power_info_v2": "system C APIs",
+  "task_vm_info_data_t": "system C APIs",
+  "thread_act_array_t": "system C APIs",
+  "mach_msg_type_number_t": "system C APIs",
+  "thread_t": "system C APIs",
+  "thread_identifier_info": "system C APIs",
+  "thread_extended_info": "system C APIs",
+  "ifaddrs": "system C APIs",
+  "IOPMAssertionID": "system C APIs",
+  "IOPMAssertionCreateWithName": "system C APIs",
+  "IOPMAssertionLevel": "system C APIs",
+  "IOPMAssertionRelease": "system C APIs",
+  "LSOpenFromURLSpec": "system C APIs",
+  "CVPixelBuffer": "system C APIs",
+  "CVPixelBufferLockBaseAddress": "system C APIs",
+  "CVPixelBufferUnlockBaseAddress": "system C APIs",
+  "MTLCreateSystemDefaultDevice": "system C APIs",
+  "SystemSoundID": "system C APIs",
+  "AudioServicesCreateSystemSoundID": "system C APIs",
+  "AudioServicesPlaySystemSound": "system C APIs",
+  "GLenum": "system C APIs",
+  "GLint": "system C APIs",
+  "GLuint": "system C APIs",
+  "CKSyncEngine": "CloudKit",
+  "Activity": "ActivityKit",
+  "ActivityAttributes": "ActivityKit",
+  "ActivityContent": "ActivityKit",
+  "Product": "StoreKit",
+  "Transaction": "StoreKit",
+  "SignInWithAppleButton": "AuthenticationServices",
+  "WebView": "WebKit",
+  "LookAroundPreview": "MapKit",
+  "OpenURLIntent": "AppIntents",
+  "ControlWidgetConfiguration": "WidgetKit",
+  "StaticControlConfiguration": "WidgetKit",
+  "ControlWidgetButton": "WidgetKit",
+  "ImageResource": "DeveloperToolsSupport",
+  "Annotation": "MapKit",
+  "DynamicIslandExpandedRegion": "WidgetKit",
+  "TimelineEntryRelevance": "WidgetKit",
+  "MapContentBuilder": "MapKit"
+ },
+ "prefixes": [
+  [
+   "UI",
+   "UIKit"
+  ],
+  [
+   "NS",
+   "AppKit"
+  ],
+  [
+   "AV",
+   "AVFoundation"
+  ],
+  [
+   "CL",
+   "CoreLocation"
+  ],
+  [
+   "MK",
+   "MapKit"
+  ],
+  [
+   "CK",
+   "CloudKit"
+  ],
+  [
+   "SK",
+   "StoreKit"
+  ],
+  [
+   "SCN",
+   "SceneKit"
+  ],
+  [
+   "WK",
+   "WebKit"
+  ],
+  [
+   "PH",
+   "Photos"
+  ],
+  [
+   "UN",
+   "UserNotifications"
+  ],
+  [
+   "HK",
+   "HealthKit"
+  ],
+  [
+   "WC",
+   "WatchConnectivity"
+  ],
+  [
+   "CN",
+   "Contacts"
+  ],
+  [
+   "EK",
+   "EventKit"
+  ],
+  [
+   "CM",
+   "CoreMotion"
+  ],
+  [
+   "CB",
+   "CoreBluetooth"
+  ],
+  [
+   "CT",
+   "CoreText"
+  ],
+  [
+   "CI",
+   "CoreImage"
+  ],
+  [
+   "CA",
+   "QuartzCore"
+  ],
+  [
+   "GK",
+   "GameKit"
+  ],
+  [
+   "PK",
+   "PassKit"
+  ],
+  [
+   "MP",
+   "MediaPlayer"
+  ],
+  [
+   "CG",
+   "CoreGraphics"
+  ],
+  [
+   "CF",
+   "CoreFoundation"
+  ],
+  [
+   "UT",
+   "UniformTypeIdentifiers"
+  ],
+  [
+   "VN",
+   "Vision"
+  ],
+  [
+   "LA",
+   "LocalAuthentication"
+  ]
+ ],
+ "mod_prefixes": [
+  [
+   "chart",
+   "Charts"
+  ],
+  [
+   "map",
+   "MapKit"
+  ],
+  [
+   "widget",
+   "WidgetKit"
+  ],
+  [
+   "model",
+   "SwiftData"
+  ],
+  [
+   "photos",
+   "PhotosUI"
+  ],
+  [
+   "popoverTip",
+   "TipKit"
+  ],
+  [
+   "quickLook",
+   "QuickLook"
+  ],
+  [
+   "storeProduct",
+   "StoreKit"
+  ],
+  [
+   "translation",
+   "Translation"
+  ],
+  [
+   "manageSubscriptions",
+   "StoreKit"
+  ],
+  [
+   "onInAppPurchase",
+   "StoreKit"
+  ],
+  [
+   "subscriptionStore",
+   "StoreKit"
+  ],
+  [
+   "inAppPurchase",
+   "StoreKit"
+  ],
+  [
+   "preview",
+   "Xcode previews"
+  ]
+ ],
+ "mod_names": {
+  "requestReview": "StoreKit",
+  "productViewStyle": "StoreKit",
+  "storeButton": "StoreKit",
+  "invalidatableContent": "WidgetKit",
+  "activityBackgroundTint": "ActivityKit",
+  "tipImageSize": "TipKit",
+  "tipBackground": "TipKit",
+  "tipViewStyle": "TipKit",
+  "onAppIntent": "AppIntents",
+  "configurationDisplayName": "WidgetKit",
+  "supportedFamilies": "WidgetKit",
+  "popoverTip": "TipKit",
+  "lineStyle": "Charts",
+  "interpolationMethod": "Charts",
+  "activitySystemActionForegroundColor": "ActivityKit",
+  "signInWithAppleButtonStyle": "AuthenticationServices",
+  "annotationTitles": "MapKit",
+  "widgetURL": "WidgetKit"
+ },
+ "shim_names": {
+  "Published": "Combine",
+  "Observable": "Observation",
+  "ObservationIgnored": "Observation",
+  "Bindable": "Observation"
+ }
+}
