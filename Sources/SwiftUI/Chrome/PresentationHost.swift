@@ -39,9 +39,20 @@ enum SheetMetrics {
         /// Large detent (attached, opaque) and iPad form sheet.
         var largeCornerRadius: CGFloat = 38         // (est.)
         var formSheetCornerRadius: CGFloat = 38     // (est.)
-        /// The floating sheet's glass is more opaque than a bar's, so content stays legible.
+        /// Dark: the presenter behind a sheet below the large detent is dimmed more than before iOS 26 (light keeps 0.2).
+        var partialDimDark: Double = 0.48                   // measured: iOS 27.0 simulator (presenter at 0.52 of its colour)
+        /// Lists and forms in a floating sheet: no background of their own, and cards that only veil the glass.
+        /// measured: iOS 27.0 simulator (form over the sheet's glass: 230 -> 215.5 light, 32 -> 47 dark)
+        var listCardLight = RGBA(0, 0, 0, 0.063)
+        var listCardDark = RGBA(1, 1, 1, 0.067)
+        /// iOS 26: the floating sheet's glass is more opaque than a bar's, so content stays legible. (est.)
+        /// iOS 27 uses the regular system glass: it turns the dimmed presenter's 204 gray into 230 (light)
+        /// and black into 32 (dark), as a bar's glass does. measured: iOS 27.0 simulator
         var tintLight = RGBA(1, 1, 1, 0.72)         // (est.)
         var tintDark = RGBA(0.11, 0.11, 0.12, 0.72) // (est.)
+        /// iOS 27 dark: the system glass with a deeper black tint, so colours behind it come through darker
+        /// (black still turns into 32). measured: iOS 27.0 simulator (GlassTabsAndSheets cards under the sheet)
+        var tint27Dark = RGBA(0, 0, 0, 0.18)
 
         /// Radius of a floating card: the display radius less the inset.
         func floatingCornerRadius() -> CGFloat {
@@ -49,7 +60,11 @@ enum SheetMetrics {
         }
         func appearance(_ scheme: ColorScheme, design: DesignLanguage) -> GlassAppearance {
             var a = GlassAppearance.system(.regular, scheme: scheme, design: design)
-            a.tint = scheme == .dark ? tintDark : tintLight
+            if design == .liquidGlass26 {
+                a.tint = scheme == .dark ? tintDark : tintLight
+            } else if scheme == .dark {
+                a.tint = tint27Dark
+            }
             return a
         }
     }
@@ -344,7 +359,8 @@ final class SheetLayerNode: PresentationLayerNode {
             if case .enabled(let upThrough)? = options.backgroundInteraction?.kind {
                 interactive = upThrough.map { cardTop >= top(for: $0, size: size) - 0.5 } ?? true
             }
-            backdrop = .dim(interactive ? 0 : (dark ? SheetMetrics.partialDimDark : SheetMetrics.partialDimLight))
+            let dimDark = env.designLanguage.isGlass ? SheetMetrics.forDesign(env.designLanguage).partialDimDark : SheetMetrics.partialDimDark
+            backdrop = .dim(interactive ? 0 : (dark ? dimDark : SheetMetrics.partialDimLight))
         }
 
         isFloating = env.designLanguage.isGlass && !isLarge
@@ -378,6 +394,13 @@ final class SheetLayerNode: PresentationLayerNode {
         let safeLocal = inner.safeRect.offsetBy(dx: -ctx.origin.x, dy: -ctx.origin.y)
         let c = content.sizeThatFits(ProposedViewSize(safeLocal.size))
         content.place(at: CGPoint(x: safeLocal.midX - c.width / 2, y: safeLocal.midY - c.height / 2), size: c, inner)
+        if isFloating && options.backgroundNode == nil && options.backgroundPaint == nil { Self.markListsOnGlass(content) }
+    }
+
+    /// Lists shown directly on the floating sheet's glass (not inside a nested presentation, which is a layer of its own).
+    private static func markListsOnGlass(_ node: Node) {
+        if let list = node as? ListNode { list.onFloatingSheetGlass = true }
+        for child in node.children { markListsOnGlass(child) }
     }
 
     /// iPad: a form sheet, 540x620 centred, never taller than the screen minus the status bar; detents do not apply.

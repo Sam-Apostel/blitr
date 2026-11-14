@@ -131,6 +131,10 @@ final class ListNode: Node {
     let sections: [Section]
     let backgroundColor: RGBA?
     let cardColor: RGBA
+    /// Set by a Liquid Glass floating sheet that shows this list: its background is left out and its cards are a
+    /// light veil over the sheet's glass (`floatingSheetCardColor`) instead of opaque.
+    var onFloatingSheetGlass = false
+    let floatingSheetCardColor: RGBA
     let separatorColor: RGBA
     let rowSpacing: CGFloat?
     let listSectionSpacing: ListSectionSpacing
@@ -162,6 +166,8 @@ final class ListNode: Node {
         // tvOS lists have no background of their own (est.): the screen shows through.
         backgroundColor = env.scrollContentBackground == .hidden || env.renderPlatform == .tvOS ? nil : colors.background
         cardColor = colors.card
+        let glassSheet = SheetMetrics.forDesign(env.designLanguage)
+        floatingSheetCardColor = env.colorScheme == .dark ? glassSheet.listCardDark : glassSheet.listCardLight
         rowSpacing = env.listRowSpacing
         listSectionSpacing = env.listSectionSpacing
         tv = env.renderPlatform == .tvOS
@@ -415,7 +421,7 @@ final class ListNode: Node {
         let visible = bounds.outset(by: bleed)
         p.save()
         p.clip(visible)
-        if let backgroundColor {
+        if let backgroundColor, !onFloatingSheetGlass {
             p.fill(Path(visible), with: .color(backgroundColor), in: visible)
         }
         if tv {
@@ -432,7 +438,7 @@ final class ListNode: Node {
             for card in cards where card.section == index {
                 let path = Path(roundedRect: card.rect, cornerRadius: card.radius, style: .continuous)
                 if style.hasCards || style == .inset {
-                    p.fill(path, with: .color(cardColor), in: card.rect)
+                    p.fill(path, with: .color(onFloatingSheetGlass ? floatingSheetCardColor : cardColor), in: card.rect)
                 }
                 p.save()
                 if card.radius > 0 { p.clip(path) }
