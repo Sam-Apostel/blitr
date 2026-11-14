@@ -1,0 +1,82 @@
+name: macOS (port in progress)
+
+# PORT IN PROGRESS (issue #19). The native macOS build is not done yet: until step 2 of the issue lands
+# (module clashes with Apple's frameworks), this job is expected to fail at `swift build`. Its logs and
+# whatever it rendered are uploaded either way.
+#
+# Started by hand only: the repository is private and macOS runner minutes count 10x against the quota.
+on:
+  workflow_dispatch:
+    inputs:
+      swift-version:
+        description: Swift toolchain to install with swiftly (empty uses the runner's Xcode toolchain)
+        required: false
+        default: "6.4.2"
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  macos:
+    name: Build and render on macOS (in progress)
+    runs-on: macos-latest
+    env:
+      SWIFTUI_SCREENSHOT_CACHE: ${{ github.workspace }}/.cache/swiftui-screenshot
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install HarfBuzz and pkg-config
+        run: brew install harfbuzz pkg-config
+
+      - name: Install the Swift toolchain
+        if: inputs.swift-version != ''
+        run: |
+          curl -fsSLO https://download.swift.org/swiftly/darwin/swiftly.pkg
+          installer -pkg swiftly.pkg -target CurrentUserHomeDirectory
+          ~/.swiftly/bin/swiftly init --quiet-shell-followup --skip-install
+          . "${SWIFTLY_HOME_DIR:-$HOME/.swiftly}/env.sh"
+          swiftly install --use "${{ inputs.swift-version }}"
+          echo "${SWIFTLY_BIN_DIR:-$HOME/.swiftly/bin}" >> "$GITHUB_PATH"
+
+      - name: Toolchain
+        run: |
+          swift --version
+          xcrun --show-sdk-path
+
+      - name: Fetch pinned Skia and fonts
+        run: scripts/bootstrap.sh
+
+      - name: Build
+        run: swift build 2>&1 | tee build.log
+
+      - name: Apple's SwiftUI must not be linked
+        run: |
+          bin="$(swift build --show-bin-path)"
+          otool -L "$bin/libSwiftUIScreenshotEngine.dylib" | tee otool-engine.txt
+          if grep -q 'SwiftUI.framework' otool-engine.txt; then echo "the engine links Apple's SwiftUI" >&2; exit 1; fi
+
+      - name: Render examples
+        run: |
+          bin="$(swift build --show-bin-path)"
+          "$bin/swiftui-screenshot" doctor || true
+          mkdir -p out/macos
+          "$bin/swiftui-screenshot" render Examples/Hello.swift --open-fonts --scheme both --out-dir out/macos -v 2>&1 | tee render.log
+          "$bin/swiftui-screenshot" render Tests/Corpus/01_Settings.swift --all --open-fonts --scheme both --out-dir out/macos 2>&1 | tee -a render.log
+          "$bin/swiftui-screenshot" render Examples/TVControls.swift --device apple-tv --open-fonts --out-dir out/macos 2>&1 | tee -a render.log
+          # The compiled previews must not link Apple's SwiftUI either.
+          runner="$(find "$SWIFTUI_SCREENSHOT_CACHE" -name runner -type f | head -1)"
+          otool -L "$runner" | tee otool-runner.txt
+          if grep -q 'SwiftUI.framework' otool-runner.txt; then echo "a compiled preview links Apple's SwiftUI" >&2; exit 1; fi
+
+      - name: Upload renders and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-port-in-progress
+          path: |
+            out/macos/*.png
+            build.log
+            render.log
+            otool-*.txt
+          if-no-files-found: warn
