@@ -40,7 +40,7 @@ public struct Font: Hashable, Sendable {
             platform == .tvOS ? tvMetrics : metrics
         }
         /// Point size and default weight at the standard Dynamic Type size (Large).
-        var metrics: (size: CGFloat, weight: Weight) {
+        package var metrics: (size: CGFloat, weight: Weight) {
             switch self {
             case .extraLargeTitle: return (36, .bold)
             case .extraLargeTitle2: return (28, .bold)

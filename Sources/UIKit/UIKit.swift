@@ -1,3 +1,9 @@
-// The UIKit types live in the SwiftUI module (so `import SwiftUI` alone exposes them);
-// `import UIKit` just needs a module of that name.
-@_exported import SwiftUI
+// `import UIKit`: UIColor, UIImage, UIFont, the UIKit singletons (UIScreen, UIDevice, UIApplication, ...)
+// and inert UIView/UIViewController shells.
+//
+// On iOS, tvOS and visionOS Apple's SwiftUI re-exports UIKit, so the preprocessor adds `import UIKit` next
+// to every `import SwiftUI` when rendering those platforms; on macOS and watchOS these names stay hidden.
+// The SwiftUI API that takes UIKit types (`Color(uiColor:)`, `Image(uiImage:)`, `Font(_: UIFont)`,
+// `UIViewRepresentable`, `UIHostingController`, `@UIApplicationDelegateAdaptor`, `keyboardType(_:)`,
+// `ImageRenderer.uiImage`) is declared here, next to those types, because this module builds on SwiftUI.
+@_exported import Foundation

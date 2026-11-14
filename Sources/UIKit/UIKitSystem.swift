@@ -1,6 +1,9 @@
 // Inert stand-ins for the UIKit singletons and classes app code touches next to SwiftUI.
 // Everything is non-isolated so it can be called from any closure the app writes.
 
+import Foundation
+import SwiftUI
+
 public struct UIEdgeInsets: Equatable, Hashable, Sendable {
     public var top: CGFloat, left: CGFloat, bottom: CGFloat, right: CGFloat
     public init() { top = 0; left = 0; bottom = 0; right = 0 }
@@ -288,22 +291,6 @@ open class UIHostingController<Content: View>: UIViewController {
 
 // MARK: - Representables
 
-/// What a UIKit-backed view becomes in a headless render: a labelled placeholder box.
-public struct _RepresentablePlaceholder: View, PrimitiveView {
-    public typealias Body = Never
-    let typeName: String
-    public init(typeName: String) { self.typeName = typeName }
-    func resolve(_ ctx: ResolveContext, into out: inout [Node]) {
-        ctx.runtime.warn("\(typeName) wraps a UIKit view, which cannot be rendered; showing a placeholder")
-        let box = ZStack {
-            RoundedRectangle(cornerRadius: 6).strokeBorder(Color.gray, style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
-            Text(typeName).font(.caption).foregroundStyle(.secondary).padding(4)
-        }
-        .frame(minWidth: 44, maxWidth: .infinity, minHeight: 44, maxHeight: .infinity)
-        resolveView(box, ctx, into: &out)
-    }
-}
-
 public struct UIViewRepresentableContext<Representable: UIViewRepresentable> {
     public let coordinator: Representable.Coordinator
     public var transaction = Transaction()
@@ -366,5 +353,5 @@ public struct UIApplicationDelegateAdaptor<DelegateType: NSObject & UIApplicatio
     }
 }
 extension UIApplicationDelegateAdaptor where DelegateType: ObservableObject {
-    public var projectedValue: ObservedObject<DelegateType>.Wrapper { ObservedObject<DelegateType>.Wrapper(object: wrappedValue) }
+    public var projectedValue: ObservedObject<DelegateType>.Wrapper { ObservedObject<DelegateType>.Wrapper(_object: wrappedValue) }
 }

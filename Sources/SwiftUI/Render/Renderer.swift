@@ -2,15 +2,15 @@ internal import CSkia
 
 // Entry point of a render: View -> node tree -> layout -> pixels -> PNG.
 
-struct RenderConfiguration {
+package struct RenderConfiguration {
     enum Layout { case device, sizeThatFits, fixed }
     var layout: Layout = .device
-    var device = DeviceProfile.all["iphone-16"]!
+    package var device = DeviceProfile.all["iphone-16"]!
     /// Overrides the canvas size (`fixed`), or caps the proposed width (`sizeThatFits`).
-    var width: CGFloat?
-    var height: CGFloat?
-    var scale: CGFloat?
-    var colorScheme: ColorScheme = .light
+    package var width: CGFloat?
+    package var height: CGFloat?
+    package var scale: CGFloat?
+    package var colorScheme: ColorScheme = .light
     var dynamicTypeSize: DynamicTypeSize = .large
     var showsDeviceChrome = true
     /// Clip the image to the device's rounded display, corners transparent.

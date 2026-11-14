@@ -28,11 +28,3 @@ extension Color {
 extension Image {
     public init(_ resource: ImageResource) { self.init(resource.name, bundle: resource.bundle) }
 }
-
-extension UIColor {
-    public convenience init(resource: ColorResource) { self.init(named: resource.name)! }
-}
-
-extension UIImage {
-    public convenience init(resource: ImageResource) { self.init(named: resource.name)! }
-}

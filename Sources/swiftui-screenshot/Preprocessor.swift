@@ -8,6 +8,7 @@ import Foundation
 ///     @Previewable                     ->  (removed)
 ///     @main                            ->  (removed; the generated main.swift is the entry point)
 ///     #if os(iOS)                      ->  #if os(Linux)   (for the platform being rendered: its branches are kept)
+///     import SwiftUI                   ->  import SwiftUI; import UIKit   (iOS, tvOS, visionOS: SwiftUI re-exports UIKit there)
 ///     @Entry var x: T = v              ->  an explicit EnvironmentKey + computed property
 ///     #available(iOS 26, *)            ->  SwiftUI.RenderedPlatform.isAtLeast(iOS: 26)
 ///     #unavailable(iOS 26)             ->  !SwiftUI.RenderedPlatform.isAtLeast(iOS: 26)
@@ -256,6 +257,13 @@ struct Preprocessor {
         return result
     }
 
+    /// Platforms whose SwiftUI re-exports UIKit.
+    static let uiKitPlatforms: Set<String> = ["iOS", "tvOS", "visionOS"]
+
+    private static func isIdentifierByte(_ b: UInt8) -> Bool {
+        b == UInt8(ascii: "_") || (b >= 48 && b <= 57) || (b >= 65 && b <= 90) || (b >= 97 && b <= 122)
+    }
+
     private static func isRawStringStart(_ bytes: [UInt8], _ index: Int) -> Bool {
         var k = index
         while k < bytes.count, bytes[k] == UInt8(ascii: "#") { k += 1 }
@@ -316,6 +324,18 @@ struct Preprocessor {
                         }
                     }
                 }
+            }
+            // Apple's SwiftUI re-exports UIKit on iOS, tvOS and visionOS. Here UIKit is a module of its own
+            // (so macOS and watchOS code does not see it), and a file importing SwiftUI imports it as well.
+            if Self.uiKitPlatforms.contains(platform), hasToken("import SwiftUI", at: i),
+               i == 0 || !Self.isIdentifierByte(bytes[i - 1]), !(i + 14 < bytes.count && bytes[i + 14] == UInt8(ascii: ".")) {
+                let lineStart = out.lastIndex(of: UInt8(ascii: "\n")).map { $0 + 1 } ?? 0
+                let lead = String(decoding: out[lineStart...], as: UTF8.self).split(separator: " ")
+                let accessLevels: Set<Substring> = ["public", "package", "internal", "fileprivate", "private"]
+                let modifier = lead.contains("@_exported") ? "@_exported " : lead.first(where: accessLevels.contains).map { "\($0) " } ?? ""
+                out += Array("import SwiftUI; \(modifier)import UIKit".utf8)
+                i += "import SwiftUI".utf8.count
+                continue
             }
             // `#if os(<the rendered platform>)` must be the true branch; other Apple platforms stay false.
             if hasToken("os(\(platform))", at: i) {

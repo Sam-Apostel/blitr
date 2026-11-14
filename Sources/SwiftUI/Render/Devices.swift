@@ -4,9 +4,9 @@
 // Values are in points. Where a number is an estimate rather than a measured value, the comment
 // says so; the geometry that decides layout (point size, scale, safe-area insets) is what matters most.
 
-enum DeviceIdiom: Sendable { case phone, pad, tv }
+package enum DeviceIdiom: Sendable { case phone, pad, tv }
 
-enum DeviceOrientation: Sendable {
+package enum DeviceOrientation: Sendable {
     case portrait, landscapeLeft, landscapeRight
     var isLandscape: Bool { self != .portrait }
 }
@@ -32,38 +32,38 @@ enum SensorHousing {
     }
 }
 
-struct DeviceProfile {
+package struct DeviceProfile {
     var id: String
     var name: String
-    var idiom: DeviceIdiom
+    package var idiom: DeviceIdiom
     /// Portrait size in points.
     var portraitSize: CGSize
-    var scale: CGFloat
+    package var scale: CGFloat
     var portraitSafeArea: EdgeInsets
     var landscapeSafeArea: EdgeInsets
     var cornerRadius: CGFloat
     var housing: SensorHousing
     var aliases: [String] = []
-    var orientation: DeviceOrientation = .portrait
+    package var orientation: DeviceOrientation = .portrait
 
     /// Size in the current orientation.
-    var size: CGSize {
+    package var size: CGSize {
         orientation.isLandscape ? CGSize(width: portraitSize.height, height: portraitSize.width) : portraitSize
     }
     /// Safe-area insets in the current orientation.
-    var safeArea: EdgeInsets { orientation.isLandscape ? landscapeSafeArea : portraitSafeArea }
+    package var safeArea: EdgeInsets { orientation.isLandscape ? landscapeSafeArea : portraitSafeArea }
 
     /// iPhones in landscape hide the status bar; iPads keep it.
     var showsStatusBar: Bool { idiom == .pad || (idiom == .phone && !orientation.isLandscape) }
 
     /// Width size class of a full-screen app. iPads are regular. iPhones are compact in portrait, and
     /// in landscape regular when the portrait width is 414pt or more (the Plus/Max/Air sizes, and the 11).
-    var horizontalSizeClass: UserInterfaceSizeClass {
+    package var horizontalSizeClass: UserInterfaceSizeClass {
         if idiom != .phone { return .regular }
         return orientation.isLandscape && portraitSize.width >= 414 ? .regular : .compact
     }
     /// iPhones are compact in landscape; everything else is regular.
-    var verticalSizeClass: UserInterfaceSizeClass {
+    package var verticalSizeClass: UserInterfaceSizeClass {
         idiom == .phone && orientation.isLandscape ? .compact : .regular
     }
 

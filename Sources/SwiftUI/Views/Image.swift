@@ -3,9 +3,9 @@ internal import CSkia
 // Image: bitmap assets and system symbols.
 
 /// A decoded bitmap (Skia image) with its point size.
-final class Bitmap: @unchecked Sendable {
+package final class Bitmap: @unchecked Sendable {
     let image: OpaquePointer
-    let pointSize: CGSize
+    package let pointSize: CGSize
     init?(path: String, scale: CGFloat) {
         guard let data = sk_data_new_from_file(path) else { return nil }
         defer { sk_data_unref(data) }
@@ -24,8 +24,8 @@ final class Bitmap: @unchecked Sendable {
 /// Finds named images and colors in the asset directories given to the renderer:
 /// `.xcassets` catalogs (imagesets / colorsets) and loose image files.
 @MainActor
-final class AssetCatalog {
-    static let shared = AssetCatalog()
+package final class AssetCatalog {
+    package static let shared = AssetCatalog()
     var directories: [String] = [] { didSet { index = nil; bitmaps = [:] } }
     private var index: [String: [String]]?
     private var bitmaps: [String: Bitmap?] = [:]
@@ -54,7 +54,7 @@ final class AssetCatalog {
         return result
     }
 
-    func bitmap(named name: String, scheme: ColorScheme) -> Bitmap? {
+    package func bitmap(named name: String, scheme: ColorScheme) -> Bitmap? {
         let key = name + (scheme == .dark ? "#dark" : "")
         if let cached = bitmaps[key] { return cached }
         if index == nil { index = buildIndex() }
@@ -73,7 +73,7 @@ final class AssetCatalog {
         return bitmap
     }
 
-    func color(named name: String, scheme: ColorScheme) -> RGBA? {
+    package func color(named name: String, scheme: ColorScheme) -> RGBA? {
         if index == nil { index = buildIndex() }
         guard let contents = index?["color:" + name]?.first(where: { $0.hasSuffix("Contents.json") }),
               let data = FileManager.default.contents(atPath: contents),
@@ -135,20 +135,20 @@ public struct Image: Equatable, Sendable {
     public enum Scale: Hashable, Sendable { case small, medium, large }
     public enum Orientation: UInt8, Hashable, Sendable { case up, upMirrored, down, downMirrored, left, leftMirrored, right, rightMirrored }
 
-    enum Source: Equatable, Sendable {
+    package enum Source: Equatable, Sendable {
         case named(String)
         case system(String)
         case file(String)
         /// Pixels made while rendering (ImageRenderer).
         case rendered(RenderedImage)
     }
-    var source: Source
+    package var source: Source
     /// `Image(decorative:)`: hidden from assistive technology.
     var isDecorative = false
     /// `Image(_:label:)`: the accessibility label.
     var accessibilityLabelText: String?
     var isResizable = false
-    var renderingMode: TemplateRenderingMode?
+    package var renderingMode: TemplateRenderingMode?
     var symbolMode: SymbolRenderingMode?
 
     public init(_ name: String, bundle: Bundle? = nil) { source = .named(name) }

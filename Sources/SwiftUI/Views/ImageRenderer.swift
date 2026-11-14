@@ -6,9 +6,9 @@ import Combine
 // `Image(uiImage:)` / `Image(decorative: cgImage, scale:)`, which draw those pixels.
 
 /// Pixels produced by an ImageRenderer, with the scale they were rendered at.
-final class RenderedImage: Equatable, @unchecked Sendable {
-    let bitmap: Bitmap
-    let scale: CGFloat
+package final class RenderedImage: Equatable, @unchecked Sendable {
+    package let bitmap: Bitmap
+    package let scale: CGFloat
     let pixelWidth: Int
     let pixelHeight: Int
     init(bitmap: Bitmap, scale: CGFloat, pixelWidth: Int, pixelHeight: Int) {
@@ -17,14 +17,14 @@ final class RenderedImage: Equatable, @unchecked Sendable {
         self.pixelWidth = pixelWidth
         self.pixelHeight = pixelHeight
     }
-    static func == (a: RenderedImage, b: RenderedImage) -> Bool { a === b }
+    package static func == (a: RenderedImage, b: RenderedImage) -> Bool { a === b }
 }
 
 /// A bitmap made by `ImageRenderer.cgImage`. Only what a rendered image needs: its pixel size, and
 /// drawing through `Image(decorative:scale:)`, `Image(_:scale:label:)` or `UIImage(cgImage:)`.
 public final class CGImage: @unchecked Sendable {
-    let rendered: RenderedImage
-    init(rendered: RenderedImage) { self.rendered = rendered }
+    package let rendered: RenderedImage
+    package init(rendered: RenderedImage) { self.rendered = rendered }
     public var width: Int { rendered.pixelWidth }
     public var height: Int { rendered.pixelHeight }
 }
@@ -51,22 +51,11 @@ extension Image {
 
 extension RenderedImage {
     /// The same pixels read at another scale (points = pixels / scale).
-    func rescaled(to newScale: CGFloat) -> RenderedImage {
+    package func rescaled(to newScale: CGFloat) -> RenderedImage {
         guard newScale > 0, newScale != scale else { return self }
         sk_image_ref(bitmap.image)
         let size = CGSize(width: CGFloat(pixelWidth) / newScale, height: CGFloat(pixelHeight) / newScale)
         return RenderedImage(bitmap: Bitmap(image: bitmap.image, pointSize: size), scale: newScale, pixelWidth: pixelWidth, pixelHeight: pixelHeight)
-    }
-}
-
-extension UIImage {
-    public convenience init(cgImage: CGImage) { self.init(source: .rendered(cgImage.rendered.rescaled(to: 1))) }
-    public convenience init(cgImage: CGImage, scale: CGFloat, orientation: Image.Orientation) {
-        self.init(source: .rendered(cgImage.rendered.rescaled(to: scale)))
-    }
-    public var cgImage: CGImage? {
-        if case .rendered(let rendered) = source { return CGImage(rendered: rendered) }
-        return nil
     }
 }
 
@@ -86,9 +75,6 @@ public final class ImageRenderer<Content: View>: ObservableObject {
 
     public init(content view: Content) { content = view }
 
-    public var uiImage: UIImage? {
-        rendered(scale: scale).map { UIImage(source: .rendered($0)) }
-    }
     public var cgImage: CGImage? {
         rendered(scale: scale).map { CGImage(rendered: $0) }
     }
@@ -106,7 +92,7 @@ public final class ImageRenderer<Content: View>: ObservableObject {
         _OffscreenRender.run(content, proposal: proposedSize, scale: scale, opaque: isOpaque, draw: false)?.size ?? .zero
     }
 
-    private func rendered(scale: CGFloat) -> RenderedImage? {
+    package func rendered(scale: CGFloat) -> RenderedImage? {
         _OffscreenRender.run(content, proposal: proposedSize, scale: scale, opaque: isOpaque, draw: true)?.image
     }
 }

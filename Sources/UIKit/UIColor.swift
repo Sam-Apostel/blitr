@@ -1,5 +1,9 @@
-// UIColor / UIImage / UIFont: the value types app code passes into SwiftUI.
-// They live in the SwiftUI module so `Color(.systemBackground)` works with only `import SwiftUI`.
+// UIColor / UIImage / UIFont: the value types app code passes into SwiftUI. On iOS, tvOS and visionOS
+// `import SwiftUI` makes them visible too (the preprocessor adds `import UIKit`), so `Color(.systemBackground)`
+// works with only `import SwiftUI` there, as on Apple platforms.
+
+import Foundation
+import SwiftUI
 
 public enum UIUserInterfaceStyle: Int, Hashable, Sendable { case unspecified, light, dark }
 public enum UIUserInterfaceSizeClass: Int, Hashable, Sendable { case unspecified, compact, regular }

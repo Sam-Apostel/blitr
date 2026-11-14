@@ -15,3 +15,8 @@ extension ForEach {
 extension Group {
     package init(_content content: Content) { self.content = content }
 }
+
+extension ObservedObject.Wrapper {
+    /// For `@UIApplicationDelegateAdaptor` (UIKit), whose projected value is an observed object's wrapper.
+    package init(_object object: ObjectType) { self.init(object: object) }
+}
