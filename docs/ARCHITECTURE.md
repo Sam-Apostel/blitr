@@ -25,7 +25,27 @@ View value ──resolve──▶ Node tree ──measure/place──▶ frames 
    and calls `drawContent`. `Painter` is the only code that talks to Skia.
 
 `Render/Renderer.swift` drives this. It repeats resolve+layout while `onAppear`/`task`
-actions change state (capped), then draws once.
+actions change state (capped), then draws once. Preferences are computed from the live tree, so
+values written during layout (inside a `GeometryReader`) reach `onPreferenceChange` on the next pass.
+
+## Source tree
+
+| Path | Contents |
+|---|---|
+| `Sources/SwiftUI/Core` | `View`, `ViewBuilder`, modifiers, environment, state, traits and preferences, resolution |
+| `Sources/SwiftUI/Layout` | `Node`, stacks, frames, padding, safe area, `GeometryReader` |
+| `Sources/SwiftUI/Graphics` | `Painter` (Skia), colors, shape styles, paths, shapes |
+| `Sources/SwiftUI/Text` | fonts, HarfBuzz shaping and line layout, `Text` |
+| `Sources/SwiftUI/Views`, `Modifiers` | `Image`, `AsyncImage`, drawing effects, lifecycle |
+| `Sources/SwiftUI/Controls` | buttons, toggles, pickers, text input, indicators |
+| `Sources/SwiftUI/Containers` | `ScrollView`, lazy stacks, grids, `Layout` protocol, `Canvas` |
+| `Sources/SwiftUI/Chrome` | navigation and tab bars, lists, sheets, alerts (hand-drawn system UI) |
+| `Sources/SwiftUI/Symbols` | SF Symbol stand-ins (generated from Phosphor Icons by `scripts/generate-symbols.py`) |
+| `Sources/SwiftUI/Compat` | `ObservableObject`-era wrappers, `App`/`Scene`, UIKit types |
+| `Sources/SwiftUI/Inert` | APIs with no effect on a static frame: gestures, animation, accessibility |
+| `Sources/Combine`, `Sources/UIKit` | shim modules so those imports resolve |
+| `Sources/swiftui-screenshot` | the command-line tool and source preprocessor |
+| `Tests/Corpus` | realistic screens rendered in CI as acceptance tests |
 
 ## Adding things
 
