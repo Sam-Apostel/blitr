@@ -1,0 +1,247 @@
+{
+  "colorScheme": "dark",
+  "device": "agent-calibrate-iphone16-ios26",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 26.33,
+        "width": 65,
+        "x": 32,
+        "y": 242.67
+      },
+      "label": "Card 1",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 26.33,
+        "width": 67.67,
+        "x": 32,
+        "y": 374.67
+      },
+      "label": "Card 2",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 26.33,
+        "width": 68.33,
+        "x": 32,
+        "y": 506.67
+      },
+      "label": "Card 3",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 26.33,
+        "width": 68.67,
+        "x": 32,
+        "y": 638.67
+      },
+      "label": "Card 4",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 26.33,
+        "width": 68.33,
+        "x": 32,
+        "y": 770.67
+      },
+      "label": "Card 5",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 26.33,
+        "width": 68.67,
+        "x": 32,
+        "y": 902.67
+      },
+      "label": "Card 6",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 26.33,
+        "width": 67,
+        "x": 32,
+        "y": 3032.67
+      },
+      "label": "Card 7",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 26.33,
+        "width": 69,
+        "x": 32,
+        "y": 3032.67
+      },
+      "label": "Card 8",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 26.33,
+        "width": 68.67,
+        "x": 32,
+        "y": 3032.67
+      },
+      "label": "Card 9",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 26.33,
+        "width": 79.33,
+        "x": 32,
+        "y": 3032.67
+      },
+      "label": "Card 10",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 26.33,
+        "width": 75.67,
+        "x": 32,
+        "y": 3032.67
+      },
+      "label": "Card 11",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "UILabel",
+      "frame": {
+        "height": 40.67,
+        "width": 111.67,
+        "x": 16,
+        "y": 116.67
+      },
+      "label": "Photos",
+      "role": "header",
+      "traits": [
+        "header"
+      ]
+    },
+    {
+      "class": "UILabel",
+      "frame": {
+        "height": 20.33,
+        "width": 260,
+        "x": 66.67,
+        "y": 374.33
+      },
+      "label": "Delete Photo?",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "UILabel",
+      "frame": {
+        "height": 38,
+        "width": 260,
+        "x": 66.67,
+        "y": 402.33
+      },
+      "label": "This photo will be deleted from all your devices.",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "_UIInterfaceActionCustomViewRepresentationView",
+      "frame": {
+        "height": 48,
+        "width": 140,
+        "x": 200.67,
+        "y": 460.67
+      },
+      "label": "Delete",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "_UIInterfaceActionCustomViewRepresentationView",
+      "frame": {
+        "height": 48,
+        "width": 140,
+        "x": 52.67,
+        "y": 460.67
+      },
+      "label": "Cancel",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 3,
+  "previewName": "Two-button alert",
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "GlassTabsAndSheets",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "26.5",
+  "version": 1
+}

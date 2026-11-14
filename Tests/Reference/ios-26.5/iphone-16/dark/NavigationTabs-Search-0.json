@@ -1,0 +1,93 @@
+{
+  "colorScheme": "dark",
+  "device": "agent-calibrate-iphone16-ios26",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 52.67,
+        "x": 16,
+        "y": 171
+      },
+      "label": "Apples",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 65.33,
+        "x": 16,
+        "y": 211.33
+      },
+      "label": "Bananas",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 64.67,
+        "x": 16,
+        "y": 251.67
+      },
+      "label": "Cherries",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "UILabel",
+      "frame": {
+        "height": 40.67,
+        "width": 73,
+        "x": 16,
+        "y": 116.67
+      },
+      "label": "Fruit",
+      "role": "header",
+      "traits": [
+        "header"
+      ]
+    },
+    {
+      "class": "UISearchBarTextField",
+      "frame": {
+        "height": 38,
+        "width": 327,
+        "x": 33,
+        "y": 781
+      },
+      "label": "Search fruit",
+      "role": "searchField",
+      "traits": [
+        "searchField"
+      ],
+      "value": "Search fruit"
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 0,
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "NavigationTabs-Search",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "26.5",
+  "version": 1
+}
