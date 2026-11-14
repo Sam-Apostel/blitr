@@ -1,7 +1,7 @@
 {
   "devices": {
     "iphone-16": {
-      "captured": "2026-11-14T02:01:43Z",
+      "captured": "2026-11-14T12:00:17Z",
       "colorSpace": "sRGB",
       "dynamicType": "large",
       "locale": "en_US",
@@ -11,10 +11,10 @@
         "light",
         "dark"
       ],
-      "simulatorDate": "2026-11-14T03:01:42+0100",
+      "simulatorDate": "2026-11-14T13:00:17+0100",
       "simulatorTimeZone": "Europe/Brussels",
       "statusBar": {
-        "battery": "charged 100%",
+        "battery": "discharging 100%",
         "cellularBars": 4,
         "time": "9:41",
         "wifiBars": 3
@@ -191,6 +191,35 @@
         }
       ],
       "source": "Tests/Corpus/12_ComponentGallery.swift"
+    },
+    {
+      "key": "13_TVHome",
+      "module": "Screen_13_TVHome",
+      "previews": [
+        {
+          "index": 0
+        },
+        {
+          "index": 1,
+          "name": "Dark"
+        }
+      ],
+      "skipped": "does not compile for iOS with real SwiftUI",
+      "source": "Tests/Corpus/13_TVHome.swift"
+    },
+    {
+      "key": "14_TVSettings",
+      "module": "Screen_14_TVSettings",
+      "previews": [
+        {
+          "index": 0
+        },
+        {
+          "index": 1,
+          "name": "Dark"
+        }
+      ],
+      "source": "Tests/Corpus/14_TVSettings.swift"
     },
     {
       "key": "Accessibility",
@@ -373,6 +402,63 @@
       "source": "Examples/Lists.swift"
     },
     {
+      "key": "Maps",
+      "module": "Screen_Maps",
+      "previews": [
+        {
+          "index": 0,
+          "name": "Markers"
+        },
+        {
+          "index": 1,
+          "name": "Trip"
+        },
+        {
+          "index": 2,
+          "name": "Overlays"
+        },
+        {
+          "index": 3,
+          "name": "Region vs automatic"
+        },
+        {
+          "index": 4,
+          "name": "Imagery"
+        },
+        {
+          "index": 5,
+          "name": "Dark"
+        },
+        {
+          "index": 6,
+          "name": "Map card"
+        },
+        {
+          "index": 7,
+          "name": "Legacy"
+        },
+        {
+          "index": 8,
+          "name": "Reader"
+        },
+        {
+          "index": 9,
+          "name": "tvOS"
+        }
+      ],
+      "source": "Examples/Maps.swift"
+    },
+    {
+      "key": "ObservableModel",
+      "module": "Screen_ObservableModel",
+      "previews": [
+        {
+          "index": 0
+        }
+      ],
+      "source": "Examples/ObservableModel.swift"
+    },
+    {
       "key": "Presentations",
       "module": "Screen_Presentations",
       "previews": [
@@ -411,6 +497,62 @@
         }
       ],
       "source": "Examples/Symbols.swift"
+    },
+    {
+      "key": "TVControls",
+      "module": "Screen_TVControls",
+      "previews": [
+        {
+          "index": 0,
+          "name": "Buttons"
+        },
+        {
+          "index": 1,
+          "name": "Inputs"
+        },
+        {
+          "index": 2,
+          "name": "Inline Picker"
+        },
+        {
+          "index": 3,
+          "name": "Tab Bar"
+        },
+        {
+          "index": 4,
+          "name": "Sidebar"
+        },
+        {
+          "index": 5,
+          "name": "Pages"
+        },
+        {
+          "index": 6,
+          "name": "Settings List"
+        },
+        {
+          "index": 7,
+          "name": "Search"
+        },
+        {
+          "index": 8,
+          "name": "Alert"
+        },
+        {
+          "index": 9,
+          "name": "Dialog"
+        },
+        {
+          "index": 10,
+          "name": "Sheet"
+        },
+        {
+          "index": 11,
+          "name": "Focus Visuals"
+        }
+      ],
+      "skipped": "does not compile for iOS with real SwiftUI",
+      "source": "Examples/TVControls.swift"
     },
     {
       "key": "TVFocus",

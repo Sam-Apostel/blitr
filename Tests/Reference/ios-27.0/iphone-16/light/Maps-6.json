@@ -1,0 +1,132 @@
+{
+  "colorScheme": "light",
+  "device": "agent-calibrate-iphone16-ios27",
+  "elements": [
+    {
+      "class": "MKMarkerAnnotationView",
+      "frame": {
+        "height": 34.94,
+        "width": 31.33,
+        "x": 180.67,
+        "y": 158.33
+      },
+      "label": "Sintra",
+      "role": "group",
+      "traits": []
+    },
+    {
+      "class": "VKMapView",
+      "frame": {
+        "height": 150,
+        "width": 329,
+        "x": 32,
+        "y": 118.33
+      },
+      "label": "Map",
+      "role": "group",
+      "traits": []
+    },
+    {
+      "class": "MKAttributionLabel",
+      "frame": {
+        "height": 10.74,
+        "width": 28.58,
+        "x": 102.25,
+        "y": 247.59
+      },
+      "label": "Legal",
+      "role": "link",
+      "traits": [
+        "link"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 47.33,
+        "x": 32,
+        "y": 276.5
+      },
+      "label": "Sintra",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 18,
+        "width": 236.67,
+        "x": 32,
+        "y": 304.83
+      },
+      "label": "Palaces in the hills, 40 min by train",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 342
+      },
+      "label": "Cascais",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 394
+      },
+      "label": "Back to Lisbon",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 40.33,
+        "width": 361,
+        "x": 16,
+        "y": 59
+      },
+      "label": "Day 2",
+      "role": "header",
+      "traits": [
+        "header",
+        "staticText"
+      ]
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 6,
+  "previewName": "Map card",
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "Maps",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "27.0",
+  "version": 1
+}
