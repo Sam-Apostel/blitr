@@ -462,7 +462,7 @@ public struct Menu<Label: View, Content: View>: View {
         if let custom = customStyle, !forceDefault {
             custom.make(AnyView(label), AnyView(content))
         } else {
-            Button(action: primaryAction ?? {}) { label }
+            Button(action: primaryAction ?? {}) { _MenuLabel(label: label) }
                 .axInfo(shared: true) { $0.addTraits = [.hasPopup] }
         }
     }

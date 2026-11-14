@@ -107,7 +107,7 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
                 if !labelNodes.isEmpty { labelView }
                 HStack(spacing: 5) {
                     if let selected { _NodeView(selected) }
-                    UpDownChevron(color: AnyShapeStyle(Color.accentColor))
+                    if ctx.env.menuIndicatorVisibility != .hidden { UpDownChevron(color: AnyShapeStyle(Color.accentColor)) }
                 }
             })
         case .navigationLink:
