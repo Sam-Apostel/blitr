@@ -1,0 +1,171 @@
+{
+  "colorScheme": "light",
+  "device": "Apple TV 4K (3rd generation)",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 74,
+        "width": 310,
+        "x": 50,
+        "y": 56
+      },
+      "label": "Home",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 30,
+        "width": 129.5,
+        "x": 70,
+        "y": 154
+      },
+      "label": "Movies",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 32,
+        "width": 141.5,
+        "x": 71,
+        "y": 229
+      },
+      "label": "Settings",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 57.5,
+        "width": 127,
+        "x": 80,
+        "y": 120
+      },
+      "label": "Home",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 170,
+        "width": 300,
+        "x": 80,
+        "y": 237.5
+      },
+      "label": "",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 170,
+        "width": 300,
+        "x": 420,
+        "y": 237.5
+      },
+      "label": "",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 170,
+        "width": 300,
+        "x": 760,
+        "y": 237.5
+      },
+      "label": "",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 170,
+        "width": 300,
+        "x": 1100,
+        "y": 237.5
+      },
+      "label": "",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 170,
+        "width": 300,
+        "x": 1440,
+        "y": 237.5
+      },
+      "label": "",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 170,
+        "width": 300,
+        "x": 1780,
+        "y": 237.5
+      },
+      "label": "",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    }
+  ],
+  "focused": {
+    "frame": {
+      "height": 66,
+      "width": 302,
+      "x": 54,
+      "y": 60
+    }
+  },
+  "model": "AppleTV14,1",
+  "presses": [],
+  "preview": 4,
+  "safeArea": {
+    "bottom": 60,
+    "left": 80,
+    "right": 80,
+    "top": 60
+  },
+  "scale": 2,
+  "screen": "TVControls",
+  "size": {
+    "height": 1080,
+    "width": 1920
+  },
+  "systemVersion": "26.5",
+  "version": 1
+}
