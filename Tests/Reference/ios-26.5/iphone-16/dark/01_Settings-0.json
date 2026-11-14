@@ -1,0 +1,271 @@
+{
+  "colorScheme": "dark",
+  "device": "agent-calibrate-iphone16-ios26",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 26.33,
+        "width": 33,
+        "x": 45.5,
+        "y": 200.83
+      },
+      "label": "SM",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 24,
+        "width": 115.67,
+        "x": 106,
+        "y": 193.17
+      },
+      "label": "Sam Morgan",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 15.67,
+        "width": 188.67,
+        "x": 106,
+        "y": 219.17
+      },
+      "label": "Account, iCloud and purchases",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 321
+      },
+      "label": "Airplane Mode",
+      "role": "switch",
+      "traits": [
+        "button",
+        "toggle"
+      ],
+      "value": "0"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 59,
+        "width": 361,
+        "x": 16,
+        "y": 373
+      },
+      "label": "Wi-Fi, Home Network",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 59,
+        "width": 361,
+        "x": 16,
+        "y": 432
+      },
+      "label": "Bluetooth, On",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 548.67
+      },
+      "label": "Allow Notifications",
+      "role": "switch",
+      "traits": [
+        "button",
+        "toggle"
+      ],
+      "value": "1"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 600.67
+      },
+      "label": "Show Previews",
+      "role": "switch",
+      "traits": [
+        "button",
+        "toggle"
+      ],
+      "value": "1"
+    },
+    {
+      "class": "UIKitIconPreferringButton",
+      "frame": {
+        "height": 34.33,
+        "width": 329,
+        "x": 32,
+        "y": 747.67
+      },
+      "label": "Appearance, System",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 790.67
+      },
+      "label": "Language",
+      "role": "button",
+      "traits": [
+        "button"
+      ],
+      "value": "English"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 120.67,
+        "x": 32,
+        "y": 857.68
+      },
+      "label": "Text Size: 100%",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "UISlider",
+      "frame": {
+        "height": 31,
+        "width": 329,
+        "x": 32,
+        "y": 888.67
+      },
+      "label": "Text size",
+      "role": "adjustable",
+      "traits": [
+        "adjustable"
+      ],
+      "value": "1"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 40.33,
+        "width": 361,
+        "x": 16,
+        "y": 280.67
+      },
+      "label": "Connectivity",
+      "role": "header",
+      "traits": [
+        "header",
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 40.33,
+        "width": 361,
+        "x": 16,
+        "y": 508.33
+      },
+      "label": "Notifications",
+      "role": "header",
+      "traits": [
+        "header",
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 45.67,
+        "width": 361,
+        "x": 16,
+        "y": 652.67
+      },
+      "label": "Previews show a snippet of each message on the lock screen.",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 40.33,
+        "width": 361,
+        "x": 16,
+        "y": 698.33
+      },
+      "label": "Display",
+      "role": "header",
+      "traits": [
+        "header",
+        "staticText"
+      ]
+    },
+    {
+      "class": "UILabel",
+      "frame": {
+        "height": 40.67,
+        "width": 133,
+        "x": 16,
+        "y": 116.67
+      },
+      "label": "Settings",
+      "role": "header",
+      "traits": [
+        "header"
+      ]
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 0,
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "01_Settings",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "26.5",
+  "version": 1
+}
