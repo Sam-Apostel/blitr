@@ -45,6 +45,9 @@ final class AppleSymbols {
         }
     }
 
+    /// Space above and below a symbol's outline, as a fraction of its point size.
+    static let verticalPadding: CGFloat = 0.09
+
     private static let wellKnown: [String: UInt32] = ["apple.logo": 0xF8FF, "applelogo": 0xF8FF]
 
     /// True when the font is available (the name map decides which names resolve).
@@ -68,7 +71,20 @@ final class AppleSymbols {
         let outline = Path(skPath: skPath)
         let bounds = outline.boundingRect
         guard bounds.width > 0, bounds.height > 0 else { return nil }
-        let placed = outline.offsetBy(dx: -bounds.minX, dy: -bounds.minY)
-        return SymbolGlyph(size: bounds.size, viewBox: bounds.size, layers: [.init(path: placed, stroke: nil, evenOdd: false)])
+        // The image is as wide as the glyph's advance, the outline at its left side bearing, and
+        // as tall as the outline plus `verticalPadding` x the point size above and below.
+        // measured: iOS 27.0 simulator (Symbols, ControlsButtons): images in an HStack(spacing: 14)
+        // sit 14pt + (advance - outline width) apart (21pt for chevron.right at 28pt, 17pt for
+        // heart.fill at 12pt); rows of symbols are 2.0 to 3.0pt per side taller than their tallest
+        // outline at 22 to 34pt, a 17pt star.fill label in a button 1.67pt per side.
+        let advance = CGFloat(hb_font_get_glyph_h_advance(instance.hbFont, glyphID)) * pointSize / font.unitsPerEm
+        let width = max(bounds.width, advance)
+        let left = min(max(0, bounds.minX), width - bounds.width)
+        let pad = ((AppleSymbols.verticalPadding * pointSize) * 3).rounded() / 3
+        let size = CGSize(width: width, height: bounds.height + 2 * pad)
+        let placed = outline.offsetBy(dx: left - bounds.minX, dy: pad - bounds.minY)
+        var glyph = SymbolGlyph(size: size, viewBox: size, layers: [.init(path: placed, stroke: nil, evenOdd: false)])
+        glyph.inkInsets = (pad, left, pad, width - bounds.width - left)
+        return glyph
     }
 }

@@ -336,6 +336,15 @@ final class ImageNode: Node {
         guard frame.width.isFinite, frame.height.isFinite, frame.width > 0, frame.height > 0 else { return }
         content.draw(p, in: CGRect(origin: .zero, size: frame.size))
     }
+    /// The part of `rect` (this node's frame) the symbol's outline covers.
+    func inkRect(_ rect: CGRect) -> CGRect {
+        guard case .symbol(let glyph, _) = content, !isResizable, glyph.size.width > 0, glyph.size.height > 0 else { return rect }
+        let kx = rect.width / glyph.size.width, ky = rect.height / glyph.size.height
+        let i = glyph.inkInsets
+        let w = rect.width - (i.left + i.right) * kx, h = rect.height - (i.top + i.bottom) * ky
+        guard w > 0, h > 0 else { return rect }
+        return CGRect(x: rect.minX + i.left * kx, y: rect.minY + i.top * ky, width: w, height: h)
+    }
 }
 
 extension Image: View, PrimitiveView {
@@ -365,6 +374,9 @@ struct SymbolGlyph {
     /// Paths in a `viewBox`-sized coordinate space.
     var viewBox: CGSize
     var layers: [Layer]
+    /// Empty space around the outline within `size` (Apple's symbols are as wide as their advance
+    /// and padded vertically); accessibility frames leave it out, as on iOS.
+    var inkInsets: (top: CGFloat, left: CGFloat, bottom: CGFloat, right: CGFloat) = (0, 0, 0, 0)
 
     @MainActor func draw(_ p: Painter, in rect: CGRect, paint: _Paint) {
         guard viewBox.width > 0, viewBox.height > 0 else { return }

@@ -301,7 +301,7 @@ final class AXExtractor {
         e.label = part.text
         e.labelSources = [part.source]
         e.traits = [.image]
-        e.frame = rect(node)
+        e.frame = node.inkRect(rect(node))
         e.offscreen = geometry && !overlaps(e.frame, ctx.visible)
         return [e]
     }
