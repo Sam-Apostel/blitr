@@ -43,8 +43,14 @@ extension EnvironmentValues {
 struct _DefaultLabelLayout: View {
     let title: AnyView
     let icon: AnyView
+    @Environment(\.designLanguage) private var design
+    @Environment(\.renderPlatform) private var platform
+    /// measured: iOS 27.0 simulator: titles start 1.67 to 2.67pt (2.25 on average) further from
+    /// the icon than with a 6pt gap (heart, star.fill, globe, apple.logo labels in
+    /// ControlsButtons and 04_Login).
+    static let glassSpacing: CGFloat = 8.33
     var body: some View {
-        HStack(spacing: 6) { icon; title }
+        HStack(spacing: design.isGlass && platform != .tvOS ? Self.glassSpacing : 6) { icon; title }
     }
 }
 
