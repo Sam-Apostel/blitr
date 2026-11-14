@@ -29,7 +29,36 @@ sources are cached and take about half that. See [docs/ARCHITECTURE.md](docs/ARC
 
 ## Install
 
-Requirements: Linux (x86_64 or arm64), a Swift 6 toolchain, `libharfbuzz-dev`, `curl`, `unzip`.
+The tool compiles your sources at render time, so it needs a Swift toolchain of the exact version
+it was built with (currently 6.4.2; `swiftui-screenshot version` and `doctor` say which).
+
+**From a release** (Ubuntu 24.04, x86_64 or arm64):
+
+```
+curl -fsSL https://github.com/Sam-Apostel/swift-ui-screenshot/releases/latest/download/install.sh | bash -s -- --claude-instructions
+```
+
+`install.sh` installs `libharfbuzz0b` if missing, the pinned Swift toolchain into `/opt/swift` if no
+matching `swiftc` is found, unpacks the tarball to `/opt/swiftui-screenshot`, links
+`/usr/local/bin/swiftui-screenshot` and runs `doctor`. It is idempotent and quiet on success. Options:
+`--prefix DIR`, `--version vX.Y.Z`, `--from <tarball path or URL>`, `--bin-dir DIR`, `--claude-instructions`
+(adds a short block about the tool to `~/.claude/CLAUDE.md`), and `--apple-fonts
+--accept-apple-font-license` (fetches Apple's fonts from Apple under Apple's terms; see `scripts/fetch-apple-fonts.sh`, which
+is also installed in `share/swiftui-screenshot/`).
+
+In a Claude Code cloud environment, use that line as the setup script (it runs as root; the
+toolchain download is about 1 GB, so it can take a few minutes on first run). To let agents in an
+app repository know how to use the tool, copy `integrations/claude-skill/swiftui-screenshot` into
+the repository's `.claude/skills/`.
+
+> While this repository is private, release assets cannot be downloaded anonymously and the line
+> above fails. Make the repository (or its release assets) public, or download the `.tar.gz` and its
+> `.sha256` yourself and run `./install.sh --from ./swiftui-screenshot-vX.Y.Z-linux-x86_64.tar.gz`.
+
+Releases are built by `.github/workflows/release.yml` when a `v*` tag is pushed; `scripts/make-dist.sh`
+builds the same relocatable tarball locally (`bin/`, `lib/swiftui-screenshot/`, `share/swiftui-screenshot/`).
+
+**From source** (Swift 6 toolchain, `libharfbuzz-dev`, `curl`, `unzip`):
 
 ```
 scripts/bootstrap.sh     # fetches pinned Skia and open fonts into Vendor/ (checksummed)
@@ -37,7 +66,7 @@ swift build -c release
 "$(swift build -c release --show-bin-path)/swiftui-screenshot" doctor
 ```
 
-Or with Docker (the image keeps the toolchain, since your code is compiled at render time):
+**Docker** (the image keeps the toolchain, since your code is compiled at render time):
 
 ```
 docker build -t swiftui-screenshot .
