@@ -156,6 +156,11 @@ enum Renderer {
         let scheme = env.colorScheme
         func drawFrame() {
             sk_canvas_clear(canvas, Painter.skColor(background))
+            // tvOS 26 apps sit on the system's blurred gradient backdrop, not a flat color.
+            if config.platform == .tvOS, config.background == nil, config.layout == .device,
+               DesignLanguage(osVersion: config.osVersion).isGlass {
+                TVBackdrop.draw(painter, in: CGRect(origin: .zero, size: canvasSize), scheme: env.colorScheme)
+            }
             root.draw(painter)
             // Focus on chrome the engine made (tab items, alert buttons) has no view to carry the effect.
             if config.platform == .tvOS, let chrome = runtime.focus.focusedChromeFrame {

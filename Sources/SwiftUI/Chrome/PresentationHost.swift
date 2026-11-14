@@ -422,8 +422,14 @@ final class CoverLayerNode: PresentationLayerNode {
     let background: RGBA
     /// tvOS `.sheet`: drawn over a blurred, dimmed copy of the presenter instead of an opaque background.
     var tvSheet = false
+    /// tvOS 26 `.sheet`: a glass card fitted to the content over the presenter dimmed by 20% (measured).
+    var tvGlassSheet = false
+    private let scheme: ColorScheme
+    private let design: DesignLanguage
     init(content: Node, env: EnvironmentValues) {
         self.content = content
+        scheme = env.colorScheme
+        design = env.designLanguage
         background = SystemColor.background.resolve(env.colorScheme)
         super.init(children: [content])
         backdrop = .none
@@ -439,7 +445,11 @@ final class CoverLayerNode: PresentationLayerNode {
     }
     override func drawContent(_ p: Painter) {
         let rect = CGRect(origin: .zero, size: frame.size)
-        if tvSheet {
+        if tvGlassSheet {
+            p.fill(Path(rect), with: .color(RGBA(0, 0, 0, TVMetrics.glassSheetDim)), in: rect)
+            let card = content.frame.insetBy(dx: 0, dy: -TVMetrics.glassSheetVerticalPadding)
+            p.fillGlass(.roundedRect(card, radius: TVMetrics.glassAlertCornerRadius), appearance: TVColors.glassCard(scheme, design: design))
+        } else if tvSheet {
             drawPresentationMaterial(p, Path(rect), tint: background.opacity(0.72))
         } else {
             p.fill(Path(rect), with: .color(background), in: rect)

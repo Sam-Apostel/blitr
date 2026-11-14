@@ -99,14 +99,28 @@ def main():
             cmd += ["--focus", FOCUS_VARIANTS[name]]
         elif presses:
             cmd += ["--press", presses]
-        r = subprocess.run(cmd, capture_output=True, text=True)
+        # Parallel renders of one source share its compile cache and can collide; retry those.
+        for _ in range(3):
+            r = subprocess.run(cmd, capture_output=True, text=True)
+            if r.returncode == 0:
+                break
         return name, r.returncode, r.stderr.strip().splitlines()[-1:] if r.returncode else []
 
     if not args.no_render:
+        for job in jobs:
+            for stale in (".png", ".json"):
+                if os.path.exists(os.path.join(ours, job[0] + stale)):
+                    os.remove(os.path.join(ours, job[0] + stale))
+        # The first render of each source compiles it; the others reuse that build, so run them after it.
+        first = {}
+        for job in jobs:
+            first.setdefault(job[1], job)
+        rest = [j for j in jobs if first[j[1]] is not j]
         with concurrent.futures.ThreadPoolExecutor(args.jobs) as pool:
-            for name, code, err in pool.map(render, jobs):
-                if code != 0:
-                    print(f"render failed: {name}: {' '.join(err)}", file=sys.stderr)
+            for batch in (list(first.values()), rest):
+                for name, code, err in pool.map(render, batch):
+                    if code != 0:
+                        print(f"render failed: {name}: {' '.join(err)}", file=sys.stderr)
 
     # Compare only the files both sides have.
     names = [n for n, _, _, _ in jobs if os.path.exists(os.path.join(ours, n + ".png"))]

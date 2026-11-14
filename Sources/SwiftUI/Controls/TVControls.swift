@@ -12,15 +12,17 @@ extension TVLiftStyle {
         style.lifted = focused
         if focused {
             style.platter = design.isGlass ? .focusedGlass : .color(TVColors.focusedPlatter)
+            if design.isGlass { style.useGlassFocus() }
         } else {
-            style.platter = design.isGlass ? .glass(TVColors.glass(scheme, design: design)) : .color(TVColors.platter(scheme))
+            style.platter = .color(design.isGlass ? TVColors.glassPlatter(scheme) : TVColors.platter(scheme))
         }
         return style
     }
 }
 
-/// Corner radius of a full-width tvOS control or list row: rounded rectangles in both looks (est.).
-func tvRowCornerRadius(_ design: DesignLanguage) -> CGFloat { design.isGlass ? 22 : TVMetrics.rowCornerRadius }
+/// Corner radius of a full-width tvOS control or list row: rounded rectangles on tvOS 18 (est.), capsules on
+/// tvOS 26 (measured).
+func tvRowCornerRadius(_ design: DesignLanguage) -> CGFloat? { design.isGlass ? nil : TVMetrics.rowCornerRadius }
 
 /// A full-width control row: the label leading, `trailing` (a value, a chevron) at the trailing edge.
 struct _TVRowControl: View {
@@ -49,7 +51,7 @@ struct _TVRowControl: View {
         if inRow && !standalone { return AnyView(row) }
         if standalone {
             var style = TVLiftStyle.platter(focused: focused, design: design, scheme: scheme, cornerRadius: tvRowCornerRadius(design))
-            style.scale = TVMetrics.rowLiftScale
+            if !design.isGlass { style.scale = TVMetrics.rowLiftScale }
             if !focused { style.platter = .none }
             return AnyView(row
                 .padding(.horizontal, TVMetrics.rowHorizontalInset)
@@ -57,8 +59,9 @@ struct _TVRowControl: View {
                 .frame(maxWidth: .infinity)
                 .modifier(TVLiftModifier(style: style)))
         }
+        // Outside a list the label sits as far in as a button's (measured: tvOS 26.5).
         return AnyView(row
-            .padding(.horizontal, TVMetrics.rowHorizontalInset)
+            .padding(.horizontal, TVMetrics.buttonHorizontalPadding)
             .frame(minHeight: TVMetrics.buttonHeight)
             .frame(maxWidth: .infinity)
             .modifier(TVLiftModifier(style: .platter(focused: focused, design: design, scheme: scheme, cornerRadius: tvRowCornerRadius(design)))))
@@ -68,7 +71,11 @@ struct _TVRowControl: View {
 /// The trailing value of a row: secondary label color.
 struct _TVValue: View {
     let content: AnyView
-    var body: some View { content.foregroundStyle(Color(SystemColor.secondaryLabel)) }
+    @Environment(\.designLanguage) private var design
+    @Environment(\.colorScheme) private var scheme
+    var body: some View {
+        content.foregroundStyle(design.isGlass ? Color(TVColors.rowValue(scheme)) : Color(SystemColor.secondaryLabel))
+    }
 }
 
 /// The disclosure chevron of a row that opens something.
@@ -88,9 +95,11 @@ struct _TVToggle: View {
     let label: AnyView
     let isOn: Bool
     let showsSwitch: Bool
+    @Environment(\.designLanguage) private var design
 
     var body: some View {
-        let value: AnyView = showsSwitch
+        // tvOS 26 draws `.switch` like the automatic style, with the On/Off text (measured).
+        let value: AnyView = showsSwitch && !design.isGlass
             ? AnyView(TVSwitch(isOn: isOn))
             : AnyView(_TVValue(content: AnyView(Text(isOn ? "On" : "Off"))))
         return _TVRowControl(label: label, trailing: value)
@@ -132,23 +141,27 @@ struct _TVFieldBody: View {
     var body: some View {
         if bordered { Runtime.current?.warn(".textFieldStyle(.roundedBorder) is not available on tvOS: a real tvOS build fails to compile") }
         let focused = isFocused && isEnabled && !effectDisabled
-        let shown = secure ? String(repeating: "\u{2022}", count: text.count) : text
+        // tvOS 26: the text is headline size, secure text large dots (measured approx.).
+        let shown = secure ? String(repeating: design.isGlass ? "\u{25CF}" : "\u{2022}", count: text.count) : text
         let content = Group {
             if text.isEmpty {
                 if let placeholder { placeholder.foregroundStyle(Color(SystemColor.placeholderText)) }
             } else {
                 Text(verbatim: shown).foregroundStyle(Color(SystemColor.label))
+                    .font(design.isGlass ? (secure ? .system(size: 26) : .headline) : nil)
             }
         }
         .lineLimit(1)
         .frame(maxWidth: .infinity, alignment: .leading)
         .tvOnWhitePlatter(focused)
+        var style = TVLiftStyle.platter(focused: focused, design: design, scheme: scheme,
+                                        cornerRadius: design.isGlass ? nil : TVMetrics.fieldCornerRadius)
+        if design.isGlass && !focused { style.platter = .color(TVColors.glassField(scheme)) }
         return content
-            .padding(.horizontal, 24)
-            .frame(minHeight: TVMetrics.fieldHeight)
+            .padding(.horizontal, design.isGlass ? TVMetrics.buttonHorizontalPadding : 24)
+            .frame(minHeight: design.isGlass ? TVMetrics.fieldHeight : TVMetrics.buttonHeight)
             .opacity(isEnabled ? 1 : 0.5)
-            .modifier(TVLiftModifier(style: .platter(focused: focused, design: design, scheme: scheme,
-                                                     cornerRadius: design.isGlass ? nil : TVMetrics.fieldCornerRadius)))
+            .modifier(TVLiftModifier(style: style))
     }
 }
 
@@ -166,7 +179,8 @@ struct TVSegmentedBody: View {
 
     var body: some View {
         let radius: CGFloat? = design.isGlass ? nil : TVMetrics.buttonCornerRadius
-        return HStack(spacing: 4) {
+        if design.isGlass { return AnyView(glassBody) }
+        return AnyView(HStack(spacing: 4) {
             ForEach(Array(nodes.enumerated()), id: \.offset) { pair in
                 TVSegment(node: pair.element, onPlatter: onPlatter[pair.offset], isSelected: pair.offset == selected, cornerRadius: radius)
                     .axInfo {
@@ -178,7 +192,58 @@ struct TVSegmentedBody: View {
             }
         }
         .padding(4)
-        .modifier(TVLiftModifier(style: { var s = TVLiftStyle.platter(focused: false, design: design, scheme: scheme, cornerRadius: radius.map { $0 + 4 }); s.lifted = false; return s }()))
+        .modifier(TVLiftModifier(style: { var s = TVLiftStyle.platter(focused: false, design: design, scheme: scheme, cornerRadius: radius.map { $0 + 4 }); s.lifted = false; return s }())))
+    }
+
+    /// tvOS 26 (measured: tvOS 26.5): segments of equal width across the width offered, 84 pt high, on a light
+    /// glass track; the selected segment is a darker pill, and while the control has focus the focused segment
+    /// is a white lifted pill.
+    private var glassBody: some View {
+        HStack(spacing: 0) {
+            ForEach(Array(nodes.enumerated()), id: \.offset) { pair in
+                TVGlassSegment(node: pair.element, onPlatter: onPlatter[pair.offset], isSelected: pair.offset == selected)
+                    .axInfo {
+                        $0.isElement = true
+                        $0.addTraits = pair.offset == selected ? [.button, .selected] : [.button]
+                        $0.children = .combine
+                    }
+                    .focusElement(role: "segment", activate: { [select] in select(pair.offset) })
+            }
+        }
+        .padding(TVMetrics.segmentInset)
+        .frame(maxWidth: .infinity)
+        .modifier(TVLiftModifier(style: { var s = TVLiftStyle(); s.cornerRadius = nil; s.lifted = false
+                                          s.platter = .color(TVColors.glassSegmentTrack(scheme)); return s }()))
+    }
+}
+
+extension TVMetrics {
+    /// tvOS 26 segmented control: 84 pt high overall (measured), the pills 8 pt inside the track (est.).
+    static let segmentedHeight: CGFloat = 84
+    static let segmentInset: CGFloat = 8
+}
+
+struct TVGlassSegment: View {
+    let node: Node
+    let onPlatter: Node
+    let isSelected: Bool
+    @Environment(\.isFocused) private var isFocused
+    @Environment(\.focusEffectDisabled) private var effectDisabled
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        let focused = isFocused && !effectDisabled
+        var style = TVLiftStyle()
+        style.cornerRadius = nil
+        style.lifted = focused
+        if focused { style.platter = .focusedGlass; style.useGlassFocus(); style.growth = 0 }
+        else if isSelected { style.platter = .color(TVColors.glassSelectedSegment(scheme)) }
+        else { style.platter = .none }
+        return _NodeView(focused ? onPlatter : node)
+            .lineLimit(1)
+            .fontWeight(.semibold)
+            .frame(maxWidth: .infinity, minHeight: TVMetrics.segmentedHeight - TVMetrics.segmentInset * 2)
+            .modifier(TVLiftModifier(style: style))
     }
 }
 
