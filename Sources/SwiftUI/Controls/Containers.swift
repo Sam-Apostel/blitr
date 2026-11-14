@@ -42,10 +42,11 @@ private func formatted(_ date: Date, _ format: String) -> String {
 
 struct _DatePill: View {
     let text: String
+    @Environment(\.designLanguage) private var design
     var body: some View {
         Text(verbatim: text)
             .padding(.horizontal, 11).padding(.vertical, 7)
-            .background(Color(SystemColor.tertiaryFill), in: RoundedRectangle(cornerRadius: 8))
+            .background(Color(SystemColor.tertiaryFill), in: RoundedRectangle(cornerRadius: design.isGlass ? 18 : 8))
     }
 }
 
@@ -292,6 +293,7 @@ extension DisclosureGroup where Label == Text {
 public struct GroupBox<Label: View, Content: View>: View {
     let label: Label
     let content: Content
+    @Environment(\.designLanguage) private var design
 
     public init(@ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label) {
         self.content = content()
@@ -309,7 +311,8 @@ public struct GroupBox<Label: View, Content: View>: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(SystemColor.secondaryBackground), in: RoundedRectangle(cornerRadius: 8))
+        .background(Color(SystemColor.secondaryBackground),
+                    in: RoundedRectangle(cornerRadius: design.isGlass ? ControlGlassMetrics.groupBoxRadius : 8))
     }
 }
 

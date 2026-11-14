@@ -9,13 +9,23 @@ public struct Slider<Label: View, ValueLabel: View>: View {
     let minLabel: AnyView?
     let maxLabel: AnyView?
     var axLabel: String?
+    /// Number of steps across the range (tick marks, iOS 26) and the neutral value's position, if given.
+    var tickCount: Int?
+    var neutralFraction: Double?
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.designLanguage) private var design
 
-    init<V: BinaryFloatingPoint>(value: Binding<V>, bounds: ClosedRange<V>, minLabel: AnyView?, maxLabel: AnyView?) {
+    init<V: BinaryFloatingPoint>(value: Binding<V>, bounds: ClosedRange<V>, minLabel: AnyView?, maxLabel: AnyView?,
+                                 step: V.Stride? = nil, neutralValue: V? = nil) where V.Stride: BinaryFloatingPoint {
         let span = Double(bounds.upperBound - bounds.lowerBound)
         fraction = span > 0 ? clamp01(Double(value.wrappedValue - bounds.lowerBound) / span) : 0
         self.minLabel = minLabel
         self.maxLabel = maxLabel
+        if let step, Double(step) > 0, span > 0 {
+            let count = Int((span / Double(step)).rounded())
+            if count >= 1 && count <= ControlGlassMetrics.sliderMaxTicks { tickCount = count }
+        }
+        if let neutralValue, span > 0 { neutralFraction = clamp01(Double(neutralValue - bounds.lowerBound) / span) }
     }
 
     public var body: some View {
@@ -39,6 +49,44 @@ public struct Slider<Label: View, ValueLabel: View>: View {
     }
 
     private var track: some View {
+        design.isGlass ? AnyView(glassTrack) : AnyView(flatTrack)
+    }
+
+    /// iOS 26: 6pt capsule track, pill thumb, tick marks under the track when the slider has a step.
+    private var glassTrack: some View {
+        let m = ControlGlassMetrics.self
+        let f = fraction
+        let neutral = neutralFraction
+        let ticks = tickCount
+        return GeometryReader { proxy in
+            let w = proxy.size.width
+            let thumbW = m.sliderThumb.width
+            let usable = max(0, w - thumbW)
+            let x = f * usable
+            // Filled part runs from the neutral value (default: the minimum) to the thumb's center.
+            let from = neutral.map { $0 * usable + thumbW / 2 } ?? 0
+            let to = x + thumbW / 2
+            ZStack(alignment: .topLeading) {
+                Capsule().fill(Color(SystemColor.secondaryFill)).frame(width: w, height: m.sliderTrackHeight)
+                    .offset(y: (m.sliderHeight - m.sliderTrackHeight) / 2)
+                Capsule().fill(Color.accentColor).frame(width: max(m.sliderTrackHeight, abs(to - from)), height: m.sliderTrackHeight)
+                    .offset(x: min(from, to), y: (m.sliderHeight - m.sliderTrackHeight) / 2)
+                if let ticks, ticks > 0 {
+                    ForEach(0...ticks, id: \.self) { i in
+                        Circle().fill(Color(SystemColor.tertiaryLabel)).frame(width: m.sliderTickSize, height: m.sliderTickSize)
+                            .offset(x: thumbW / 2 + usable * CGFloat(i) / CGFloat(ticks) - m.sliderTickSize / 2,
+                                    y: m.sliderHeight / 2 + m.sliderTrackHeight / 2 + 3)
+                    }
+                }
+                Capsule().fill(Color.white).frame(width: thumbW, height: m.sliderThumb.height).knobShadow()
+                    .offset(x: x, y: (m.sliderHeight - m.sliderThumb.height) / 2)
+            }
+            .frame(width: w, height: m.sliderHeight, alignment: .topLeading)
+        }
+        .frame(height: m.sliderHeight)
+    }
+
+    private var flatTrack: some View {
         let f = fraction
         return GeometryReader { proxy in
             let w = proxy.size.width
@@ -59,7 +107,7 @@ extension Slider where Label == EmptyView, ValueLabel == EmptyView {
         self.init(value: value, bounds: bounds, minLabel: nil, maxLabel: nil)
     }
     public init<V: BinaryFloatingPoint>(value: Binding<V>, in bounds: ClosedRange<V>, step: V.Stride = 1, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where V.Stride: BinaryFloatingPoint {
-        self.init(value: value, bounds: bounds, minLabel: nil, maxLabel: nil)
+        self.init(value: value, bounds: bounds, minLabel: nil, maxLabel: nil, step: step)
     }
 }
 
@@ -69,7 +117,7 @@ extension Slider where ValueLabel == EmptyView {
         axLabel = axPlainString(label())
     }
     public init<V: BinaryFloatingPoint>(value: Binding<V>, in bounds: ClosedRange<V>, step: V.Stride = 1, @ViewBuilder label: () -> Label, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where V.Stride: BinaryFloatingPoint {
-        self.init(value: value, bounds: bounds, minLabel: nil, maxLabel: nil)
+        self.init(value: value, bounds: bounds, minLabel: nil, maxLabel: nil, step: step)
         axLabel = axPlainString(label())
     }
 }
@@ -80,7 +128,19 @@ extension Slider {
         axLabel = axPlainString(label())
     }
     public init<V: BinaryFloatingPoint>(value: Binding<V>, in bounds: ClosedRange<V>, step: V.Stride = 1, @ViewBuilder label: () -> Label, @ViewBuilder minimumValueLabel: () -> ValueLabel, @ViewBuilder maximumValueLabel: () -> ValueLabel, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where V.Stride: BinaryFloatingPoint {
-        self.init(value: value, bounds: bounds, minLabel: AnyView(minimumValueLabel()), maxLabel: AnyView(maximumValueLabel()))
+        self.init(value: value, bounds: bounds, minLabel: AnyView(minimumValueLabel()), maxLabel: AnyView(maximumValueLabel()), step: step)
+        axLabel = axPlainString(label())
+    }
+    /// iOS 26: the filled part of the track starts at `neutralValue` instead of the minimum.
+    public init<V: BinaryFloatingPoint>(value: Binding<V>, in bounds: ClosedRange<V>, neutralValue: V, @ViewBuilder label: () -> Label, @ViewBuilder minimumValueLabel: () -> ValueLabel, @ViewBuilder maximumValueLabel: () -> ValueLabel, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where V.Stride: BinaryFloatingPoint {
+        self.init(value: value, bounds: bounds, minLabel: AnyView(minimumValueLabel()), maxLabel: AnyView(maximumValueLabel()), neutralValue: neutralValue)
+        axLabel = axPlainString(label())
+    }
+}
+
+extension Slider where ValueLabel == EmptyView {
+    public init<V: BinaryFloatingPoint>(value: Binding<V>, in bounds: ClosedRange<V>, neutralValue: V, @ViewBuilder label: () -> Label, onEditingChanged: @escaping (Bool) -> Void = { _ in }) where V.Stride: BinaryFloatingPoint {
+        self.init(value: value, bounds: bounds, minLabel: nil, maxLabel: nil, neutralValue: neutralValue)
         axLabel = axPlainString(label())
     }
 }
@@ -93,6 +153,7 @@ public struct Stepper<Label: View>: View {
     let canIncrement: Bool
     var axValue: String?
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.designLanguage) private var design
 
     init(label: Label, canDecrement: Bool, canIncrement: Bool, axValue: String? = nil) {
         self.label = label
@@ -134,7 +195,7 @@ public struct Stepper<Label: View>: View {
             .frame(width: 46.5, height: 32).opacity(canIncrement ? 1 : 0.3)
         }
         .frame(width: 94, height: 32)
-        .background(Color(SystemColor.tertiaryFill), in: RoundedRectangle(cornerRadius: 8))
+        .background(Color(SystemColor.tertiaryFill), in: RoundedRectangle(cornerRadius: design.isGlass ? ControlGlassMetrics.stepperSize.height / 2 : 8))
     }
 }
 
