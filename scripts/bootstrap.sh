@@ -63,5 +63,10 @@ font "$GOOGLE_FONTS/jetbrainsmono/JetBrainsMono-Italic%5Bwght%5D.ttf" 85ae2a5cd3
 font "$GOOGLE_FONTS/sourceserif4/SourceSerif4%5Bopsz%2Cwght%5D.ttf" 97b2d4da6e3cb494b5a1e66ae176914d852ccabef49e0c02c0df25f3e39aca0b "SourceSerif4[opsz,wght].ttf"
 font "$GOOGLE_FONTS/sourceserif4/SourceSerif4-Italic%5Bopsz%2Cwght%5D.ttf" 15fbc7e4679489a501998c3669272637a6646388ef7e4bd77eebb5bf967a1f42 "SourceSerif4-Italic[opsz,wght].ttf"
 font "$NOTO_EMOJI/NotoColorEmoji.ttf" 39ee3c587e10e89669b9ff32703261d10d5f9c4dd5ad147b6b5a1c5200591817 "NotoColorEmoji.ttf"
+# Each font's own licence file, from the same pinned commits.
+font "$GOOGLE_FONTS/nunito/OFL.txt" 580df76c95a1ec5ab878ceb25bb3d85c6a076804e9c970c8c6972aea775fdf65 "Nunito-LICENSE.txt"
+font "$GOOGLE_FONTS/jetbrainsmono/OFL.txt" b2fe5e8987594e9ffd1d2ca52a2f5d73eb8335243893c5d6254b5ad69269591d "JetBrainsMono-LICENSE.txt"
+font "$GOOGLE_FONTS/sourceserif4/OFL.txt" 5f94c3fd3a23131a417ab5a0c8452de57e70c3cfb9f604d88241f7065ebf9fd9 "SourceSerif4-LICENSE.txt"
+font "$NOTO_EMOJI/LICENSE" 6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2 "NotoColorEmoji-LICENSE.txt"
 
 echo "Vendor/ is ready."
