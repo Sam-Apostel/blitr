@@ -118,6 +118,9 @@ final class FontInstance {
     /// Multiplier applied to every advance. 1 for real fonts; for the Inter substitute it is the
     /// measured SF Pro / Inter width ratio at this size and weight, so lines break where they do on iOS.
     var advanceScale: CGFloat = 1
+    /// Set for the substitute of the default system font: SF Pro's own advance per character at
+    /// this size and weight, used in preference to `advanceScale` wherever a character is covered.
+    var sfProMetrics: SFProMetrics?
 
     init(file: FontFile, coordinates: [UInt32: Float]) {
         self.file = file
@@ -300,6 +303,7 @@ final class FontLibrary {
             instance.descent = 0.241211
             if case .system(.default) = font.family, !file.hasTracking, file.path.hasSuffix("InterVariable.ttf") || file.path.hasSuffix("InterVariable-Italic.ttf") {
                 instance.advanceScale = SubstituteCalibration.interToSFPro(size: font.size, weight: font.weight)
+                if font.width == 0 { instance.sfProMetrics = SFProMetrics.resolve(size: font.size, weight: font.weight) }
             }
         }
         return instance
