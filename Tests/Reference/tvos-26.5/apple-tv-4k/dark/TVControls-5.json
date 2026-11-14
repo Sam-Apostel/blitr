@@ -1,0 +1,22 @@
+{
+  "colorScheme": "light",
+  "device": "Apple TV 4K (3rd generation)",
+  "elements": [],
+  "model": "AppleTV14,1",
+  "presses": [],
+  "preview": 5,
+  "safeArea": {
+    "bottom": 60,
+    "left": 80,
+    "right": 80,
+    "top": 60
+  },
+  "scale": 2,
+  "screen": "TVControls",
+  "size": {
+    "height": 1080,
+    "width": 1920
+  },
+  "systemVersion": "26.5",
+  "version": 1
+}

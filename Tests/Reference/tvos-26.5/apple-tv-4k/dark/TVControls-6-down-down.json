@@ -1,0 +1,226 @@
+{
+  "colorScheme": "light",
+  "device": "Apple TV 4K (3rd generation)",
+  "elements": [
+    {
+      "class": "_UINavigationItemView",
+      "frame": {
+        "height": 67,
+        "width": 220.5,
+        "x": 850,
+        "y": 64
+      },
+      "label": "",
+      "role": "header",
+      "traits": [
+        "header",
+        "staticText"
+      ]
+    },
+    {
+      "class": "UINavigationButton",
+      "frame": {
+        "height": 70,
+        "width": 149,
+        "x": 1691,
+        "y": 62
+      },
+      "label": "Help",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 35,
+        "width": 141.5,
+        "x": 100,
+        "y": 151
+      },
+      "label": "PLAYBACK",
+      "role": "header",
+      "traits": [
+        "header",
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 35,
+        "width": 1718.5,
+        "x": 100,
+        "y": 207.5
+      },
+      "label": "Account",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 35,
+        "width": 1720,
+        "x": 100,
+        "y": 287.5
+      },
+      "label": "Subtitles",
+      "role": "switch",
+      "traits": [
+        "button",
+        "toggle"
+      ],
+      "value": "1"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 35.16,
+        "width": 1727.82,
+        "x": 96.09,
+        "y": 367.42
+      },
+      "label": "Autoplay Previews",
+      "role": "switch",
+      "traits": [
+        "button",
+        "toggle"
+      ],
+      "value": "0"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 35,
+        "width": 1718.5,
+        "x": 100,
+        "y": 447.5
+      },
+      "label": "Video Quality",
+      "role": "button",
+      "traits": [
+        "button"
+      ],
+      "value": "Auto"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 35,
+        "width": 620,
+        "x": 100,
+        "y": 518
+      },
+      "label": "Previews play when a title has focus for a moment.",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 35,
+        "width": 96.5,
+        "x": 100,
+        "y": 579
+      },
+      "label": "ABOUT",
+      "role": "header",
+      "traits": [
+        "header",
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 35,
+        "width": 1720,
+        "x": 100,
+        "y": 635.5
+      },
+      "label": "Version, 2.4",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 35,
+        "width": 1718.5,
+        "x": 100,
+        "y": 715.5
+      },
+      "label": "Licenses, 12",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 35,
+        "width": 112,
+        "x": 100,
+        "y": 795.5
+      },
+      "label": "Sign Out",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 35,
+        "width": 74,
+        "x": 100,
+        "y": 875.5
+      },
+      "label": "Reset",
+      "role": "button",
+      "traits": [
+        "button",
+        "notEnabled"
+      ]
+    }
+  ],
+  "focused": {
+    "frame": {
+      "height": 66,
+      "width": 1760,
+      "x": 80,
+      "y": 352
+    },
+    "label": "Autoplay Previews"
+  },
+  "model": "AppleTV14,1",
+  "presses": [
+    "down",
+    "down"
+  ],
+  "preview": 6,
+  "safeArea": {
+    "bottom": 60,
+    "left": 80,
+    "right": 80,
+    "top": 60
+  },
+  "scale": 2,
+  "screen": "TVControls",
+  "size": {
+    "height": 1080,
+    "width": 1920
+  },
+  "systemVersion": "26.5",
+  "version": 1
+}
