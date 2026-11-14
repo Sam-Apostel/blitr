@@ -210,20 +210,17 @@ extension EnvironmentValues {
 }
 
 public enum TabBarMinimizeBehavior: Hashable, Sendable { case automatic, onScrollDown, onScrollUp, never }
-public struct TabViewCustomization: Codable, Hashable, Sendable {
-    public init() {}
-    public mutating func resetVisibility() {}
-    public mutating func resetSectionOrder() {}
-}
 public struct AdaptableTabBarPlacement: Hashable, Sendable {
-    public static let automatic = AdaptableTabBarPlacement()
-    public static let tabBar = AdaptableTabBarPlacement()
-    public static let sidebar = AdaptableTabBarPlacement()
+    let raw: Int
+    public static let automatic = AdaptableTabBarPlacement(raw: 0)
+    public static let tabBar = AdaptableTabBarPlacement(raw: 1)
+    public static let sidebar = AdaptableTabBarPlacement(raw: 2)
 }
 public struct TabPlacement: Hashable, Sendable {
-    public static let automatic = TabPlacement()
-    public static let pinned = TabPlacement()
-    public static let sidebarOnly = TabPlacement()
+    let raw: Int
+    public static let automatic = TabPlacement(raw: 0)
+    public static let pinned = TabPlacement(raw: 1)
+    public static let sidebarOnly = TabPlacement(raw: 2)
 }
 
 extension View {
@@ -241,6 +238,7 @@ extension View {
     public func tabViewSidebarHeader<C: View>(@ViewBuilder content: () -> C) -> some View { self }
     public func tabViewSidebarFooter<C: View>(@ViewBuilder content: () -> C) -> some View { self }
     public func tabViewSidebarBottomBar<C: View>(@ViewBuilder content: () -> C) -> some View { self }
+    @_disfavoredOverload
     public func tabViewSidebarHeader<C: View>(@ViewBuilder _ content: () -> C) -> some View { self }
 }
 
@@ -379,32 +377,33 @@ extension Tab where Value == Never {
 }
 
 /// On an iPhone tab bar, sections are flattened into their tabs.
-public struct TabSection<Header: View, Content: TabContent, Footer: View>: TabContent, PrimitiveTabContent {
-    public typealias TabValue = Content.TabValue
+public struct TabSection<Header, Content: TabContent, Footer, SelectionValue: Hashable>: TabContent, PrimitiveTabContent
+where Content.TabValue == SelectionValue {
+    public typealias TabValue = SelectionValue
     public typealias Body = Never
     let content: Content
-    public init(@TabContentBuilder<Content.TabValue> content: () -> Content, @ViewBuilder header: () -> Header,
-                @ViewBuilder footer: () -> Footer) {
+    public init(@TabContentBuilder<SelectionValue> content: () -> Content, @ViewBuilder header: () -> Header,
+                @ViewBuilder footer: () -> Footer) where Header: View, Footer: View {
         self.content = content()
     }
     func collectTabs(_ ctx: ResolveContext, into out: inout [TabEntry]) { collectTabContent(content, ctx, into: &out) }
 }
 extension TabSection where Footer == EmptyView {
-    public init(@TabContentBuilder<Content.TabValue> content: () -> Content, @ViewBuilder header: () -> Header) {
+    public init(@TabContentBuilder<SelectionValue> content: () -> Content, @ViewBuilder header: () -> Header) where Header: View {
         self.content = content()
     }
 }
 extension TabSection where Header == Text, Footer == EmptyView {
-    public init(_ titleKey: LocalizedStringKey, @TabContentBuilder<Content.TabValue> content: () -> Content) {
+    public init(_ titleKey: LocalizedStringKey, @TabContentBuilder<SelectionValue> content: () -> Content) {
         self.content = content()
     }
     @_disfavoredOverload
-    public init<S: StringProtocol>(_ title: S, @TabContentBuilder<Content.TabValue> content: () -> Content) {
+    public init<S: StringProtocol>(_ title: S, @TabContentBuilder<SelectionValue> content: () -> Content) {
         self.content = content()
     }
 }
 extension TabSection where Header == EmptyView, Footer == EmptyView {
-    public init(@TabContentBuilder<Content.TabValue> content: () -> Content) {
+    public init(@TabContentBuilder<SelectionValue> content: () -> Content) {
         self.content = content()
     }
 }
@@ -441,7 +440,8 @@ where TrueContent.TabValue == FalseContent.TabValue {
 extension ForEach: TabContent, PrimitiveTabContent where Content: TabContent {
     public typealias TabValue = Content.TabValue
     public typealias Body = Never
-    public init(_ data: Data, id: KeyPath<Data.Element, ID>, @TabContentBuilder<Content.TabValue> content: @escaping (Data.Element) -> Content) {
+    public init<V>(_ data: Data, id: KeyPath<Data.Element, ID>, @TabContentBuilder<V> content: @escaping (Data.Element) -> Content)
+    where V == Content.TabValue {
         self.data = data
         self.content = content
         self.idGetter = { $0[keyPath: id] }
@@ -522,8 +522,13 @@ extension TabContent {
     public func hidden(_ hidden: Bool = true) -> _ModifiedTabContent<Self> { modifyingTab { _ in !hidden } }
     public func customizationID(_ id: String) -> Self { self }
     public func customizationBehavior(_ behavior: TabCustomizationBehavior, for placements: AdaptableTabBarPlacement...) -> Self { self }
-    public func defaultVisibility(_ visibility: Visibility, for placements: AdaptableTabBarPlacement...) -> Self { self }
-    public func tabPlacement(_ placement: TabPlacement) -> Self { self }
+    /// The tab bar is what is drawn (the sidebar is not), so a tab hidden from the tab bar by default is left out.
+    public func defaultVisibility(_ visibility: Visibility, for placements: AdaptableTabBarPlacement...) -> _ModifiedTabContent<Self> {
+        let hidesFromTabBar = visibility == .hidden && (placements.isEmpty || placements.contains(.tabBar) || placements.contains(.automatic))
+        return modifyingTab { _ in !hidesFromTabBar }
+    }
+    /// A sidebar-only tab is not in the tab bar.
+    public func tabPlacement(_ placement: TabPlacement) -> _ModifiedTabContent<Self> { modifyingTab { _ in placement != .sidebarOnly } }
     public func sectionActions<C: View>(@ViewBuilder content: () -> C) -> Self { self }
     public func disabled(_ disabled: Bool) -> Self { self }
     public func accessibilityIdentifier(_ identifier: String) -> Self { self }
