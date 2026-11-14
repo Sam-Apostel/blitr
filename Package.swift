@@ -9,7 +9,7 @@ let skiaLib = Context.packageDirectory + "/Vendor/skia/lib"
 let moduleSettings: [SwiftSetting] = [.swiftLanguageMode(.v5), .unsafeFlags(["-enable-library-evolution"])]
 
 // Modules linked into libSwiftUI next to the SwiftUI module itself (Combine is a dependency of SwiftUI).
-let shimModules = ["Combine", "CoreGraphics", "ImageIO", "CoreImage", "CoreText", "ObjectiveC", "QuartzCore", "UIKit", "CoreLocation", "MapKit", "AppIntents", "ActivityKit", "WidgetKit"]
+let shimModules = ["Combine", "UniformTypeIdentifiers", "CoreGraphics", "ImageIO", "CoreImage", "CoreText", "ObjectiveC", "QuartzCore", "UIKit", "CoreLocation", "MapKit", "AppIntents", "ActivityKit", "WidgetKit", "CryptoKit", "Security", "Network", "CoreSpotlight", "UserNotifications", "EventKit", "WatchConnectivity", "Contacts"]
 
 let package = Package(
     name: "swift-ui-screenshot",
@@ -46,8 +46,9 @@ let package = Package(
         .target(name: "CoreText", dependencies: ["CoreGraphics", "CSkia"], swiftSettings: moduleSettings),
         .target(name: "CoreImage", dependencies: ["CoreGraphics", "ImageIO", "CSkia"], swiftSettings: moduleSettings),
         .target(name: "ObjectiveC", swiftSettings: moduleSettings),
+        .target(name: "UniformTypeIdentifiers", swiftSettings: moduleSettings),
         .target(name: "QuartzCore", dependencies: ["CoreGraphics", "ObjectiveC"], swiftSettings: moduleSettings),
-        .target(name: "SwiftUI", dependencies: ["CSkia", "CHarfBuzz", "Combine", "CoreGraphics", "SwiftUIScreenshotFoundation"], swiftSettings: moduleSettings),
+        .target(name: "SwiftUI", dependencies: ["CSkia", "CHarfBuzz", "Combine", "CoreGraphics", "UniformTypeIdentifiers", "SwiftUIScreenshotFoundation"], swiftSettings: moduleSettings),
         // The shim frameworks: each its own module, linked into libSwiftUI (see the SwiftUI product).
         .target(name: "UIKit", dependencies: ["SwiftUI", "QuartzCore", "ImageIO", "CoreImage", "CSkia"], swiftSettings: moduleSettings),
         .target(name: "AppIntents", dependencies: ["SwiftUI", "UIKit"], swiftSettings: moduleSettings),
@@ -55,6 +56,14 @@ let package = Package(
         .target(name: "WidgetKit", dependencies: ["SwiftUI", "AppIntents", "ActivityKit"], swiftSettings: moduleSettings),
         .target(name: "CoreLocation", swiftSettings: moduleSettings),
         .target(name: "MapKit", dependencies: ["SwiftUI", "UIKit", "CoreLocation"], swiftSettings: moduleSettings),
+        .target(name: "CryptoKit", swiftSettings: moduleSettings),
+        .target(name: "Security", dependencies: ["CoreGraphics"], swiftSettings: moduleSettings),
+        .target(name: "Network", swiftSettings: moduleSettings),
+        .target(name: "CoreSpotlight", dependencies: ["UniformTypeIdentifiers"], swiftSettings: moduleSettings),
+        .target(name: "UserNotifications", swiftSettings: moduleSettings),
+        .target(name: "EventKit", dependencies: ["CoreGraphics", "CoreLocation"], swiftSettings: moduleSettings),
+        .target(name: "WatchConnectivity", swiftSettings: moduleSettings),
+        .target(name: "Contacts", swiftSettings: moduleSettings),
         .executableTarget(name: "swiftui-screenshot", swiftSettings: [.swiftLanguageMode(.v5)]),
     ]
 )

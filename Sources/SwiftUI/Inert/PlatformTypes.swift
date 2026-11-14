@@ -20,36 +20,7 @@ open class NSUserActivity: NSObject {
     open func addUserInfoEntries(from other: [AnyHashable: Any]) {}
 }
 
-public struct UTType: Hashable, Sendable {
-    public let identifier: String
-    public init?(_ identifier: String) { self.identifier = identifier }
-    public init?(filenameExtension: String) { identifier = "public.\(filenameExtension)" }
-    public init?(mimeType: String) { identifier = mimeType }
-    public init(importedAs identifier: String) { self.identifier = identifier }
-    public init(exportedAs identifier: String) { self.identifier = identifier }
-    public static let item = UTType(importedAs: "public.item")
-    public static let content = UTType(importedAs: "public.content")
-    public static let data = UTType(importedAs: "public.data")
-    public static let text = UTType(importedAs: "public.text")
-    public static let plainText = UTType(importedAs: "public.plain-text")
-    public static let utf8PlainText = UTType(importedAs: "public.utf8-plain-text")
-    public static let commaSeparatedText = UTType(importedAs: "public.comma-separated-values-text")
-    public static let json = UTType(importedAs: "public.json")
-    public static let xml = UTType(importedAs: "public.xml")
-    public static let html = UTType(importedAs: "public.html")
-    public static let url = UTType(importedAs: "public.url")
-    public static let fileURL = UTType(importedAs: "public.file-url")
-    public static let image = UTType(importedAs: "public.image")
-    public static let png = UTType(importedAs: "public.png")
-    public static let jpeg = UTType(importedAs: "public.jpeg")
-    public static let gif = UTType(importedAs: "com.compuserve.gif")
-    public static let heic = UTType(importedAs: "public.heic")
-    public static let pdf = UTType(importedAs: "com.adobe.pdf")
-    public static let movie = UTType(importedAs: "public.movie")
-    public static let audio = UTType(importedAs: "public.audio")
-    public static let folder = UTType(importedAs: "public.folder")
-    public static let zip = UTType(importedAs: "public.zip-archive")
-}
+// UTType is in the UniformTypeIdentifiers module, which SwiftUI re-exports.
 
 // Foundation's FileWrapper is missing on Linux.
 open class FileWrapper: NSObject {
