@@ -1,0 +1,105 @@
+{
+  "complete": true,
+  "device": "Apple TV 4K (3rd generation) (at 1080p)",
+  "elements": [
+    {
+      "focusedFrame": [
+        656,
+        524.5,
+        608,
+        70.9
+      ],
+      "frame": [
+        656,
+        524.5,
+        608,
+        70.9
+      ],
+      "id": "secureTextField-password",
+      "index": 1,
+      "label": "Password",
+      "moves": {
+        "down": "button-continue",
+        "left": null,
+        "right": null,
+        "up": "textField-email"
+      },
+      "path": [],
+      "role": "secureTextField",
+      "section": null,
+      "visible": true
+    },
+    {
+      "focusedFrame": [
+        656,
+        422.5,
+        608,
+        73
+      ],
+      "frame": [
+        656,
+        422.5,
+        608,
+        73
+      ],
+      "id": "textField-email",
+      "index": 2,
+      "label": "Email",
+      "moves": {
+        "down": "secureTextField-password",
+        "left": null,
+        "right": null,
+        "up": null
+      },
+      "path": [
+        "up"
+      ],
+      "role": "textField",
+      "section": null,
+      "visible": true
+    },
+    {
+      "focusedFrame": [
+        867,
+        621,
+        186,
+        74
+      ],
+      "frame": [
+        871,
+        625,
+        178,
+        66
+      ],
+      "id": "button-continue",
+      "index": 3,
+      "label": "Continue",
+      "moves": {
+        "down": null,
+        "left": null,
+        "right": null,
+        "up": "secureTextField-password"
+      },
+      "path": [
+        "down"
+      ],
+      "role": "button",
+      "section": null,
+      "visible": true
+    }
+  ],
+  "focused": "secureTextField-password",
+  "initialFocus": "secureTextField-password",
+  "notes": [],
+  "platform": "tvOS",
+  "presses": [],
+  "preview": "7",
+  "previewName": "Default Focus",
+  "screen": "TVFocus",
+  "size": {
+    "height": 1080,
+    "width": 1920
+  },
+  "tvosVersion": "26.5",
+  "version": 1
+}

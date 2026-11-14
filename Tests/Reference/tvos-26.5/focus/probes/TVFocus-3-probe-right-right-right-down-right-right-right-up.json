@@ -1,0 +1,91 @@
+{
+  "device": "Apple TV 4K (3rd generation) (at 1080p)",
+  "preview": "3",
+  "previewName": "Shelves",
+  "probe": "right,right,right,down,right,right,right,up",
+  "screen": "TVFocus",
+  "steps": [
+    {
+      "focused": "Movie 1",
+      "press": "launch",
+      "texts": [
+        "Up Next",
+        "Top Movies",
+        "Channels"
+      ]
+    },
+    {
+      "focused": "Movie 2",
+      "press": "right",
+      "texts": [
+        "Up Next",
+        "Top Movies",
+        "Channels"
+      ]
+    },
+    {
+      "focused": "Movie 3",
+      "press": "right",
+      "texts": [
+        "Up Next",
+        "Top Movies",
+        "Channels"
+      ]
+    },
+    {
+      "focused": "Movie 4",
+      "press": "right",
+      "texts": [
+        "Up Next",
+        "Top Movies",
+        "Channels"
+      ]
+    },
+    {
+      "focused": "Movie 26",
+      "press": "down",
+      "texts": [
+        "Up Next",
+        "Top Movies",
+        "Channels"
+      ]
+    },
+    {
+      "focused": "Movie 27",
+      "press": "right",
+      "texts": [
+        "Up Next",
+        "Top Movies",
+        "Channels"
+      ]
+    },
+    {
+      "focused": "Movie 28",
+      "press": "right",
+      "texts": [
+        "Up Next",
+        "Top Movies",
+        "Channels"
+      ]
+    },
+    {
+      "focused": "Movie 29",
+      "press": "right",
+      "texts": [
+        "Up Next",
+        "Top Movies",
+        "Channels"
+      ]
+    },
+    {
+      "focused": "Movie 4",
+      "press": "up",
+      "texts": [
+        "Up Next",
+        "Top Movies",
+        "Channels"
+      ]
+    }
+  ],
+  "tvosVersion": "26.5"
+}

@@ -1,0 +1,135 @@
+{
+  "complete": true,
+  "device": "Apple TV 4K (3rd generation) (at 1080p)",
+  "elements": [
+    {
+      "focusedFrame": [
+        156,
+        224,
+        158,
+        74
+      ],
+      "frame": [
+        156,
+        224,
+        158,
+        74
+      ],
+      "id": "button-library",
+      "index": 1,
+      "label": "Library",
+      "moves": {
+        "down": "button-search",
+        "left": null,
+        "right": "button-play-trailer",
+        "up": null
+      },
+      "path": [],
+      "role": "button",
+      "section": null,
+      "visible": true
+    },
+    {
+      "focusedFrame": [
+        156,
+        320,
+        159,
+        74
+      ],
+      "frame": [
+        160,
+        324,
+        151,
+        66
+      ],
+      "id": "button-search",
+      "index": 2,
+      "label": "Search",
+      "moves": {
+        "down": "button-settings",
+        "left": null,
+        "right": "button-play-trailer",
+        "up": "button-library"
+      },
+      "path": [
+        "down"
+      ],
+      "role": "button",
+      "section": null,
+      "visible": true
+    },
+    {
+      "focusedFrame": [
+        1166,
+        870,
+        208,
+        74
+      ],
+      "frame": [
+        1170,
+        874,
+        200,
+        66
+      ],
+      "id": "button-play-trailer",
+      "index": 3,
+      "label": "Play Trailer",
+      "moves": {
+        "down": null,
+        "left": "button-settings",
+        "right": null,
+        "up": null
+      },
+      "path": [
+        "right"
+      ],
+      "role": "button",
+      "section": null,
+      "visible": true
+    },
+    {
+      "focusedFrame": [
+        156,
+        416,
+        176,
+        74
+      ],
+      "frame": [
+        160,
+        420,
+        168,
+        66
+      ],
+      "id": "button-settings",
+      "index": 4,
+      "label": "Settings",
+      "moves": {
+        "down": null,
+        "left": null,
+        "right": "button-play-trailer",
+        "up": "button-search"
+      },
+      "path": [
+        "down",
+        "down"
+      ],
+      "role": "button",
+      "section": null,
+      "visible": true
+    }
+  ],
+  "focused": "button-library",
+  "initialFocus": "button-library",
+  "notes": [],
+  "platform": "tvOS",
+  "presses": [],
+  "preview": "5",
+  "previewName": "Focus Section",
+  "screen": "TVFocus",
+  "size": {
+    "height": 1080,
+    "width": 1920
+  },
+  "tvosVersion": "26.5",
+  "version": 1
+}

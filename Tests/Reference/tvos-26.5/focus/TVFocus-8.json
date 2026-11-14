@@ -1,0 +1,135 @@
+{
+  "complete": true,
+  "device": "Apple TV 4K (3rd generation) (at 1080p)",
+  "elements": [
+    {
+      "focusedFrame": [
+        980,
+        450,
+        320,
+        180
+      ],
+      "frame": [
+        980,
+        450,
+        320,
+        180
+      ],
+      "id": "staticText-card-3",
+      "index": 1,
+      "label": "Card 3",
+      "moves": {
+        "down": null,
+        "left": "staticText-card-2",
+        "right": "staticText-card-4",
+        "up": null
+      },
+      "path": [],
+      "role": "staticText",
+      "section": null,
+      "visible": true
+    },
+    {
+      "focusedFrame": [
+        620,
+        450,
+        320,
+        180
+      ],
+      "frame": [
+        620,
+        450,
+        320,
+        180
+      ],
+      "id": "staticText-card-2",
+      "index": 2,
+      "label": "Card 2",
+      "moves": {
+        "down": null,
+        "left": "staticText-card-1",
+        "right": "staticText-card-3",
+        "up": null
+      },
+      "path": [
+        "left"
+      ],
+      "role": "staticText",
+      "section": null,
+      "visible": true
+    },
+    {
+      "focusedFrame": [
+        1340,
+        450,
+        320,
+        180
+      ],
+      "frame": [
+        1340,
+        450,
+        320,
+        180
+      ],
+      "id": "staticText-card-4",
+      "index": 3,
+      "label": "Card 4",
+      "moves": {
+        "down": null,
+        "left": "staticText-card-3",
+        "right": null,
+        "up": null
+      },
+      "path": [
+        "right"
+      ],
+      "role": "staticText",
+      "section": null,
+      "visible": true
+    },
+    {
+      "focusedFrame": [
+        260,
+        450,
+        320,
+        180
+      ],
+      "frame": [
+        260,
+        450,
+        320,
+        180
+      ],
+      "id": "staticText-card-1",
+      "index": 4,
+      "label": "Card 1",
+      "moves": {
+        "down": null,
+        "left": null,
+        "right": "staticText-card-2",
+        "up": null
+      },
+      "path": [
+        "left",
+        "left"
+      ],
+      "role": "staticText",
+      "section": null,
+      "visible": true
+    }
+  ],
+  "focused": "staticText-card-3",
+  "initialFocus": "staticText-card-3",
+  "notes": [],
+  "platform": "tvOS",
+  "presses": [],
+  "preview": "8",
+  "previewName": "Focus On Appear",
+  "screen": "TVFocus",
+  "size": {
+    "height": 1080,
+    "width": 1920
+  },
+  "tvosVersion": "26.5",
+  "version": 1
+}

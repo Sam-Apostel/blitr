@@ -1,0 +1,84 @@
+{
+  "device": "Apple TV 4K (3rd generation) (at 1080p)",
+  "preview": "6",
+  "previewName": "Settings Tabs",
+  "probe": "down,down,down,down,select,menu",
+  "screen": "TVFocus",
+  "steps": [
+    {
+      "focused": "Settings",
+      "press": "launch",
+      "texts": [
+        "Settings",
+        "Subtitles",
+        "Subtitles, On",
+        "Autoplay Previews",
+        "Autoplay Previews, Off",
+        "About"
+      ]
+    },
+    {
+      "focused": "Subtitles, On",
+      "press": "down",
+      "texts": [
+        "Settings",
+        "Subtitles",
+        "Subtitles, On",
+        "Autoplay Previews",
+        "Autoplay Previews, Off",
+        "About"
+      ]
+    },
+    {
+      "focused": "Autoplay Previews, Off",
+      "press": "down",
+      "texts": [
+        "Settings",
+        "Subtitles",
+        "Subtitles, On",
+        "Autoplay Previews",
+        "Autoplay Previews, Off",
+        "About"
+      ]
+    },
+    {
+      "focused": "Auto",
+      "press": "down",
+      "texts": [
+        "Settings",
+        "Subtitles",
+        "Subtitles, On",
+        "Autoplay Previews",
+        "Autoplay Previews, Off",
+        "About"
+      ]
+    },
+    {
+      "focused": "About",
+      "press": "down",
+      "texts": [
+        "Settings",
+        "Subtitles",
+        "Subtitles, On",
+        "Autoplay Previews",
+        "Autoplay Previews, Off",
+        "About"
+      ]
+    },
+    {
+      "focused": "Settings",
+      "press": "select",
+      "texts": [
+        "Version 1.0"
+      ]
+    },
+    {
+      "focused": null,
+      "press": "menu",
+      "texts": [
+        "Version 1.0"
+      ]
+    }
+  ],
+  "tvosVersion": "26.5"
+}

@@ -1,0 +1,47 @@
+{
+  "complete": true,
+  "device": "Apple TV 4K (3rd generation) (at 1080p)",
+  "elements": [
+    {
+      "focusedFrame": [
+        843,
+        503,
+        234,
+        74
+      ],
+      "frame": [
+        843,
+        503,
+        234,
+        74
+      ],
+      "id": "button-open-viewer",
+      "index": 1,
+      "label": "Open Viewer",
+      "moves": {
+        "down": null,
+        "left": null,
+        "right": null,
+        "up": null
+      },
+      "path": [],
+      "role": "button",
+      "section": null,
+      "visible": true
+    }
+  ],
+  "focused": "button-open-viewer",
+  "initialFocus": "button-open-viewer",
+  "notes": [],
+  "platform": "tvOS",
+  "presses": [],
+  "preview": "2",
+  "previewName": "Viewer",
+  "screen": "TVFocus",
+  "size": {
+    "height": 1080,
+    "width": 1920
+  },
+  "tvosVersion": "26.5",
+  "version": 1
+}

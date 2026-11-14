@@ -1,0 +1,106 @@
+{
+  "complete": true,
+  "device": "Apple TV 4K (3rd generation) (at 1080p)",
+  "elements": [
+    {
+      "focusedFrame": [
+        156,
+        280,
+        158,
+        74
+      ],
+      "frame": [
+        156,
+        280,
+        158,
+        74
+      ],
+      "id": "button-library",
+      "index": 1,
+      "label": "Library",
+      "moves": {
+        "down": "button-search",
+        "left": null,
+        "right": null,
+        "up": null
+      },
+      "path": [],
+      "role": "button",
+      "section": null,
+      "visible": true
+    },
+    {
+      "focusedFrame": [
+        156,
+        376,
+        159,
+        74
+      ],
+      "frame": [
+        160,
+        380,
+        151,
+        66
+      ],
+      "id": "button-search",
+      "index": 2,
+      "label": "Search",
+      "moves": {
+        "down": "button-settings",
+        "left": null,
+        "right": null,
+        "up": "button-library"
+      },
+      "path": [
+        "down"
+      ],
+      "role": "button",
+      "section": null,
+      "visible": true
+    },
+    {
+      "focusedFrame": [
+        156,
+        472,
+        176,
+        74
+      ],
+      "frame": [
+        160,
+        476,
+        168,
+        66
+      ],
+      "id": "button-settings",
+      "index": 3,
+      "label": "Settings",
+      "moves": {
+        "down": null,
+        "left": null,
+        "right": null,
+        "up": "button-search"
+      },
+      "path": [
+        "down",
+        "down"
+      ],
+      "role": "button",
+      "section": null,
+      "visible": true
+    }
+  ],
+  "focused": "button-library",
+  "initialFocus": "button-library",
+  "notes": [],
+  "platform": "tvOS",
+  "presses": [],
+  "preview": "4",
+  "previewName": "Unreachable",
+  "screen": "TVFocus",
+  "size": {
+    "height": 1080,
+    "width": 1920
+  },
+  "tvosVersion": "26.5",
+  "version": 1
+}
