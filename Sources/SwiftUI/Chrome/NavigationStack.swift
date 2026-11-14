@@ -432,6 +432,9 @@ final class NavigationStackNode: Node {
     private var showsTopEdge = false
     private var showsBottomEdge = false
 
+    /// The stack is shown in a sheet (its bar then sits lower under a Liquid Glass sheet's top edge).
+    private let inSheet: Bool
+
     // Computed in layout (local coordinates).
     var barTop: CGFloat = 0
     var barRegionBottom: CGFloat = 0
@@ -459,6 +462,7 @@ final class NavigationStackNode: Node {
         }
         let glass: NavigationGlassMetrics? = !tv && env.designLanguage.isGlass ? .forDesign(env.designLanguage) : nil
         self.glass = glass
+        inSheet = env.isElevatedPresentation
 
         // Environment every bar element is resolved with.
         let barAdjust: (inout EnvironmentValues) -> Void
@@ -864,6 +868,8 @@ extension NavigationStackNode {
         let margin = ChromeMetrics.layoutMargin(forWidth: ctx.container.width)
         let itemMargin = _currentConfiguration().device.idiom == .pad ? margin : g.horizontalMargin
         barTop = max(0, ctx.safeRect.minY - ctx.origin.y)
+        // At the top edge of a sheet (no status bar above it) the bar's items sit lower.
+        if inSheet && ctx.safeRect.minY - ctx.container.minY < 0.5 { barTop += g.sheetBarTopInset }
         backgroundTop = ctx.container.minY - ctx.origin.y
         backgroundX = ctx.container.minX - ctx.origin.x
         backgroundWidth = ctx.container.width

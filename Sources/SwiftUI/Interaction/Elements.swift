@@ -72,17 +72,22 @@ final class ElementIndex {
         collect(root)
     }
 
-    private func collect(_ node: Node) {
+    /// `toScreen` maps layout frames to the screen (a scaled floating sheet's content).
+    private func collect(_ node: Node, toScreen: (CGRect) -> CGRect = { $0 }) {
         if let box = node.ax, let h = InteractionRegistry.handlers[ObjectIdentifier(box)] {
-            handlerNodes.append((CGRect(origin: node.absoluteOrigin, size: node.frame.size), h, ObjectIdentifier(box)))
+            handlerNodes.append((toScreen(CGRect(origin: node.absoluteOrigin, size: node.frame.size)), h, ObjectIdentifier(box)))
         }
-        if node is BackButtonNode { backButtons.append(CGRect(origin: node.absoluteOrigin, size: node.frame.size)) }
+        if node is BackButtonNode { backButtons.append(toScreen(CGRect(origin: node.absoluteOrigin, size: node.frame.size))) }
         // Only the topmost presentation takes input.
         if let host = node as? PresentationHostNode, let top = host.layers.last {
-            collect(top)
+            collect(top, toScreen: toScreen)
             return
         }
-        for child in node.children { collect(child) }
+        if let sheet = node as? SheetLayerNode, sheet.contentScale != 1 {
+            for child in node.children { collect(child, toScreen: sheet.contentToScreen) }
+            return
+        }
+        for child in node.children { collect(child, toScreen: toScreen) }
     }
 
     // MARK: Selectors

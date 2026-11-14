@@ -610,8 +610,25 @@ final class AXExtractor {
             modalKind = "sheet"
             let card = sheet.cardRect.offsetBy(dx: sheet.absoluteOrigin.x, dy: sheet.absoluteOrigin.y)
             var inner = ctx
-            inner.visible = intersect(ctx.visible, card)
-            return [modal(role: "sheet", frame: card, children: visit(sheet.content, inner), ctx)]
+            // A scaled floating sheet: the content's own (unscaled) bounds, mapped back to the screen below.
+            let s = sheet.contentScale
+            inner.visible = s == 1 ? intersect(ctx.visible, card)
+                : CGRect(origin: card.origin, size: CGSize(width: card.width / s, height: card.height / s))
+            let truncationCount = truncations.count
+            var children = visit(sheet.content, inner)
+            if s != 1 {
+                for i in truncations.indices.dropFirst(truncationCount) {
+                    truncations[i].frame = sheet.contentToScreen(truncations[i].frame)
+                }
+                func map(_ e: inout AXElement) {
+                    e.frame = sheet.contentToScreen(e.frame)
+                    e.hitFrame = e.hitFrame.map(sheet.contentToScreen)
+                    e.rawHitFrame = e.rawHitFrame.map(sheet.contentToScreen)
+                    for i in e.children.indices { map(&e.children[i]) }
+                }
+                for i in children.indices { map(&children[i]) }
+            }
+            return [modal(role: "sheet", frame: card, children: children, ctx)]
         case let cover as CoverLayerNode:
             modalKind = "fullScreenCover"
             return [modal(role: "sheet", frame: rect(cover), children: visit(cover.content, ctx), ctx)]

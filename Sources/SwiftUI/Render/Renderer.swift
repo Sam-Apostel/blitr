@@ -113,6 +113,11 @@ enum Renderer {
             // `.preferredColorScheme` anywhere in the content restyles the whole screen.
             if let preferred = root.preferences[PreferredColorSchemeKey.self], preferred != env.colorScheme {
                 env.colorScheme = preferred
+                // The views have appeared: run their onAppear and task actions, which only run once per identity.
+                let actions = runtime.pendingActions
+                runtime.pendingActions = []
+                for action in actions { action() }
+                runtime.drainTasks()
                 continue
             }
             session?.passDidLayout(root)

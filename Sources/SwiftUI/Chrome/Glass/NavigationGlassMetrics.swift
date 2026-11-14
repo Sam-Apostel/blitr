@@ -9,6 +9,8 @@ struct NavigationGlassMetrics {
     var barHeight: CGFloat = 44                       // measured: iOS 27.0 simulator (items y 59...103)
     /// Space the bar adds under its item row before content starts (safe area top = status bar + 54).
     var barBottomPadding: CGFloat = 10                // measured: iOS 27.0 simulator
+    /// In a sheet, the item row starts this far below the sheet's top edge (in the sheet's unscaled layout).
+    var sheetBarTopInset: CGFloat = 16                // measured: iOS 27.0 simulator (items centred 37.9pt below the top)
     /// Distance of the outermost glass item from the screen edge.
     var horizontalMargin: CGFloat = 16                // measured: iOS 27.0 simulator
     /// Minimum gap between the inline title / principal item and the glass items.

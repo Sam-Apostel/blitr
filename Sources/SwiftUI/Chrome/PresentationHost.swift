@@ -29,17 +29,36 @@ enum SheetMetrics {
         /// Below the large detent the sheet floats: inset from the screen's sides and bottom.
         var floatingInset: CGFloat = 8              // measured: iOS 27.0 simulator
         /// The medium detent's card top sits this far above the middle of the screen. measured: iOS 27.0 simulator (403.7pt)
-        /// (The simulator also lays the floating sheet's content out at screen width and scales it by
-        /// (width - 2 x inset) / width, 0.959 on iPhone 16; not modelled.)
         var mediumDetentRaise: CGFloat = 22.33
+        /// The floating sheet lays its content out at screen width and scales it down to the card, about the card's
+        /// top-left corner: (width - 2 x inset) / width, 0.959 on iPhone 16. measured: iOS 27.0 simulator
+        /// (text and buttons 24pt from the card's edge land 23pt from it; rows 56pt tall come out 53.7pt)
+        var floatingContentScales = true
         /// Floating corners are concentric with the display corners, but never tighter than this.
         var floatingMinCornerRadius: CGFloat = 34   // (est.)
         /// Large detent (attached, opaque) and iPad form sheet.
         var largeCornerRadius: CGFloat = 38         // (est.)
         var formSheetCornerRadius: CGFloat = 38     // (est.)
-        /// The floating sheet's glass is more opaque than a bar's, so content stays legible.
+        /// Dark: the presenter behind a sheet below the large detent is dimmed more than before iOS 26 (light keeps 0.2).
+        var partialDimDark: Double = 0.48                   // measured: iOS 27.0 simulator (presenter at 0.52 of its colour)
+        /// The grabber (drag indicator), in screen points: wider, thinner and a little lower than before iOS 26.
+        var grabberSize = CGSize(width: 57.67, height: 4)   // measured: iOS 27.0 simulator (x 167.7...225.3pt)
+        var grabberTop: CGFloat = 5.67                      // measured: iOS 27.0 simulator (y 409.3...413.3pt, card at 403.7pt)
+        /// Light: darkens the glass to about 73%. Dark: adds a constant (plus-lighter), 34 -> 103 and 91 -> 157.
+        var grabberLight = RGBA(0, 0, 0, 0.27)              // measured: iOS 27.0 simulator
+        var grabberDark = RGBA(0.26, 0.26, 0.26, 1)         // measured: iOS 27.0 simulator
+        /// Lists and forms in a floating sheet: no background of their own, and cards that only veil the glass.
+        /// measured: iOS 27.0 simulator (form over the sheet's glass: 230 -> 215.5 light, 32 -> 47 dark)
+        var listCardLight = RGBA(0, 0, 0, 0.063)
+        var listCardDark = RGBA(1, 1, 1, 0.067)
+        /// iOS 26: the floating sheet's glass is more opaque than a bar's, so content stays legible. (est.)
+        /// iOS 27 uses the regular system glass: it turns the dimmed presenter's 204 gray into 230 (light)
+        /// and black into 32 (dark), as a bar's glass does. measured: iOS 27.0 simulator
         var tintLight = RGBA(1, 1, 1, 0.72)         // (est.)
         var tintDark = RGBA(0.11, 0.11, 0.12, 0.72) // (est.)
+        /// iOS 27 dark: the system glass with a deeper black tint, so colours behind it come through darker
+        /// (black still turns into 32). measured: iOS 27.0 simulator (GlassTabsAndSheets cards under the sheet)
+        var tint27Dark = RGBA(0, 0, 0, 0.18)
 
         /// Radius of a floating card: the display radius less the inset.
         func floatingCornerRadius() -> CGFloat {
@@ -47,7 +66,11 @@ enum SheetMetrics {
         }
         func appearance(_ scheme: ColorScheme, design: DesignLanguage) -> GlassAppearance {
             var a = GlassAppearance.system(.regular, scheme: scheme, design: design)
-            a.tint = scheme == .dark ? tintDark : tintLight
+            if design == .liquidGlass26 {
+                a.tint = scheme == .dark ? tintDark : tintLight
+            } else if scheme == .dark {
+                a.tint = tint27Dark
+            }
             return a
         }
     }
@@ -281,6 +304,16 @@ final class SheetLayerNode: PresentationLayerNode {
     /// Glass, below the large detent: a card inset from the screen edges with glass behind the content.
     private(set) var isFloating = false
     private var isLarge = false
+    /// Glass floating sheets draw their content scaled by this about the card's top-left corner (1 otherwise).
+    private(set) var contentScale: CGFloat = 1
+
+    /// A rect in the content's layout coordinates (absolute) as it appears on screen.
+    func contentToScreen(_ r: CGRect) -> CGRect {
+        guard contentScale != 1 else { return r }
+        let o = CGPoint(x: absoluteOrigin.x + cardRect.minX, y: absoluteOrigin.y + cardRect.minY)
+        return CGRect(x: o.x + (r.minX - o.x) * contentScale, y: o.y + (r.minY - o.y) * contentScale,
+                      width: r.width * contentScale, height: r.height * contentScale)
+    }
 
     init(content: Node, env: EnvironmentValues) {
         self.content = content
@@ -332,7 +365,8 @@ final class SheetLayerNode: PresentationLayerNode {
             if case .enabled(let upThrough)? = options.backgroundInteraction?.kind {
                 interactive = upThrough.map { cardTop >= top(for: $0, size: size) - 0.5 } ?? true
             }
-            backdrop = .dim(interactive ? 0 : (dark ? SheetMetrics.partialDimDark : SheetMetrics.partialDimLight))
+            let dimDark = env.designLanguage.isGlass ? SheetMetrics.forDesign(env.designLanguage).partialDimDark : SheetMetrics.partialDimDark
+            backdrop = .dim(interactive ? 0 : (dark ? dimDark : SheetMetrics.partialDimLight))
         }
 
         isFloating = env.designLanguage.isGlass && !isLarge
@@ -346,14 +380,33 @@ final class SheetLayerNode: PresentationLayerNode {
         } else {
             cardRect = CGRect(x: 0, y: cardTop, width: size.width, height: size.height - cardTop)
         }
-        let absCard = cardRect.offsetBy(dx: ctx.origin.x, dy: ctx.origin.y)
+        contentScale = 1
+        if isFloating, SheetMetrics.forDesign(env.designLanguage).floatingContentScales, size.width > 0 {
+            contentScale = cardRect.width / size.width
+        }
+        // The rect the content is laid out in: the card, or for a scaled sheet the card before scaling
+        // (same top-left corner); `drawContent` scales it down onto the card.
+        let layoutRect = CGRect(origin: cardRect.origin, size: CGSize(width: cardRect.width / contentScale,
+                                                                      height: cardRect.height / contentScale))
+        if contentScale != 1 {
+            safeInsets = EdgeInsets(top: 0, leading: safeInsets.leading / contentScale, bottom: safeInsets.bottom / contentScale,
+                                    trailing: safeInsets.trailing / contentScale)
+        }
+        let absCard = layoutRect.offsetBy(dx: ctx.origin.x, dy: ctx.origin.y)
         var inner = ctx
         inner.container = absCard
         inner.safeRect = absCard.inset(by: safeInsets)
-        options.backgroundNode?.place(at: cardRect.origin, size: cardRect.size, inner)
+        options.backgroundNode?.place(at: layoutRect.origin, size: layoutRect.size, inner)
         let safeLocal = inner.safeRect.offsetBy(dx: -ctx.origin.x, dy: -ctx.origin.y)
         let c = content.sizeThatFits(ProposedViewSize(safeLocal.size))
         content.place(at: CGPoint(x: safeLocal.midX - c.width / 2, y: safeLocal.midY - c.height / 2), size: c, inner)
+        if isFloating && options.backgroundNode == nil && options.backgroundPaint == nil { Self.markListsOnGlass(content) }
+    }
+
+    /// Lists shown directly on the floating sheet's glass (not inside a nested presentation, which is a layer of its own).
+    private static func markListsOnGlass(_ node: Node) {
+        if let list = node as? ListNode { list.onFloatingSheetGlass = true }
+        for child in node.children { markListsOnGlass(child) }
     }
 
     /// iPad: a form sheet, 540x620 centred, never taller than the screen minus the status bar; detents do not apply.
@@ -395,18 +448,32 @@ final class SheetLayerNode: PresentationLayerNode {
         }
         p.save()
         p.clip(shape)
-        if let bg = options.backgroundNode {
-            bg.draw(p)
-        } else if glassBackground {
-            // drawn above
-        } else {
+        if options.backgroundNode == nil && !glassBackground {
             let paint = options.backgroundPaint ?? .color(env.colorScheme == .dark
                 ? SheetMetrics.elevatedDarkBackground.resolve(.dark) : SystemColor.background.resolve(.light))
             p.fill(shape, with: paint, in: cardRect)
         }
+        if contentScale != 1 {
+            p.translate(cardRect.minX, cardRect.minY)
+            p.scale(contentScale, contentScale)
+            p.translate(-cardRect.minX, -cardRect.minY)
+        }
+        options.backgroundNode?.draw(p)
         content.draw(p)
         p.restore()
-        if showsGrabber {
+        if showsGrabber && design.isGlass && !isFormSheet {
+            let g = glass.grabberSize
+            let r = CGRect(x: cardRect.midX - g.width / 2, y: cardRect.minY + glass.grabberTop, width: g.width, height: g.height)
+            let path = Path(roundedRect: r, cornerRadius: g.height / 2, style: .circular)
+            if env.colorScheme == .dark {
+                // Lightens what is under it by a constant amount, whatever the glass shows.
+                p.saveLayer(.init(blendMode: .plusLighter, bounds: r))
+                p.fill(path, with: .color(glass.grabberDark), in: r)
+                p.restore()
+            } else {
+                p.fill(path, with: .color(glass.grabberLight), in: r)
+            }
+        } else if showsGrabber {
             let g = SheetMetrics.grabberSize
             let r = CGRect(x: cardRect.midX - g.width / 2, y: cardRect.minY + SheetMetrics.grabberTop, width: g.width, height: g.height)
             p.fill(Path(roundedRect: r, cornerRadius: g.height / 2, style: .circular),
