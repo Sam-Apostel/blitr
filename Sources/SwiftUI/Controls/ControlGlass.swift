@@ -14,12 +14,13 @@ enum ControlGlassMetrics {
     static let toggleLayoutWidth: CGFloat = 61
 
     // Slider: 6pt track, pill thumb. measured: iOS 27.0 simulator (ControlsIndicators): 31pt
-    // tall, 37x24 thumb kept inside the bounds, track E6E6E6 / 191919, labels 8pt from the
-    // track, a faint thumb shadow in light mode only.
+    // tall, 37x24 thumb kept inside the bounds, labels 8pt from the track, a faint thumb shadow
+    // in light mode only. The track is translucent: E6E6E6 on white, 191919 on black and
+    // 30355B over the dark blue of 09_MusicPlayer.
     static let sliderTrackHeight: CGFloat = 6
     static let sliderThumb = CGSize(width: 37, height: 24)
     static let sliderHeight: CGFloat = 31
-    static let sliderTrack = DynamicColor(0xE6E6E6, 0x191919)
+    static let sliderTrack = DynamicColor(0x787880, 0x787880, alpha: 0.185, darkAlpha: 0.21)
     static let sliderLabelSpacing: CGFloat = 8
     static let sliderTickSize: CGFloat = 3                       // est.
     static let sliderMaxTicks = 25
