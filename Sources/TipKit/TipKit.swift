@@ -5,7 +5,7 @@
 // `@Parameter` is a property wrapper here and `#Rule(...)` is rewritten to `Tips.Rule(...)` by the
 // preprocessor (macros cannot be built here).
 @_exported import Foundation
-import SwiftUI
+@_exported import SwiftUI
 
 // MARK: - Tip
 

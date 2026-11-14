@@ -327,3 +327,9 @@ extension View {
 
     public func allowsHitTesting(_ enabled: Bool) -> some View { self }
 }
+
+/// `cond ? someGesture : nil` is a gesture in SwiftUI: an absent gesture does nothing.
+extension Optional: Gesture where Wrapped: Gesture {
+    public typealias Value = Wrapped.Value
+    public typealias Body = Never
+}

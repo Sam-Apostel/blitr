@@ -348,7 +348,7 @@ open class UIWindow: UIView {
 
 public protocol UIGestureRecognizerDelegate: NSObjectProtocol {}
 
-@MainActor
+@preconcurrency @MainActor
 open class UIGestureRecognizer: NSObject {
     public enum State: Int, Sendable {
         case possible, began, changed, ended, cancelled, failed

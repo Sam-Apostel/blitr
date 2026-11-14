@@ -3,6 +3,7 @@ import Foundation
 // platforms expects them from `import Foundation`.
 #if canImport(FoundationNetworking)
 @_exported import FoundationNetworking
+@_exported import Observation
 #endif
 
 // Foundation's localization API (`String(localized:)`, `String.LocalizationValue`,

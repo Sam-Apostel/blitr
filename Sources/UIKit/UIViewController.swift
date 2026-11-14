@@ -363,7 +363,7 @@ public protocol UIDocumentPickerDelegate: NSObjectProtocol {}
 
 /// Appearance customisation (`UINavigationBar.appearance()` and the rest) is accepted and not applied: the
 /// system bars are drawn by SwiftUI. Using a proxy warns once.
-@MainActor
+@preconcurrency @MainActor
 enum _AppearanceProxies {
     nonisolated(unsafe) static var proxies: [ObjectIdentifier: AnyObject] = [:]
     static let factories: [ObjectIdentifier: () -> AnyObject] = [
@@ -506,7 +506,7 @@ open class UISearchBar: UIView {
     open var searchBarStyle = 0
 }
 
-@MainActor
+@preconcurrency @MainActor
 open class UIBarItem: NSObject {
     open var title: String?
     open var image: UIImage?
