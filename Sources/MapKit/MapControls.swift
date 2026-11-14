@@ -2,7 +2,10 @@
 // they are drawn where MapKit puts them (buttons top-trailing, scale top-leading); on their own
 // (with `mapScope`) they draw where the app places them.
 
+import CoreLocation
 import Foundation
+import SwiftUI
+import UIKit
 
 enum MapControlSlot { case trailing, leading }
 

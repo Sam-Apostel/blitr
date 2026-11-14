@@ -1,6 +1,9 @@
 // Web Mercator projection of a resolved map camera into a view's frame.
 
+import CoreLocation
 import Foundation
+import SwiftUI
+import UIKit
 
 struct MapProjection {
     /// Map point at the center of the frame.

@@ -54,13 +54,13 @@ public let CLTimeIntervalMax: TimeInterval = .greatestFiniteMagnitude
 
 /// WGS 84 ellipsoid distances (Vincenty's inverse formula), with a great-circle fallback for the
 /// nearly antipodal pairs where Vincenty does not converge.
-enum Geodesy {
+package enum Geodesy {
     static let a = 6_378_137.0
     static let f = 1 / 298.257223563
     static let b = a * (1 - f)
     static let meanRadius = 6_371_008.8
 
-    static func distance(_ p: CLLocationCoordinate2D, _ q: CLLocationCoordinate2D) -> CLLocationDistance {
+    package static func distance(_ p: CLLocationCoordinate2D, _ q: CLLocationCoordinate2D) -> CLLocationDistance {
         let rad = Double.pi / 180
         let L = (q.longitude - p.longitude) * rad
         let U1 = atan((1 - f) * tan(p.latitude * rad))
@@ -92,7 +92,7 @@ enum Geodesy {
         return haversine(p, q)
     }
 
-    static func haversine(_ p: CLLocationCoordinate2D, _ q: CLLocationCoordinate2D) -> CLLocationDistance {
+    package static func haversine(_ p: CLLocationCoordinate2D, _ q: CLLocationCoordinate2D) -> CLLocationDistance {
         let rad = Double.pi / 180
         let dLat = (q.latitude - p.latitude) * rad, dLon = (q.longitude - p.longitude) * rad
         let h = pow(sin(dLat / 2), 2) + cos(p.latitude * rad) * cos(q.latitude * rad) * pow(sin(dLon / 2), 2)
@@ -100,7 +100,7 @@ enum Geodesy {
     }
 
     /// The point `distance` metres from `start` along the initial `bearing` (degrees), on a sphere.
-    static func destination(from start: CLLocationCoordinate2D, distance: Double, bearing: Double) -> CLLocationCoordinate2D {
+    package static func destination(from start: CLLocationCoordinate2D, distance: Double, bearing: Double) -> CLLocationCoordinate2D {
         let rad = Double.pi / 180
         let delta = distance / meanRadius, theta = bearing * rad
         let phi1 = start.latitude * rad, lambda1 = start.longitude * rad
@@ -112,7 +112,7 @@ enum Geodesy {
     }
 
     /// Points along the great circle from `p` to `q` (both included), `steps` segments.
-    static func greatCircle(_ p: CLLocationCoordinate2D, _ q: CLLocationCoordinate2D, steps: Int) -> [CLLocationCoordinate2D] {
+    package static func greatCircle(_ p: CLLocationCoordinate2D, _ q: CLLocationCoordinate2D, steps: Int) -> [CLLocationCoordinate2D] {
         let rad = Double.pi / 180
         let phi1 = p.latitude * rad, l1 = p.longitude * rad, phi2 = q.latitude * rad, l2 = q.longitude * rad
         let d = 2 * asin(min(1, sqrt(pow(sin((phi2 - phi1) / 2), 2) + cos(phi1) * cos(phi2) * pow(sin((l2 - l1) / 2), 2))))

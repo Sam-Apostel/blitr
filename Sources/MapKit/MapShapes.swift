@@ -1,7 +1,10 @@
 // Annotations and overlays: real coordinates and bounding rects, so SwiftUI `Map` content built
 // from them draws in the right place.
 
+import CoreLocation
 import Foundation
+import SwiftUI
+import UIKit
 
 public protocol MKAnnotation: NSObjectProtocol {
     var coordinate: CLLocationCoordinate2D { get }

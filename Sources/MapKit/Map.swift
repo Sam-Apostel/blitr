@@ -5,7 +5,10 @@
 // graticule) and, projected with Web Mercator, everything the app put on it: overlays, markers,
 // annotations, the user location dot, the map controls and the legal attribution.
 
+import CoreLocation
 import Foundation
+import SwiftUI
+import UIKit
 
 struct MapConfiguration {
     var position: MapCameraPosition

@@ -1,6 +1,9 @@
 // Camera, position, bounds, style and interaction types of SwiftUI's `Map` (iOS 17+).
 
+import CoreLocation
 import Foundation
+import SwiftUI
+import UIKit
 
 public struct MapCamera: Equatable, @unchecked Sendable {
     public var centerCoordinate: CLLocationCoordinate2D

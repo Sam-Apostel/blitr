@@ -1,6 +1,8 @@
 // Location services. There is no device position here: managers stay `.notDetermined`, never
 // deliver updates, and geocoding throws `CLError.network`.
 
+import Foundation
+
 public enum CLAuthorizationStatus: Int32, Sendable {
     case notDetermined = 0
     case restricted = 1
@@ -228,7 +230,7 @@ open class CLPlacemark: NSObject, NSCopying, NSSecureCoding, @unchecked Sendable
         super.init()
         copyFields(from: placemark)
     }
-    init(location: CLLocation?, name: String? = nil, fields: [String: String] = [:]) {
+    package init(location: CLLocation?, name: String? = nil, fields: [String: String] = [:]) {
         self.location = location
         self.name = name
         super.init()

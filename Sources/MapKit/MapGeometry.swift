@@ -1,7 +1,10 @@
 // MapKit's planar geometry: spherical Mercator with Apple's world size of 2^28 map points.
 // Like Apple's, these value types have no Equatable/Hashable conformance in Swift.
 
+import CoreLocation
 import Foundation
+import SwiftUI
+import UIKit
 
 public struct MKCoordinateSpan: @unchecked Sendable {
     public var latitudeDelta: CLLocationDegrees

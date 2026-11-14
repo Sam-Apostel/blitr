@@ -49,8 +49,8 @@ let package = Package(
         .target(name: "AppIntents", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
         .target(name: "ActivityKit", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
         .target(name: "WidgetKit", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
-        .target(name: "CoreLocation", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
-        .target(name: "MapKit", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
+        .target(name: "CoreLocation", swiftSettings: moduleSettings),
+        .target(name: "MapKit", dependencies: ["SwiftUI", "UIKit", "CoreLocation"], swiftSettings: moduleSettings),
         .executableTarget(name: "swiftui-screenshot", swiftSettings: [.swiftLanguageMode(.v5)]),
     ]
 )

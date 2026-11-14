@@ -1,6 +1,9 @@
 // Drawing a `Map`: placeholder surface, overlays, pins, controls and attribution.
 
+import CoreLocation
 import Foundation
+import SwiftUI
+import UIKit
 
 /// Colours of the placeholder surface, after Apple Maps' palettes.
 struct MapPalette {

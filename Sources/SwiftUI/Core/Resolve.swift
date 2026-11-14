@@ -27,7 +27,7 @@ struct ResolveContext {
 
 /// Per-render mutable state that outlives a single resolve pass.
 @MainActor
-final class Runtime {
+package final class Runtime {
     /// Storage for @State/@StateObject, keyed by view identity so it survives re-resolving.
     var stateStore: [IdentityPath: [AnyObject]] = [:]
     /// onAppear-style actions that have already run (each runs once per identity).
@@ -51,11 +51,11 @@ final class Runtime {
     /// The value each `onChange` saw in the previous pass (tvOS: see Modifiers/Lifecycle.swift).
     var changeValues: [IdentityPath: AnyObject] = [:]
 
-    static var current: Runtime?
+    package static var current: Runtime?
 
     init(config: RenderConfiguration) { self.config = config }
 
-    func warn(_ message: String) {
+    package func warn(_ message: String) {
         if warningSet.insert(message).inserted { warnings.append(message) }
     }
 }

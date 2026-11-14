@@ -1,7 +1,10 @@
 // UIKit MapKit shells: `MKMapView` and friends exist so `UIViewRepresentable` wrappers compile.
 // Like every UIView here, a wrapped MKMapView renders as the representable placeholder.
 
+import CoreLocation
 import Foundation
+import SwiftUI
+import UIKit
 
 public protocol MKMapViewDelegate: NSObjectProtocol {
     func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView?

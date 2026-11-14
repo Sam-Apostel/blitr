@@ -85,7 +85,7 @@ public struct Text: Equatable, Sendable {
     public static func + (lhs: Text, rhs: Text) -> Text { Text(storage: .concatenated(lhs, rhs)) }
 
     /// The text without styling (used for accessibility labels, titles, measuring).
-    var plainString: String {
+    package var plainString: String {
         switch storage {
         case .verbatim(let s): return s
         case .localized(let key): return key.plainString

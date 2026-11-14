@@ -1,7 +1,10 @@
 // MapKit's network services. Requests are built as on iOS, but there is no map service here, so
 // they fail with `MKError.serverFailure` (apps then take their offline path, e.g. straight lines).
 
+import CoreLocation
 import Foundation
+import SwiftUI
+import UIKit
 
 public struct MKError: Error, CustomNSError, Hashable, @unchecked Sendable {
     public enum Code: UInt, Sendable, Equatable {

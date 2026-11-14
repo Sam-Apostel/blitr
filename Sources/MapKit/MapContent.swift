@@ -1,7 +1,10 @@
 // SwiftUI MapKit content (iOS 17): `MapContent`, its builder, markers, annotations, overlays
 // and content modifiers. Content is flattened into `MapElement`s, which `Map` projects and draws.
 
+import CoreLocation
 import Foundation
+import SwiftUI
+import UIKit
 
 @MainActor @preconcurrency
 public protocol MapContent {
@@ -167,9 +170,7 @@ public struct _ArrayMapContent<Content: MapContent>: MapContent, PrimitiveMapCon
 extension ForEach: MapContent, PrimitiveMapContent where Content: MapContent {
     public typealias Body = Never
     public init(_ data: Data, id: KeyPath<Data.Element, ID>, @MapContentBuilder content: @escaping (Data.Element) -> Content) {
-        self.data = data
-        self.content = content
-        self.idGetter = { $0[keyPath: id] }
+        self.init(_data: data, id: id, content: content)
     }
     func collect(into out: inout [MapElement]) {
         for element in data { collectMapContent(content(element), into: &out) }
@@ -190,7 +191,7 @@ extension ForEach where Content: MapContent, Data == Range<Int>, ID == Int {
 
 extension Group: MapContent, PrimitiveMapContent where Content: MapContent {
     public typealias Body = Never
-    public init(@MapContentBuilder content: () -> Content) { self.content = content() }
+    public init(@MapContentBuilder content: () -> Content) { self.init(_content: content()) }
     func collect(into out: inout [MapElement]) { collectMapContent(content, into: &out) }
 }
 

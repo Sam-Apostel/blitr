@@ -1,6 +1,9 @@
 // Map items, placemarks, point-of-interest categories, launch options and the distance formatter.
 
+import CoreLocation
 import Foundation
+import SwiftUI
+import UIKit
 
 open class MKPlacemark: CLPlacemark, MKAnnotation, @unchecked Sendable {
     public let coordinate: CLLocationCoordinate2D
