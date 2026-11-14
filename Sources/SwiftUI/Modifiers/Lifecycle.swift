@@ -44,10 +44,8 @@ extension View {
     }
 }
 
-/// `onChange`: the `initial` call runs once like `onAppear`. On tvOS renders (where focus moves between
-/// passes and remote presses change state) a value that differs from the previous pass also calls the
-/// action, so focus-driven UI (`onChange(of: focusState)`) updates. Other platforms keep the one-shot
-/// behaviour so their renders do not change.
+/// `onChange`: the `initial` call runs once like `onAppear`. A value that differs from the previous pass
+/// (state set in `onAppear` or `.task`, focus moving, a simulated press) calls the action with old and new.
 final class OnChangeBox<V> {
     var value: V
     init(_ value: V) { self.value = value }
@@ -66,16 +64,14 @@ struct OnChangeModifier<V: Equatable>: ViewModifier, PrimitiveModifier {
         if runsInitially, runtime.performedActions.insert(identity).inserted {
             runtime.pendingActions.append { if initial { action(value, value) } }
         }
-        if runtime.focus.automaticInitialFocus {
-            if let box = runtime.changeValues[identity] as? OnChangeBox<V> {
-                if box.value != value {
-                    let old = box.value
-                    box.value = value
-                    runtime.pendingActions.append { action(old, value) }
-                }
-            } else {
-                runtime.changeValues[identity] = OnChangeBox(value)
+        if let box = runtime.changeValues[identity] as? OnChangeBox<V> {
+            if box.value != value {
+                let old = box.value
+                box.value = value
+                runtime.pendingActions.append { action(old, value) }
             }
+        } else {
+            runtime.changeValues[identity] = OnChangeBox(value)
         }
         content.resolve(ctx.child("onChange"), into: &out)
     }
