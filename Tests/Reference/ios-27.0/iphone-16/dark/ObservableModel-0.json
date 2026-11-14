@@ -1,0 +1,36 @@
+{
+  "colorScheme": "dark",
+  "device": "agent-calibrate-iphone16-ios27",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 39,
+        "x": 177,
+        "y": 407.01
+      },
+      "label": "n = 3",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 0,
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "ObservableModel",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "27.0",
+  "version": 1
+}
