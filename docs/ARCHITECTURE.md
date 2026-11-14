@@ -120,13 +120,16 @@ Apple frameworks that app code imports next to SwiftUI (`UIKit`, `MapKit`, `Core
 names are only visible where they are imported, as on Apple platforms: an app may declare its own
 `Activity` or `Map` in a file that imports only SwiftUI (`Examples/NameCollisions.swift`).
 
-Their code is linked into **libSwiftUI.so**, not into libraries of their own: the `SwiftUI` product in
-`Package.swift` lists them (`shimModules`). SwiftPM links a target's dependencies into every dynamic
-product, so a `.dynamic` product per shim would carry a second copy of SwiftUI, and with two copies in a
-process conformance lookups fail at run time ("Text does not conform to View"). One library means every
-compile links `-lSwiftUI` only (`Installation.linkFlags`) and a runner maps exactly one SwiftUI.
-`SwiftUIScreenshotFoundation` does not use SwiftUI and keeps a library of its own (autolinked
-with `-module-link-name`).
+Their code is linked into the engine library, **libSwiftUIScreenshotEngine** (`.so`; `.dylib` on macOS), not
+into libraries of their own: the `SwiftUIScreenshotEngine` product in `Package.swift` lists them
+(`shimModules`). SwiftPM links a target's dependencies into every dynamic product, so a `.dynamic` product
+per shim would carry a second copy of SwiftUI, and with two copies in a process conformance lookups fail at
+run time ("Text does not conform to View"). One library means every compile links
+`-lSwiftUIScreenshotEngine` only (`Installation.linkFlags`) and a runner maps exactly one SwiftUI. The
+library's file name cannot be mistaken for Apple's SwiftUI framework; the module is still `SwiftUI`. The
+SwiftUI module and `SwiftUIScreenshotFoundation` (which does not use SwiftUI, and whose code is in the
+engine library too) autolink it (`-module-link-name`); the modules inside the library are built with
+`-disable-autolink-library` for it, so the library never links against itself.
 
 To add a shim for framework `Foo`:
 
@@ -144,6 +147,25 @@ To add a shim for framework `Foo`:
    shim extends a SwiftUI struct (a resilient struct cannot be initialised from another module).
 5. If Apple ships `Foo` only on some platforms, list them in `Preprocessor.frameworkPlatforms` so
    `#if canImport(Foo)` follows the rendered platform.
+
+## macOS (in progress)
+
+A native macOS build is being worked on in issue #19; nothing below has been built on a Mac yet.
+
+- **Host differences live in one place.** In the tool, `HostPlatform` (`Sources/swiftui-screenshot/HostPlatform.swift`)
+  has the library extension (`.so` / `.dylib`), how a compiled module library names itself (SONAME /
+  `@rpath` install name), the deployment target passed to every compile on macOS, the host's `os(...)`
+  spelling for the preprocessor (`Preprocessor.hostOS`), and how the tool finds its own executable. In
+  `Package.swift`, `#if os(macOS)` picks `@loader_path` over `$ORIGIN`; `scripts/bootstrap.sh` and
+  `scripts/make-dist.sh` branch on `uname -s`.
+- **Linux-only code is gated** with `#if !canImport(Darwin)`: the Foundation gap-fillers Apple's Foundation
+  already has (`FoundationGaps.swift`, `MeasurementFormatter.swift`, `PresentationIntents.swift`) and the
+  Objective-C autorelease stubs (`Compat/ObjCRuntimeStubs.swift`), which libobjc defines for real. The
+  localization API (`Localization.swift`, `AttributedLocalization.swift`) is kept on Darwin on purpose:
+  strings resolve through the tool's table on every host.
+- **Still open**: our modules share their names with Apple frameworks (CoreGraphics, Combine, ObjectiveC,
+  os, Security, Network, ...), and Apple's Foundation imports some of them. Deciding module by module
+  whether to use Apple's or keep ours is step 2 of the issue.
 
 ## Conventions
 

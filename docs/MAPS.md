@@ -9,7 +9,7 @@ warning saying that tiles are not drawn.
 
 The API is in two modules of its own, `Sources/CoreLocation` (Foundation only) and `Sources/MapKit`
 (which imports SwiftUI and re-exports CoreLocation and UIKit, as Apple's does), so `Map`, `Marker` and
-`Annotation` are only visible where MapKit is imported. Their code is linked into libSwiftUI, so there
+`Annotation` are only visible where MapKit is imported. Their code is linked into libSwiftUIScreenshotEngine, so there
 is one copy of SwiftUI at run time and protocol conformances resolve (ARCHITECTURE.md, "Shim modules").
 
 | File | Contents |

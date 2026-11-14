@@ -1,7 +1,7 @@
 # Apple frameworks beyond SwiftUI
 
 App code imports more than SwiftUI. Each framework below is a module of its own under `Sources/<Name>`
-(see "Shim modules" in ARCHITECTURE.md), linked into libSwiftUI. Source compatibility with Apple's public
+(see "Shim modules" in ARCHITECTURE.md), linked into libSwiftUIScreenshotEngine. Source compatibility with Apple's public
 signatures is the contract; behaviour is what a screenshot needs: what affects pixels is real, the rest
 answers like a fresh install with no permissions granted (not determined, empty, nil) and never blocks.
 Anything that would be visible but cannot be drawn shows a placeholder and one warning naming it.

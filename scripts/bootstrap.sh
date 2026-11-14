@@ -1,32 +1,60 @@
 #!/usr/bin/env bash
 # Fetches the pinned native dependencies that are not committed to the repo:
-#   - Skia (prebuilt libSkiaSharp.so, C API) -> Vendor/skia/lib
+#   - Skia (prebuilt libSkiaSharp.so, C API; libSkiaSharp.dylib on macOS) -> Vendor/skia/lib
 #   - Open fonts standing in for Apple's system fonts -> Vendor/fonts
 #       Inter (SF Pro), Nunito (SF Rounded), Source Serif 4 (New York),
 #       JetBrains Mono (SF Mono), Noto Color Emoji (Apple Color Emoji)
 # Safe to re-run; skips anything already present.
+# HarfBuzz is not fetched: it comes from the system (libharfbuzz-dev on Linux; on macOS Homebrew's
+# harfbuzz, found through pkg-config). macOS support is in progress (issue #19).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 SKIA_VERSION=4.156.0
 SKIA_SHA256=45780b4ae200797bba6ce479f10554711902eeab5676bd3854894df89d0edc10
+# The macOS package of the same release: one universal (arm64 + x86_64) libSkiaSharp.dylib.
+SKIA_MACOS_SHA256=5014f2cb2560cdc99b2fd7d0b88497bc2742e766d21f2a79fc7dbcbb71137f9d
 INTER_VERSION=4.1
 INTER_SHA256=9883fdd4a49d4fb66bd8177ba6625ef9a64aa45899767dde3d36aa425756b11e
 
-case "$(uname -m)" in
-  x86_64) RID=linux-x64 ;;
-  aarch64|arm64) RID=linux-arm64 ;;
-  *) echo "unsupported architecture: $(uname -m)" >&2; exit 1 ;;
-esac
+OS="$(uname -s)"
+if [ "$OS" = Darwin ]; then
+  RID=osx
+  if ! command -v pkg-config >/dev/null || ! pkg-config --exists harfbuzz; then
+    echo "HarfBuzz was not found through pkg-config. Install both with: brew install harfbuzz pkg-config" >&2
+    exit 1
+  fi
+else
+  case "$(uname -m)" in
+    x86_64) RID=linux-x64 ;;
+    aarch64|arm64) RID=linux-arm64 ;;
+    *) echo "unsupported architecture: $(uname -m)" >&2; exit 1 ;;
+  esac
+fi
 
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 
-fetch() { # url sha256 dest
-  curl -fsSL --retry 3 -o "$3" "$1"
-  echo "$2  $3" | sha256sum -c - >/dev/null
+sha256_check() { # reads "<sha256>  <file>" on stdin; macOS has shasum where Linux has sha256sum
+  if command -v sha256sum >/dev/null; then sha256sum -c - >/dev/null; else shasum -a 256 -c - >/dev/null; fi
 }
 
-if [ ! -f Vendor/skia/lib/libSkiaSharp.so ]; then
+fetch() { # url sha256 dest
+  curl -fsSL --retry 3 -o "$3" "$1"
+  echo "$2  $3" | sha256_check
+}
+
+if [ "$OS" = Darwin ]; then
+  if [ ! -f Vendor/skia/lib/libSkiaSharp.dylib ]; then
+    echo "Fetching Skia $SKIA_VERSION (macOS, universal)"
+    fetch "https://api.nuget.org/v3-flatcontainer/skiasharp.nativeassets.macos/$SKIA_VERSION/skiasharp.nativeassets.macos.$SKIA_VERSION.nupkg" "$SKIA_MACOS_SHA256" "$tmp/skia.zip"
+    mkdir -p Vendor/skia/lib
+    unzip -qo "$tmp/skia.zip" "runtimes/$RID/native/libSkiaSharp.dylib" LICENSE.txt THIRD-PARTY-NOTICES.txt -d "$tmp/skia"
+    # Its install name is already @rpath/libSkiaSharp.dylib, so it loads from the engine's rpaths as it is
+    # (and keeps its signature: nothing is rewritten).
+    cp "$tmp/skia/runtimes/$RID/native/libSkiaSharp.dylib" Vendor/skia/lib/
+    cp "$tmp/skia/LICENSE.txt" "$tmp/skia/THIRD-PARTY-NOTICES.txt" Vendor/skia/
+  fi
+elif [ ! -f Vendor/skia/lib/libSkiaSharp.so ]; then
   echo "Fetching Skia $SKIA_VERSION ($RID)"
   fetch "https://api.nuget.org/v3-flatcontainer/skiasharp.nativeassets.linux.nodependencies/$SKIA_VERSION/skiasharp.nativeassets.linux.nodependencies.$SKIA_VERSION.nupkg" "$SKIA_SHA256" "$tmp/skia.zip"
   mkdir -p Vendor/skia/lib

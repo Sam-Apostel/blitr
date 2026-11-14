@@ -89,7 +89,7 @@ func note(_ message: String) {
 // MARK: - Installation layout
 
 struct Installation {
-    /// Directory containing SwiftUI.swiftmodule and libSwiftUI.so.
+    /// Directory containing SwiftUI.swiftmodule and the engine library (HostPlatform.engineLibrary).
     var sdk: String
     var fontDirectories: [String]
     /// Apple's own fonts, if the user installed them. Used ahead of the open substitutes unless `--open-fonts`.
@@ -98,7 +98,7 @@ struct Installation {
 
     static func locate() -> Installation {
         let fm = FileManager.default
-        let executable = (try? fm.destinationOfSymbolicLink(atPath: "/proc/self/exe")) ?? CommandLine.arguments[0]
+        let executable = HostPlatform.executablePath
         let binDir = (executable as NSString).deletingLastPathComponent
         let env = ProcessInfo.processInfo.environment
 
@@ -133,8 +133,8 @@ struct Installation {
         return Installation(sdk: (sdk as NSString).standardizingPath, fontDirectories: fonts, appleFontDirectory: appleFonts, swiftc: swiftc)
     }
 
-    /// The modules of the SDK: every `Name.swiftmodule` next to the SwiftUI module (SwiftUI, Combine and the
-    /// shim frameworks, which are linked into libSwiftUI; CoreText and the Foundation shim have their own library).
+    /// The modules of the SDK: every `Name.swiftmodule` next to the SwiftUI module (SwiftUI, Combine, the
+    /// shim frameworks and the Foundation shim, all linked into the engine library).
     var modules: [String] {
         ((try? FileManager.default.contentsOfDirectory(atPath: sdk)) ?? []).filter { $0.hasSuffix(".swiftmodule") }
             .map { ($0 as NSString).deletingPathExtension }.sorted()
@@ -147,7 +147,7 @@ struct Installation {
         var parts: [String] = []
         for name in ((try? fm.contentsOfDirectory(atPath: sdk)) ?? []).sorted() {
             let path = sdk + "/" + name
-            if name.hasPrefix("lib"), name.hasSuffix(".so") {
+            if HostPlatform.libraryName(fromFile: name) != nil {
                 parts.append(name + fileStamp(path))
             } else if name.hasSuffix(".swiftmodule") {
                 var isDirectory: ObjCBool = false
@@ -164,10 +164,10 @@ struct Installation {
             .map { "-\($0[.size] ?? 0)-\(($0[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0)" } ?? ""
     }
 
-    /// Libraries every compile against the SDK links. The shim frameworks need no flag of their own: their code
-    /// is in libSwiftUI. CoreText and the Foundation shim are autolinked by their modules.
+    /// Libraries every compile against the SDK links. The shim frameworks and the Foundation shim need no flag
+    /// of their own: their code is in the engine library, which the SwiftUI module also autolinks.
     var linkFlags: [String] {
-        ["-I", sdk, "-L", sdk, "-lSwiftUI", "-Xlinker", "-rpath", "-Xlinker", sdk]
+        ["-I", sdk, "-L", sdk, "-l" + HostPlatform.engineLibrary, "-Xlinker", "-rpath", "-Xlinker", sdk]
     }
 }
 
@@ -340,6 +340,7 @@ func build(_ options: Options, _ installation: Installation) -> Build {
 
     var preprocessor = Preprocessor()
     preprocessor.platform = options.platform
+    preprocessor.hostOS = HostPlatform.osName
     let output = preprocessor.process(sources, viewExpression: options.view)
     for warning in output.warnings { note("warning: \(warning)") }
     guard !output.entries.isEmpty else {
@@ -366,7 +367,7 @@ func build(_ options: Options, _ installation: Installation) -> Build {
             written.append(path)
             if index < sources.count { originalPath[path] = sources[index].path }
         }
-        var arguments = ["-swift-version", "5", "-Onone", "-module-name", "App", "-no-color-diagnostics"] + installation.linkFlags
+        var arguments = HostPlatform.compilerFlags + ["-swift-version", "5", "-Onone", "-module-name", "App", "-no-color-diagnostics"] + installation.linkFlags
         arguments += written + ["-o", runner]
         if options.verbose { note(([installation.swiftc] + arguments).joined(separator: " ")) }
         let result = run(installation.swiftc, arguments)
