@@ -1,0 +1,219 @@
+{
+  "colorScheme": "light",
+  "device": "agent-calibrate-iphone16-ios26",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 99.33
+      },
+      "label": "Custom background",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 151.33
+      },
+      "label": "Custom insets",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 203.33
+      },
+      "label": "No separator below",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 255.33
+      },
+      "label": "Tinted separator",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 307.33
+      },
+      "label": "Last row",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 57,
+        "x": 32,
+        "y": 436.83
+      },
+      "label": "Version",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 29,
+        "x": 332,
+        "y": 436.83
+      },
+      "label": "18.1",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 473
+      },
+      "label": "Inbox",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ],
+      "value": "12"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 102.67,
+        "x": 32,
+        "y": 540
+      },
+      "label": "Two-line row",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 38,
+        "width": 322.33,
+        "x": 32,
+        "y": 564.33
+      },
+      "label": "A subtitle in secondary color that wraps onto a second line when long",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 80,
+        "width": 361,
+        "x": 16,
+        "y": 664.33
+      },
+      "label": "",
+      "role": "group",
+      "traits": []
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 40.33,
+        "width": 361,
+        "x": 16,
+        "y": 59
+      },
+      "label": "Rows",
+      "role": "header",
+      "traits": [
+        "header",
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 44,
+        "width": 361,
+        "x": 16,
+        "y": 377
+      },
+      "label": "Prominent",
+      "role": "header",
+      "traits": [
+        "header",
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 29.67,
+        "width": 361,
+        "x": 16,
+        "y": 617.33
+      },
+      "label": "Footers are 13pt secondary text.",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 0,
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "ListCustomRows",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "26.5",
+  "version": 1
+}
