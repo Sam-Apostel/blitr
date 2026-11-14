@@ -1,4 +1,5 @@
-// Focus, keyboard and text input configuration. Nothing here changes a static frame.
+// Focus values, keyboard and text input configuration. Nothing here changes a static frame.
+// (The focus engine itself lives in Focus/.)
 
 // MARK: - Focus
 
@@ -47,18 +48,8 @@ public struct FocusedBinding<Value>: DynamicProperty {
     public var projectedValue: Binding<Value?> { Binding(get: { nil }, set: { _ in }) }
 }
 
+// focused, focusable, focusSection, focusScope, defaultFocus... are real: see Focus/FocusModel.swift.
 extension View {
-    public func focused(_ condition: FocusState<Bool>.Binding) -> some View { self }
-    public func focused<Value: Hashable>(_ binding: FocusState<Value>.Binding, equals value: Value) -> some View { self }
-    public func focusable(_ isFocusable: Bool = true) -> some View { self }
-    public func focusable(_ isFocusable: Bool = true, interactions: FocusInteractions) -> some View { self }
-    public func focusEffectDisabled(_ disabled: Bool = true) -> some View { self }
-    public func focusSection() -> some View { self }
-    public func focusScope(_ namespace: Namespace.ID) -> some View { self }
-    public func prefersDefaultFocus(_ prefersDefaultFocus: Bool = true, in namespace: Namespace.ID) -> some View { self }
-    public func defaultFocus<V: Hashable>(_ binding: FocusState<V>.Binding, _ value: V,
-                                          priority: DefaultFocusEvaluationPriority = .automatic) -> some View { self }
-
     public func focusedValue<Value>(_ keyPath: WritableKeyPath<FocusedValues, Value?>, _ value: Value) -> some View { self }
     public func focusedValue<Value>(_ keyPath: WritableKeyPath<FocusedValues, Value?>, _ value: Value?) -> some View { self }
     public func focusedSceneValue<Value>(_ keyPath: WritableKeyPath<FocusedValues, Value?>, _ value: Value) -> some View { self }

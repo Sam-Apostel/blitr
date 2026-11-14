@@ -1,4 +1,5 @@
-// ScrollView (rendered at scroll offset zero), ScrollViewReader, and the scroll-related modifiers.
+// ScrollView (rendered at scroll offset zero unless the focus engine scrolled it to show the focused
+// element), ScrollViewReader, and the scroll-related modifiers.
 // A screenshot is a single frame, so scrolling itself is inert: the content is laid out as it appears
 // before the user touches it, and clipped to the scroll view (extended under bars and the home indicator).
 
@@ -33,6 +34,8 @@ final class ScrollNode: Node {
     let clips: Bool
     var content: Node { children[0] }
     private(set) var clipRect = CGRect.zero
+    /// Structural identity, so the focus engine can keep a scroll offset for this scroll view.
+    var identity: IdentityPath?
 
     init(content: Node, axes: Axis.Set, margins: EdgeInsets, clips: Bool) {
         self.axes = axes
@@ -63,7 +66,9 @@ final class ScrollNode: Node {
         // Top (vertical) / leading (horizontal) on the scroll axis, centred across.
         let x = scrollsH ? margins.leading : margins.leading + (availW - c.width) / 2
         let y = scrollsV ? margins.top : margins.top + (availH - c.height) / 2
-        content.place(at: CGPoint(x: x, y: y), size: c, ctx)
+        // Scrolled by the focus engine (tvOS: the focused element is kept on screen); zero otherwise.
+        let offset = identity.flatMap { Runtime.current?.focus.scrollOffsets[$0] } ?? .zero
+        content.place(at: CGPoint(x: x - offset.x, y: y - offset.y), size: c, ctx)
         let bounds = CGRect(origin: .zero, size: size)
         clipRect = bounds.outset(by: ctx.safeAreaBleed(for: CGRect(origin: ctx.origin, size: size), edges: .all))
     }
@@ -100,7 +105,9 @@ public struct ScrollView<Content: View>: View, PrimitiveView {
         let margins = ctx.env.scrollContentMargins
         let inner = ctx.with { $0.stackAxis = nil; $0.scrollContentMargins = EdgeInsets(); $0.scrollClipDisabled = false }
         let node = resolveSingle(content, inner.child("scrollContent"))
-        out.append(ScrollNode(content: node, axes: axes, margins: margins, clips: !ctx.env.scrollClipDisabled))
+        let scroll = ScrollNode(content: node, axes: axes, margins: margins, clips: !ctx.env.scrollClipDisabled)
+        scroll.identity = ctx.path
+        out.append(scroll)
     }
 }
 

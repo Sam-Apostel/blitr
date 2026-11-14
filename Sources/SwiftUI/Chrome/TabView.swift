@@ -539,15 +539,27 @@ public struct TabView<SelectionValue: Hashable, Content: View>: View, PrimitiveV
     public typealias Body = Never
     let selection: AnyHashable?
     let content: Content
+    /// Writes the selection binding (remote `select` on a tab item).
+    var setSelection: ((AnyHashable) -> Bool)?
 
     public init(selection: Binding<SelectionValue>?, @ViewBuilder content: () -> Content) {
         self.selection = selection.map { AnyHashable($0.wrappedValue) }
         self.content = content()
+        self.setSelection = selection.map(Self.setter)
     }
     public init<C: TabContent>(selection: Binding<SelectionValue>, @TabContentBuilder<SelectionValue> content: () -> C)
     where Content == TabContentBuilder<SelectionValue>.Content<C>, C.TabValue == SelectionValue {
         self.selection = AnyHashable(selection.wrappedValue)
         self.content = TabContentBuilder<SelectionValue>.Content(content: content())
+        self.setSelection = Self.setter(selection)
+    }
+
+    private static func setter(_ binding: Binding<SelectionValue>) -> (AnyHashable) -> Bool {
+        { tag in
+            if let value = tag.base as? SelectionValue { binding.wrappedValue = value; return true }
+            if let value = unwrapOptional(tag).base as? SelectionValue { binding.wrappedValue = value; return true }
+            return false
+        }
     }
 
     func resolve(_ ctx: ResolveContext, into out: inout [Node]) {
@@ -568,7 +580,9 @@ public struct TabView<SelectionValue: Hashable, Content: View>: View, PrimitiveV
         }
         guard !entries.isEmpty else { return }
         let target = selection.map(unwrapOptional)
-        let selected = target.flatMap { t in entries.firstIndex { $0.tag.map(unwrapOptional) == t } } ?? 0
+        let chosen = selection == nil ? ctx.runtime.focus.tabSelections[ctx.path] : nil
+        let selected = chosen.flatMap { entries.indices.contains($0) ? $0 : nil }
+            ?? target.flatMap { t in entries.firstIndex { $0.tag.map(unwrapOptional) == t } } ?? 0
         if let mode = ctx.env.tabViewPageMode {
             out.append(PageTabViewNode(content: entries[selected].content(), count: entries.count, selected: selected,
                                        mode: mode, background: ctx.env.pageIndexBackground))
@@ -579,7 +593,21 @@ public struct TabView<SelectionValue: Hashable, Content: View>: View, PrimitiveV
                 if nodes.isEmpty { return nil }
                 return nodes.count == 1 ? nodes[0] : StackNode(axis: .horizontal, alignment: .center, spacing: nil, children: nodes)
             }
-            out.append(TabViewNode(entries: entries, selected: selected, ctx: ctx, accessory: accessoryNode))
+            let node = TabViewNode(entries: entries, selected: selected, ctx: ctx, accessory: accessoryNode)
+            node.focusPath = ctx.path
+            let tags = entries.map(\.tag), path = ctx.path, setSelection = self.setSelection, runtime = ctx.runtime
+            node.selectTab = { index in
+                if let setSelection {
+                    guard let tag = tags[index], setSelection(tag) else {
+                        runtime.warn("Selecting tab \(index + 1): its tag does not match the TabView's selection type")
+                        return
+                    }
+                } else {
+                    runtime.focus.tabSelections[path] = index
+                }
+                runtime.needsAnotherPass = true
+            }
+            out.append(node)
         }
     }
 }
@@ -650,6 +678,9 @@ final class TabViewNode: Node {
     let accessory: Node?
     /// The tab drawn as a separate circle at the trailing end (`role: .search`, iOS 27 `.prominent`).
     let separateIndex: Int?
+    /// The TabView's identity and how to select a tab (focus engine: tab items and remote `select`).
+    var focusPath: IdentityPath?
+    var selectTab: (@MainActor (Int) -> Void)?
     private let scheme: ColorScheme
     private var capsule = CGRect.zero
     private var itemRects: [CGRect] = []

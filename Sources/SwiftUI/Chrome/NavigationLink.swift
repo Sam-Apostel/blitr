@@ -7,6 +7,8 @@ public struct NavigationLink<Label: View, Destination: View>: View, PrimitiveVie
     let label: Label
     let destination: Destination?
     let isActive: Bool
+    /// The value of a `NavigationLink(value:)`, pushed through the stack's `navigationDestination`.
+    var value: AnyHashable?
 
     init(label: Label, destination: Destination?, isActive: Bool = false) {
         self.label = label
@@ -39,6 +41,23 @@ public struct NavigationLink<Label: View, Destination: View>: View, PrimitiveVie
     }
 
     func resolve(_ ctx: ResolveContext, into out: inout [Node]) {
+        // Focusable; remote `select` pushes the destination onto the enclosing stack.
+        let stack = ctx.env.navigationStackIdentity, runtime = ctx.runtime
+        let push: NavigationPush? = destination.map { .view(AnyView($0)) } ?? value.map { .value($0) }
+        let activate: @MainActor () -> Void = {
+            guard let stack, let push else {
+                runtime.warn(push == nil ? "NavigationLink has no destination or value; select does nothing"
+                                         : "NavigationLink is not inside a NavigationStack; select cannot push its destination")
+                return
+            }
+            runtime.focus.pushes[stack, default: []].append(push)
+            runtime.needsAnotherPass = true
+        }
+        let content = ModifierContent { ctx, out in self.resolveLink(ctx, into: &out) }
+        FocusElementModifier(role: "navigationLink", activate: activate).resolve(content: content, ctx, into: &out)
+    }
+
+    private func resolveLink(_ ctx: ResolveContext, into out: inout [Node]) {
         let inRow = ctx.env.isInListRow
         let labelCtx = ctx.with { env in
             if !inRow {
@@ -63,16 +82,19 @@ public struct NavigationLink<Label: View, Destination: View>: View, PrimitiveVie
 extension NavigationLink where Destination == Never {
     public init<P: Hashable>(value: P?, @ViewBuilder label: () -> Label) {
         self.init(label: label(), destination: nil)
+        self.value = value.map { AnyHashable($0) }
     }
 }
 
 extension NavigationLink where Label == Text, Destination == Never {
     public init<P: Hashable>(_ titleKey: LocalizedStringKey, value: P?) {
         self.init(label: Text(titleKey), destination: nil)
+        self.value = value.map { AnyHashable($0) }
     }
     @_disfavoredOverload
     public init<S: StringProtocol, P: Hashable>(_ title: S, value: P?) {
         self.init(label: Text(title), destination: nil)
+        self.value = value.map { AnyHashable($0) }
     }
 }
 

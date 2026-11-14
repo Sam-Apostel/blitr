@@ -162,6 +162,12 @@ final class PresentationHostNode: Node {
     }
 
     static func makeLayer(_ record: PresentationRecord) -> PresentationLayerNode {
+        let layer = makeLayerNode(record)
+        layer.dismiss = record.dismiss
+        return layer
+    }
+
+    private static func makeLayerNode(_ record: PresentationRecord) -> PresentationLayerNode {
         switch record.style {
         case .sheet:
             let ctx = record.ctx.child("sheet").with { $0.isElevatedPresentation = true }
@@ -242,6 +248,8 @@ class PresentationLayerNode: Node {
     }
     var backdrop: Backdrop = .none
     var deviceInsets = EdgeInsets()
+    /// Ends this presentation (remote Menu, alert buttons).
+    var dismiss: (@MainActor () -> Void)?
     var nestedRecords: [PresentationRecord] { [] }
 }
 
@@ -478,7 +486,12 @@ func presentationActions(_ spec: DialogSpec, _ ctx: ResolveContext) -> [Presenta
     }
     return resolver(ctx.child("actions")).compactMap { node in
         guard let text = node.firstDescendant(TextNode.self) else { return nil }
-        return PresentationAction(title: text.runs.map(\.text).joined(), role: role(node))
+        @MainActor func activation(_ node: Node) -> (@MainActor () -> Void)? {
+            if let a = node.ax?.info.activate { return a }
+            for child in node.children { if let a = activation(child) { return a } }
+            return nil
+        }
+        return PresentationAction(title: text.runs.map(\.text).joined(), role: role(node), activate: activation(node))
     }
 }
 
@@ -511,6 +524,8 @@ final class AlertCardNode: Node {
     let title: Node?
     let message: Node?
     let actions: [TextNode]
+    /// Each action's closure, in the order of `actions` (remote `select`).
+    let actionHandlers: [(@MainActor () -> Void)?]
     let separatorColor: RGBA
     let background: RGBA
     let design: DesignLanguage
@@ -551,6 +566,7 @@ final class AlertCardNode: Node {
         }
         let accent = Color.accentColor.rgba(in: env)
         let fontSize = design.isGlass ? AlertMetrics.forDesign(design).buttonFontSize : AlertMetrics.actionFontSize
+        actionHandlers = list.map(\.activate)
         actions = list.map { action in
             textNode(action.title, size: fontSize, weight: action.role == .cancel ? .semibold : .regular,
                      color: action.role == .destructive ? SystemColor.red.resolve(scheme) : accent, env: env)
@@ -697,6 +713,8 @@ final class DialogCardNode: Node {
     let message: Node?
     let actions: [TextNode]
     let cancel: TextNode
+    /// Each action's closure, in the order `actions + [cancel]` (remote `select`).
+    let actionHandlers: [(@MainActor () -> Void)?]
     let separatorColor: RGBA
     let background: RGBA
     let cancelBackground: RGBA
@@ -726,6 +744,7 @@ final class DialogCardNode: Node {
         message = resolveDialogText(spec.message, ctx.child("message"), size: headerSize, weight: .regular, color: secondary)
         let list = presentationActions(spec, ctx)
         let accent = Color.accentColor.rgba(in: env)
+        actionHandlers = list.filter { $0.role != .cancel }.map(\.activate) + [list.first(where: { $0.role == .cancel })?.activate]
         actions = list.filter { $0.role != .cancel }.map { action in
             textNode(action.title, size: actionSize, weight: .regular,
                      color: action.role == .destructive ? SystemColor.red.resolve(scheme) : accent, env: env)

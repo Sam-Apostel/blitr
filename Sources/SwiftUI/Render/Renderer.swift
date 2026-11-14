@@ -60,12 +60,18 @@ enum Renderer {
         var canvasSize = CGSize.zero
         var root: Node = Node()
         var container = CGRect.zero, safeRect = CGRect.zero
+        // tvOS gives a screen its initial focus; elsewhere focus only moves when code or a flag asks.
+        runtime.focus.automaticInitialFocus = config.platform == .tvOS
+        // Focus can take a few extra passes on tvOS (focus -> isFocused -> scrolling).
+        let maxPasses = config.platform == .tvOS ? 10 : 6
 
         // State changed by onAppear & co. only shows up in a later pass, so iterate until quiet.
-        for _ in 0..<6 {
+        func settle() {
+        for _ in 0..<maxPasses {
             runtime.needsAnotherPass = false
             runtime.pendingActions = []
             runtime.postLayoutActions = []
+            runtime.activations.reset()
             let ctx = ResolveContext(env: env, path: IdentityPath(), runtime: runtime)
             root = resolveSingle(view, ctx)
             // Sheets, alerts and dialogs presented anywhere in the tree are drawn above the root.
@@ -95,6 +101,7 @@ enum Renderer {
                 env.colorScheme = preferred
                 continue
             }
+            if runtime.focus.afterLayout(root, screen: container, runtime: runtime) { runtime.needsAnotherPass = true }
             let postLayout = runtime.postLayoutActions
             runtime.postLayoutActions = []
             for action in postLayout { action() }
@@ -104,6 +111,22 @@ enum Renderer {
             runtime.drainTasks()
             // Actions may mutate reference types we cannot observe, so any action means another pass.
             if actions.isEmpty && !runtime.needsAnotherPass { break }
+        }
+        }
+        settle()
+
+        // Remote simulation (Focus/RemoteSimulation.swift): a start focus, then presses, each followed by passes.
+        var pressLogs: [PressLog] = []
+        let focusRequest = FocusOutputs.request
+        if let selector = focusRequest.focusSelector {
+            let i = try runtime.focus.element(matching: selector)
+            runtime.focus.requestedPath = runtime.focus.snapshot.elements[i].path
+            runtime.focus.initialPath = runtime.focus.requestedPath
+            settle()
+        }
+        for press in focusRequest.presses {
+            pressLogs.append(runtime.focus.press(press, runtime: runtime))
+            settle()
         }
 
         let pixelWidth = max(1, Int((canvasSize.width * scale).rounded())), pixelHeight = max(1, Int((canvasSize.height * scale).rounded()))
@@ -121,17 +144,25 @@ enum Renderer {
             DeviceChrome.clipToDisplay(canvas: canvas, device: config.device, size: canvasSize, scale: scale)
         }
         let background = config.background ?? (config.layout == .sizeThatFits ? RGBA.clear : SystemColor.background.resolve(env.colorScheme))
-        sk_canvas_clear(canvas, Painter.skColor(background))
         let painter = Painter(canvas: canvas, scale: scale, surface: surface)
         painter.scale(scale, scale)
-        root.draw(painter)
-        if config.layout == .device, config.showsDeviceChrome, safeRect != container {
-            // The status bar can be restyled by content (a dark toolbar, a pushed-back presenter);
-            // the home indicator sits over the bottom of the screen and follows the interface style.
-            DeviceChrome.draw(painter, device: config.device, size: canvasSize,
-                              statusBarScheme: root.preferences[StatusBarSchemeKey.self] ?? env.colorScheme,
-                              homeIndicatorScheme: env.colorScheme, showsHousing: config.showsSensorHousing)
+        let scheme = env.colorScheme
+        func drawFrame() {
+            sk_canvas_clear(canvas, Painter.skColor(background))
+            root.draw(painter)
+            // Focus on chrome the engine made (tab items, alert buttons) has no view to carry the effect.
+            if config.platform == .tvOS, let chrome = runtime.focus.focusedChromeFrame {
+                FocusEffect.drawChromeHighlight(painter, rect: chrome, scheme: scheme)
+            }
+            if config.layout == .device, config.showsDeviceChrome, safeRect != container {
+                // The status bar can be restyled by content (a dark toolbar, a pushed-back presenter);
+                // the home indicator sits over the bottom of the screen and follows the interface style.
+                DeviceChrome.draw(painter, device: config.device, size: canvasSize,
+                                  statusBarScheme: root.preferences[StatusBarSchemeKey.self] ?? scheme,
+                                  homeIndicatorScheme: scheme, showsHousing: config.showsSensorHousing)
+            }
         }
+        drawFrame()
 
         guard let image = sk_surface_new_image_snapshot(surface) else { throw RenderError("Could not snapshot the surface") }
         defer { sk_image_unref(image) }
@@ -147,6 +178,8 @@ enum Renderer {
         guard ok else { throw RenderError("PNG encoding failed") }
         try AccessibilityOutputs.finish(root: root, config: config, scheme: env.colorScheme, canvasSize: canvasSize, scale: scale,
                                         painter: painter, surface: surface)
+        try FocusOutputs.finish(engine: runtime.focus, config: config, canvasSize: canvasSize, scale: scale, presses: pressLogs,
+                                painter: painter, surface: surface, redraw: drawFrame)
         return RenderResult(pixelSize: (pixelWidth, pixelHeight), warnings: runtime.warnings)
     }
 }

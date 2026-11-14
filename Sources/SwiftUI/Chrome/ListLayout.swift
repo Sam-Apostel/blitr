@@ -129,6 +129,10 @@ final class ListNode: Node {
     private var cards: [(rect: CGRect, radius: CGFloat, rows: Range<Int>, section: Int)] = []
     private var separators: [(rect: CGRect, color: RGBA)] = []
     private(set) var bleed = EdgeInsets()
+    /// Structural identity, so the focus engine can scroll the list to the focused row.
+    var scrollIdentity: IdentityPath?
+    /// Height of everything in the list (after layout), for the largest scroll offset.
+    private(set) var contentHeight: CGFloat = 0
 
     init(items: [Node], style: ListStyleKind, env: EnvironmentValues) {
         self.style = style
@@ -218,7 +222,9 @@ final class ListNode: Node {
         inner.container = unbounded
         inner.safeRect = unbounded
 
-        var y = max(0, ctx.safeRect.minY - ctx.origin.y)
+        // Scrolled by the focus engine (tvOS: the focused row is kept on screen); zero otherwise.
+        let scrollOffset = scrollIdentity.flatMap { Runtime.current?.focus.scrollOffsets[$0]?.y } ?? 0
+        var y = max(0, ctx.safeRect.minY - ctx.origin.y) - scrollOffset
         let grouped = style.isGroupedFamily
         let thickness = ListMetrics.separatorThickness
         var previousHadFooter = false
@@ -313,6 +319,7 @@ final class ListNode: Node {
                 }
             }
         }
+        contentHeight = y + scrollOffset + max(0, ctx.origin.y + size.height - ctx.safeRect.maxY)
     }
 
     override func drawContent(_ p: Painter) {

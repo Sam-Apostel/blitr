@@ -1,4 +1,4 @@
-// Small property wrappers: @FocusState, @AccessibilityFocusState, @Namespace, @GestureState, @ScaledMetric.
+// Small property wrappers: @FocusState (made live by Focus/), @AccessibilityFocusState, @Namespace, @GestureState, @ScaledMetric.
 // The modifiers that consume them (`.focused`, `.matchedGeometryEffect`, gestures) live elsewhere.
 
 // MARK: - FocusState
@@ -13,7 +13,11 @@ public struct FocusState<Value: Hashable>: DynamicProperty, InstallableProperty 
     public struct Binding {
         let getter: () -> Value
         let setter: (Value) -> Void
-        init(get: @escaping () -> Value, set: @escaping (Value) -> Void) { getter = get; setter = set }
+        /// Identity of the state's storage, so the focus engine can tell bindings of one state apart.
+        let storageID: ObjectIdentifier
+        init(get: @escaping () -> Value, set: @escaping (Value) -> Void, storageID: ObjectIdentifier) {
+            getter = get; setter = set; self.storageID = storageID
+        }
         public var wrappedValue: Value {
             get { getter() }
             nonmutating set { setter(newValue) }
@@ -33,7 +37,8 @@ public struct FocusState<Value: Hashable>: DynamicProperty, InstallableProperty 
     }
     public var projectedValue: FocusState<Value>.Binding {
         let box = self.box
-        return Binding(get: { box.storage.value }, set: { box.storage.value = $0; CompatStore.markChanged() })
+        return Binding(get: { box.storage.value }, set: { box.storage.value = $0; CompatStore.markChanged() },
+                       storageID: ObjectIdentifier(box.storage))
     }
 
     @MainActor func install(_ ic: inout InstallContext) {

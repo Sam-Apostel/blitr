@@ -18,6 +18,8 @@ enum PresentationActionRoleTraitKey: TraitKey { typealias Value = PresentationAc
 struct PresentationAction {
     var title: String
     var role: PresentationActionRole?
+    /// The action's closure (the Button's action), run by remote `select`.
+    var activate: (@MainActor () -> Void)? = nil
 }
 
 struct DialogSpec {
@@ -38,6 +40,8 @@ struct PresentationRecord {
     let style: Style
     let ctx: ResolveContext
     var content: NodeResolver? = nil
+    /// Ends the presentation (writes its binding); used by the remote's Menu button and alert buttons.
+    var dismiss: (@MainActor () -> Void)? = nil
 }
 
 enum PresentationsKey: PreferenceKey {
@@ -77,25 +81,29 @@ extension View {
     public func sheet<Content: View>(isPresented: Binding<Bool>, onDismiss: (() -> Void)? = nil,
                                      @ViewBuilder content: @escaping () -> Content) -> some View {
         present { ctx in
-            isPresented.wrappedValue ? PresentationRecord(style: .sheet, ctx: ctx, content: { resolveNodes(content(), $0) }) : nil
+            isPresented.wrappedValue ? PresentationRecord(style: .sheet, ctx: ctx, content: { resolveNodes(content(), $0) },
+                                                          dismiss: { isPresented.wrappedValue = false; onDismiss?() }) : nil
         }
     }
     public func sheet<Item: Identifiable, Content: View>(item: Binding<Item?>, onDismiss: (() -> Void)? = nil,
                                                          @ViewBuilder content: @escaping (Item) -> Content) -> some View {
         present { ctx in
-            item.wrappedValue.map { value in PresentationRecord(style: .sheet, ctx: ctx, content: { resolveNodes(content(value), $0) }) }
+            item.wrappedValue.map { value in PresentationRecord(style: .sheet, ctx: ctx, content: { resolveNodes(content(value), $0) },
+                                                                dismiss: { item.wrappedValue = nil; onDismiss?() }) }
         }
     }
     public func fullScreenCover<Content: View>(isPresented: Binding<Bool>, onDismiss: (() -> Void)? = nil,
                                                @ViewBuilder content: @escaping () -> Content) -> some View {
         present { ctx in
-            isPresented.wrappedValue ? PresentationRecord(style: .fullScreenCover, ctx: ctx, content: { resolveNodes(content(), $0) }) : nil
+            isPresented.wrappedValue ? PresentationRecord(style: .fullScreenCover, ctx: ctx, content: { resolveNodes(content(), $0) },
+                                                          dismiss: { isPresented.wrappedValue = false; onDismiss?() }) : nil
         }
     }
     public func fullScreenCover<Item: Identifiable, Content: View>(item: Binding<Item?>, onDismiss: (() -> Void)? = nil,
                                                                    @ViewBuilder content: @escaping (Item) -> Content) -> some View {
         present { ctx in
-            item.wrappedValue.map { value in PresentationRecord(style: .fullScreenCover, ctx: ctx, content: { resolveNodes(content(value), $0) }) }
+            item.wrappedValue.map { value in PresentationRecord(style: .fullScreenCover, ctx: ctx, content: { resolveNodes(content(value), $0) },
+                                                                dismiss: { item.wrappedValue = nil; onDismiss?() }) }
         }
     }
     /// On iPhone a popover adapts to a sheet.
@@ -112,75 +120,75 @@ extension View {
 // MARK: - Alerts
 
 extension View {
-    func _alert(_ presented: Bool, title: Text?, actions: NodeResolver?, message: NodeResolver?) -> some View {
+    func _alert(dismiss: @escaping @MainActor () -> Void, _ presented: Bool, title: Text?, actions: NodeResolver?, message: NodeResolver?) -> some View {
         present { ctx in
-            presented ? PresentationRecord(style: .alert(DialogSpec(title: title, message: message, actions: actions)), ctx: ctx) : nil
+            presented ? PresentationRecord(style: .alert(DialogSpec(title: title, message: message, actions: actions)), ctx: ctx, dismiss: dismiss) : nil
         }
     }
 
     public func alert<A: View>(_ titleKey: LocalizedStringKey, isPresented: Binding<Bool>, @ViewBuilder actions: () -> A) -> some View {
-        _alert(isPresented.wrappedValue, title: Text(titleKey), actions: nodeResolver(actions()), message: nil)
+        _alert(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue, title: Text(titleKey), actions: nodeResolver(actions()), message: nil)
     }
     @_disfavoredOverload
     public func alert<S: StringProtocol, A: View>(_ title: S, isPresented: Binding<Bool>, @ViewBuilder actions: () -> A) -> some View {
-        _alert(isPresented.wrappedValue, title: Text(title), actions: nodeResolver(actions()), message: nil)
+        _alert(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue, title: Text(title), actions: nodeResolver(actions()), message: nil)
     }
     public func alert<A: View>(_ title: Text, isPresented: Binding<Bool>, @ViewBuilder actions: () -> A) -> some View {
-        _alert(isPresented.wrappedValue, title: title, actions: nodeResolver(actions()), message: nil)
+        _alert(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue, title: title, actions: nodeResolver(actions()), message: nil)
     }
     public func alert<A: View, M: View>(_ titleKey: LocalizedStringKey, isPresented: Binding<Bool>,
                                         @ViewBuilder actions: () -> A, @ViewBuilder message: () -> M) -> some View {
-        _alert(isPresented.wrappedValue, title: Text(titleKey), actions: nodeResolver(actions()), message: nodeResolver(message()))
+        _alert(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue, title: Text(titleKey), actions: nodeResolver(actions()), message: nodeResolver(message()))
     }
     @_disfavoredOverload
     public func alert<S: StringProtocol, A: View, M: View>(_ title: S, isPresented: Binding<Bool>,
                                                            @ViewBuilder actions: () -> A, @ViewBuilder message: () -> M) -> some View {
-        _alert(isPresented.wrappedValue, title: Text(title), actions: nodeResolver(actions()), message: nodeResolver(message()))
+        _alert(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue, title: Text(title), actions: nodeResolver(actions()), message: nodeResolver(message()))
     }
     public func alert<A: View, M: View>(_ title: Text, isPresented: Binding<Bool>,
                                         @ViewBuilder actions: () -> A, @ViewBuilder message: () -> M) -> some View {
-        _alert(isPresented.wrappedValue, title: title, actions: nodeResolver(actions()), message: nodeResolver(message()))
+        _alert(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue, title: title, actions: nodeResolver(actions()), message: nodeResolver(message()))
     }
 
     // presenting:
     public func alert<A: View, T>(_ titleKey: LocalizedStringKey, isPresented: Binding<Bool>, presenting data: T?,
                                   @ViewBuilder actions: (T) -> A) -> some View {
-        _alert(isPresented.wrappedValue && data != nil, title: Text(titleKey), actions: data.map { nodeResolver(actions($0)) }, message: nil)
+        _alert(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue && data != nil, title: Text(titleKey), actions: data.map { nodeResolver(actions($0)) }, message: nil)
     }
     @_disfavoredOverload
     public func alert<S: StringProtocol, A: View, T>(_ title: S, isPresented: Binding<Bool>, presenting data: T?,
                                                      @ViewBuilder actions: (T) -> A) -> some View {
-        _alert(isPresented.wrappedValue && data != nil, title: Text(title), actions: data.map { nodeResolver(actions($0)) }, message: nil)
+        _alert(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue && data != nil, title: Text(title), actions: data.map { nodeResolver(actions($0)) }, message: nil)
     }
     public func alert<A: View, T>(_ title: Text, isPresented: Binding<Bool>, presenting data: T?,
                                   @ViewBuilder actions: (T) -> A) -> some View {
-        _alert(isPresented.wrappedValue && data != nil, title: title, actions: data.map { nodeResolver(actions($0)) }, message: nil)
+        _alert(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue && data != nil, title: title, actions: data.map { nodeResolver(actions($0)) }, message: nil)
     }
     public func alert<A: View, M: View, T>(_ titleKey: LocalizedStringKey, isPresented: Binding<Bool>, presenting data: T?,
                                            @ViewBuilder actions: (T) -> A, @ViewBuilder message: (T) -> M) -> some View {
-        _alert(isPresented.wrappedValue && data != nil, title: Text(titleKey),
+        _alert(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue && data != nil, title: Text(titleKey),
                actions: data.map { nodeResolver(actions($0)) }, message: data.map { nodeResolver(message($0)) })
     }
     @_disfavoredOverload
     public func alert<S: StringProtocol, A: View, M: View, T>(_ title: S, isPresented: Binding<Bool>, presenting data: T?,
                                                               @ViewBuilder actions: (T) -> A, @ViewBuilder message: (T) -> M) -> some View {
-        _alert(isPresented.wrappedValue && data != nil, title: Text(title),
+        _alert(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue && data != nil, title: Text(title),
                actions: data.map { nodeResolver(actions($0)) }, message: data.map { nodeResolver(message($0)) })
     }
     public func alert<A: View, M: View, T>(_ title: Text, isPresented: Binding<Bool>, presenting data: T?,
                                            @ViewBuilder actions: (T) -> A, @ViewBuilder message: (T) -> M) -> some View {
-        _alert(isPresented.wrappedValue && data != nil, title: title,
+        _alert(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue && data != nil, title: title,
                actions: data.map { nodeResolver(actions($0)) }, message: data.map { nodeResolver(message($0)) })
     }
 
     // error:
     public func alert<E: LocalizedError, A: View>(isPresented: Binding<Bool>, error: E?, @ViewBuilder actions: () -> A) -> some View {
-        _alert(isPresented.wrappedValue && error != nil, title: Text(verbatim: error?.errorDescription ?? ""),
+        _alert(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue && error != nil, title: Text(verbatim: error?.errorDescription ?? ""),
                actions: nodeResolver(actions()), message: nil)
     }
     public func alert<E: LocalizedError, A: View, M: View>(isPresented: Binding<Bool>, error: E?, @ViewBuilder actions: (E) -> A,
                                                            @ViewBuilder message: (E) -> M) -> some View {
-        _alert(isPresented.wrappedValue && error != nil, title: Text(verbatim: error?.errorDescription ?? ""),
+        _alert(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue && error != nil, title: Text(verbatim: error?.errorDescription ?? ""),
                actions: error.map { nodeResolver(actions($0)) }, message: error.map { nodeResolver(message($0)) })
     }
 
@@ -188,118 +196,118 @@ extension View {
     public func alert<Item, A: View>(_ titleKey: LocalizedStringKey, item: Binding<Item?>,
                                      @ViewBuilder actions: (Item) -> A) -> some View {
         let value = item.wrappedValue
-        return _alert(value != nil, title: Text(titleKey), actions: value.map { nodeResolver(actions($0)) }, message: nil)
+        return _alert(dismiss: { item.wrappedValue = nil }, value != nil, title: Text(titleKey), actions: value.map { nodeResolver(actions($0)) }, message: nil)
     }
     @_disfavoredOverload
     public func alert<S: StringProtocol, Item, A: View>(_ title: S, item: Binding<Item?>,
                                                         @ViewBuilder actions: (Item) -> A) -> some View {
         let value = item.wrappedValue
-        return _alert(value != nil, title: Text(title), actions: value.map { nodeResolver(actions($0)) }, message: nil)
+        return _alert(dismiss: { item.wrappedValue = nil }, value != nil, title: Text(title), actions: value.map { nodeResolver(actions($0)) }, message: nil)
     }
     public func alert<Item, A: View>(_ title: Text, item: Binding<Item?>, @ViewBuilder actions: (Item) -> A) -> some View {
         let value = item.wrappedValue
-        return _alert(value != nil, title: title, actions: value.map { nodeResolver(actions($0)) }, message: nil)
+        return _alert(dismiss: { item.wrappedValue = nil }, value != nil, title: title, actions: value.map { nodeResolver(actions($0)) }, message: nil)
     }
     public func alert<Item, A: View, M: View>(_ titleKey: LocalizedStringKey, item: Binding<Item?>,
                                               @ViewBuilder actions: (Item) -> A, @ViewBuilder message: (Item) -> M) -> some View {
         let value = item.wrappedValue
-        return _alert(value != nil, title: Text(titleKey), actions: value.map { nodeResolver(actions($0)) },
+        return _alert(dismiss: { item.wrappedValue = nil }, value != nil, title: Text(titleKey), actions: value.map { nodeResolver(actions($0)) },
                       message: value.map { nodeResolver(message($0)) })
     }
     @_disfavoredOverload
     public func alert<S: StringProtocol, Item, A: View, M: View>(_ title: S, item: Binding<Item?>,
                                                                  @ViewBuilder actions: (Item) -> A, @ViewBuilder message: (Item) -> M) -> some View {
         let value = item.wrappedValue
-        return _alert(value != nil, title: Text(title), actions: value.map { nodeResolver(actions($0)) },
+        return _alert(dismiss: { item.wrappedValue = nil }, value != nil, title: Text(title), actions: value.map { nodeResolver(actions($0)) },
                       message: value.map { nodeResolver(message($0)) })
     }
     public func alert<Item, A: View, M: View>(_ title: Text, item: Binding<Item?>,
                                               @ViewBuilder actions: (Item) -> A, @ViewBuilder message: (Item) -> M) -> some View {
         let value = item.wrappedValue
-        return _alert(value != nil, title: title, actions: value.map { nodeResolver(actions($0)) },
+        return _alert(dismiss: { item.wrappedValue = nil }, value != nil, title: title, actions: value.map { nodeResolver(actions($0)) },
                       message: value.map { nodeResolver(message($0)) })
     }
 
     // Deprecated Alert value.
     public func alert(isPresented: Binding<Bool>, content: () -> Alert) -> some View {
         let alert = isPresented.wrappedValue ? content() : nil
-        return present { ctx in alert.map { PresentationRecord(style: .alert($0.spec), ctx: ctx) } }
+        return present { ctx in alert.map { PresentationRecord(style: .alert($0.spec), ctx: ctx, dismiss: { isPresented.wrappedValue = false }) } }
     }
     public func alert<Item: Identifiable>(item: Binding<Item?>, content: (Item) -> Alert) -> some View {
         let alert = item.wrappedValue.map(content)
-        return present { ctx in alert.map { PresentationRecord(style: .alert($0.spec), ctx: ctx) } }
+        return present { ctx in alert.map { PresentationRecord(style: .alert($0.spec), ctx: ctx, dismiss: { item.wrappedValue = nil }) } }
     }
 }
 
 // MARK: - Confirmation dialogs
 
 extension View {
-    func _dialog(_ presented: Bool, title: Text, titleVisibility: Visibility, actions: NodeResolver?, message: NodeResolver?) -> some View {
+    func _dialog(dismiss: @escaping @MainActor () -> Void, _ presented: Bool, title: Text, titleVisibility: Visibility, actions: NodeResolver?, message: NodeResolver?) -> some View {
         present { ctx in
             presented ? PresentationRecord(style: .confirmationDialog(DialogSpec(title: titleVisibility == .visible ? title : nil,
-                                                                                  message: message, actions: actions)), ctx: ctx) : nil
+                                                                                  message: message, actions: actions)), ctx: ctx, dismiss: dismiss) : nil
         }
     }
 
     public func confirmationDialog<A: View>(_ titleKey: LocalizedStringKey, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic,
                                             @ViewBuilder actions: () -> A) -> some View {
-        _dialog(isPresented.wrappedValue, title: Text(titleKey), titleVisibility: titleVisibility, actions: nodeResolver(actions()), message: nil)
+        _dialog(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue, title: Text(titleKey), titleVisibility: titleVisibility, actions: nodeResolver(actions()), message: nil)
     }
     @_disfavoredOverload
     public func confirmationDialog<S: StringProtocol, A: View>(_ title: S, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic,
                                                                @ViewBuilder actions: () -> A) -> some View {
-        _dialog(isPresented.wrappedValue, title: Text(title), titleVisibility: titleVisibility, actions: nodeResolver(actions()), message: nil)
+        _dialog(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue, title: Text(title), titleVisibility: titleVisibility, actions: nodeResolver(actions()), message: nil)
     }
     public func confirmationDialog<A: View>(_ title: Text, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic,
                                             @ViewBuilder actions: () -> A) -> some View {
-        _dialog(isPresented.wrappedValue, title: title, titleVisibility: titleVisibility, actions: nodeResolver(actions()), message: nil)
+        _dialog(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue, title: title, titleVisibility: titleVisibility, actions: nodeResolver(actions()), message: nil)
     }
     public func confirmationDialog<A: View, M: View>(_ titleKey: LocalizedStringKey, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic,
                                                      @ViewBuilder actions: () -> A, @ViewBuilder message: () -> M) -> some View {
-        _dialog(isPresented.wrappedValue, title: Text(titleKey), titleVisibility: titleVisibility,
+        _dialog(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue, title: Text(titleKey), titleVisibility: titleVisibility,
                 actions: nodeResolver(actions()), message: nodeResolver(message()))
     }
     @_disfavoredOverload
     public func confirmationDialog<S: StringProtocol, A: View, M: View>(_ title: S, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic,
                                                                         @ViewBuilder actions: () -> A, @ViewBuilder message: () -> M) -> some View {
-        _dialog(isPresented.wrappedValue, title: Text(title), titleVisibility: titleVisibility,
+        _dialog(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue, title: Text(title), titleVisibility: titleVisibility,
                 actions: nodeResolver(actions()), message: nodeResolver(message()))
     }
     public func confirmationDialog<A: View, M: View>(_ title: Text, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic,
                                                      @ViewBuilder actions: () -> A, @ViewBuilder message: () -> M) -> some View {
-        _dialog(isPresented.wrappedValue, title: title, titleVisibility: titleVisibility,
+        _dialog(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue, title: title, titleVisibility: titleVisibility,
                 actions: nodeResolver(actions()), message: nodeResolver(message()))
     }
     public func confirmationDialog<A: View, T>(_ titleKey: LocalizedStringKey, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic,
                                                presenting data: T?, @ViewBuilder actions: (T) -> A) -> some View {
-        _dialog(isPresented.wrappedValue && data != nil, title: Text(titleKey), titleVisibility: titleVisibility,
+        _dialog(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue && data != nil, title: Text(titleKey), titleVisibility: titleVisibility,
                 actions: data.map { nodeResolver(actions($0)) }, message: nil)
     }
     @_disfavoredOverload
     public func confirmationDialog<S: StringProtocol, A: View, T>(_ title: S, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic,
                                                                   presenting data: T?, @ViewBuilder actions: (T) -> A) -> some View {
-        _dialog(isPresented.wrappedValue && data != nil, title: Text(title), titleVisibility: titleVisibility,
+        _dialog(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue && data != nil, title: Text(title), titleVisibility: titleVisibility,
                 actions: data.map { nodeResolver(actions($0)) }, message: nil)
     }
     public func confirmationDialog<A: View, T>(_ title: Text, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic,
                                                presenting data: T?, @ViewBuilder actions: (T) -> A) -> some View {
-        _dialog(isPresented.wrappedValue && data != nil, title: title, titleVisibility: titleVisibility,
+        _dialog(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue && data != nil, title: title, titleVisibility: titleVisibility,
                 actions: data.map { nodeResolver(actions($0)) }, message: nil)
     }
     public func confirmationDialog<A: View, M: View, T>(_ titleKey: LocalizedStringKey, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic,
                                                         presenting data: T?, @ViewBuilder actions: (T) -> A, @ViewBuilder message: (T) -> M) -> some View {
-        _dialog(isPresented.wrappedValue && data != nil, title: Text(titleKey), titleVisibility: titleVisibility,
+        _dialog(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue && data != nil, title: Text(titleKey), titleVisibility: titleVisibility,
                 actions: data.map { nodeResolver(actions($0)) }, message: data.map { nodeResolver(message($0)) })
     }
     @_disfavoredOverload
     public func confirmationDialog<S: StringProtocol, A: View, M: View, T>(_ title: S, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic,
                                                                            presenting data: T?, @ViewBuilder actions: (T) -> A, @ViewBuilder message: (T) -> M) -> some View {
-        _dialog(isPresented.wrappedValue && data != nil, title: Text(title), titleVisibility: titleVisibility,
+        _dialog(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue && data != nil, title: Text(title), titleVisibility: titleVisibility,
                 actions: data.map { nodeResolver(actions($0)) }, message: data.map { nodeResolver(message($0)) })
     }
     public func confirmationDialog<A: View, M: View, T>(_ title: Text, isPresented: Binding<Bool>, titleVisibility: Visibility = .automatic,
                                                         presenting data: T?, @ViewBuilder actions: (T) -> A, @ViewBuilder message: (T) -> M) -> some View {
-        _dialog(isPresented.wrappedValue && data != nil, title: title, titleVisibility: titleVisibility,
+        _dialog(dismiss: { isPresented.wrappedValue = false }, isPresented.wrappedValue && data != nil, title: title, titleVisibility: titleVisibility,
                 actions: data.map { nodeResolver(actions($0)) }, message: data.map { nodeResolver(message($0)) })
     }
 
@@ -307,36 +315,36 @@ extension View {
     public func confirmationDialog<Item, A: View>(_ titleKey: LocalizedStringKey, item: Binding<Item?>, titleVisibility: Visibility = .automatic,
                                                   @ViewBuilder actions: (Item) -> A) -> some View {
         let value = item.wrappedValue
-        return _dialog(value != nil, title: Text(titleKey), titleVisibility: titleVisibility, actions: value.map { nodeResolver(actions($0)) }, message: nil)
+        return _dialog(dismiss: { item.wrappedValue = nil }, value != nil, title: Text(titleKey), titleVisibility: titleVisibility, actions: value.map { nodeResolver(actions($0)) }, message: nil)
     }
     @_disfavoredOverload
     public func confirmationDialog<S: StringProtocol, Item, A: View>(_ title: S, item: Binding<Item?>, titleVisibility: Visibility = .automatic,
                                                                      @ViewBuilder actions: (Item) -> A) -> some View {
         let value = item.wrappedValue
-        return _dialog(value != nil, title: Text(title), titleVisibility: titleVisibility, actions: value.map { nodeResolver(actions($0)) }, message: nil)
+        return _dialog(dismiss: { item.wrappedValue = nil }, value != nil, title: Text(title), titleVisibility: titleVisibility, actions: value.map { nodeResolver(actions($0)) }, message: nil)
     }
     public func confirmationDialog<Item, A: View>(_ title: Text, item: Binding<Item?>, titleVisibility: Visibility = .automatic,
                                                   @ViewBuilder actions: (Item) -> A) -> some View {
         let value = item.wrappedValue
-        return _dialog(value != nil, title: title, titleVisibility: titleVisibility, actions: value.map { nodeResolver(actions($0)) }, message: nil)
+        return _dialog(dismiss: { item.wrappedValue = nil }, value != nil, title: title, titleVisibility: titleVisibility, actions: value.map { nodeResolver(actions($0)) }, message: nil)
     }
     public func confirmationDialog<Item, A: View, M: View>(_ titleKey: LocalizedStringKey, item: Binding<Item?>, titleVisibility: Visibility = .automatic,
                                                            @ViewBuilder actions: (Item) -> A, @ViewBuilder message: (Item) -> M) -> some View {
         let value = item.wrappedValue
-        return _dialog(value != nil, title: Text(titleKey), titleVisibility: titleVisibility,
+        return _dialog(dismiss: { item.wrappedValue = nil }, value != nil, title: Text(titleKey), titleVisibility: titleVisibility,
                        actions: value.map { nodeResolver(actions($0)) }, message: value.map { nodeResolver(message($0)) })
     }
     @_disfavoredOverload
     public func confirmationDialog<S: StringProtocol, Item, A: View, M: View>(_ title: S, item: Binding<Item?>, titleVisibility: Visibility = .automatic,
                                                                               @ViewBuilder actions: (Item) -> A, @ViewBuilder message: (Item) -> M) -> some View {
         let value = item.wrappedValue
-        return _dialog(value != nil, title: Text(title), titleVisibility: titleVisibility,
+        return _dialog(dismiss: { item.wrappedValue = nil }, value != nil, title: Text(title), titleVisibility: titleVisibility,
                        actions: value.map { nodeResolver(actions($0)) }, message: value.map { nodeResolver(message($0)) })
     }
     public func confirmationDialog<Item, A: View, M: View>(_ title: Text, item: Binding<Item?>, titleVisibility: Visibility = .automatic,
                                                            @ViewBuilder actions: (Item) -> A, @ViewBuilder message: (Item) -> M) -> some View {
         let value = item.wrappedValue
-        return _dialog(value != nil, title: title, titleVisibility: titleVisibility,
+        return _dialog(dismiss: { item.wrappedValue = nil }, value != nil, title: title, titleVisibility: titleVisibility,
                        actions: value.map { nodeResolver(actions($0)) }, message: value.map { nodeResolver(message($0)) })
     }
 

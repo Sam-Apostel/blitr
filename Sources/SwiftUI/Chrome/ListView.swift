@@ -29,7 +29,9 @@ public struct List<SelectionValue: Hashable, Content: View>: View, PrimitiveView
             $0.listContentStyle = style
         }
         let nodes = resolveNodes(content, rowCtx)
-        out.append(ListNode(items: nodes, style: style, env: ctx.env))
+        let list = ListNode(items: nodes, style: style, env: ctx.env)
+        list.scrollIdentity = ctx.path
+        out.append(list)
     }
 }
 

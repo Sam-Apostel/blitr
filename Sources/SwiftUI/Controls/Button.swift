@@ -350,6 +350,7 @@ public struct Button<Label: View>: View {
     public var body: some View {
         let styled = styleBox.make(AnyView(label), role, action)
             .axInfo(shared: true, context: { ctx in .button(enabled: ctx.env.isEnabled, activate: action) })
+            .focusElement(role: "button", activate: action)
         // Alerts and confirmation dialogs read the role off the action's nodes.
         if role == .cancel {
             styled.trait(PresentationActionRoleTraitKey.self, .cancel)
@@ -410,6 +411,9 @@ public struct Link<Label: View>: View {
                     $0.isTapTarget = true
                     $0.isEnabled = ctx.env.isEnabled
                 }
+            })
+            .focusElement(role: "link", activate: { [destination] in
+                Runtime.current?.warn("select on Link(\(destination.absoluteString)) would open the URL; nothing to show here")
             })
     }
 }

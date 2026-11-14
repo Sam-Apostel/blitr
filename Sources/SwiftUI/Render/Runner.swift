@@ -116,6 +116,16 @@ public enum _ScreenshotRunner {
             case "--accessibility-tree": AccessibilityOutputs.request.treePath = value(flag)
             case "--tap-targets": AccessibilityOutputs.request.tapTargetsPath = value(flag)
             case "--accessibility-outline": AccessibilityOutputs.request.wantsOutline = true
+            case "--focus-map": FocusOutputs.request.mapPath = value(flag)
+            case "--focus-overlay": FocusOutputs.request.overlayPath = value(flag)
+            case "--focus": FocusOutputs.request.focusSelector = value(flag)
+            case "--press":
+                for item in value(flag).split(separator: ",").map({ $0.trimmingCharacters(in: .whitespaces) }) where !item.isEmpty {
+                    guard let press = RemotePress(argument: item) else {
+                        fail("unknown press \"\(item)\"; use \(RemotePress.allCases.map(\.rawValue).joined(separator: ", "))")
+                    }
+                    FocusOutputs.request.presses.append(press)
+                }
             default: fail("unknown option \(flag)")
             }
         }
@@ -168,6 +178,7 @@ public enum _ScreenshotRunner {
             var payload: [String: Any] = ["output": output, "width": result.pixelSize.width, "height": result.pixelSize.height,
                                           "warnings": result.warnings]
             payload.merge(AccessibilityOutputs.payload) { current, _ in current }
+            payload.merge(FocusOutputs.payload) { current, _ in current }
             let json = try JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys])
             print(String(decoding: json, as: UTF8.self))
             exit(0)

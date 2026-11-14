@@ -44,6 +44,10 @@ final class Runtime {
     var config: RenderConfiguration
     /// Absolute origins of `.coordinateSpace(name:)` views, recorded during layout.
     var namedCoordinateSpaces: [AnyHashable: CGPoint] = [:]
+    /// Which element has focus, scroll offsets, navigation pushes: state that survives passes (Focus/).
+    let focus = FocusEngine()
+    /// What activating each element does, rebuilt every pass (Focus/FocusModel.swift).
+    var activations = ActivationRegistry()
 
     static var current: Runtime?
 

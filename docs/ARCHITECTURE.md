@@ -44,6 +44,7 @@ values written during layout (inside a `GeometryReader`) reach `onPreferenceChan
 | `Sources/SwiftUI/Compat` | `ObservableObject`-era wrappers, `App`/`Scene`, UIKit types |
 | `Sources/SwiftUI/Glass` | iOS design language (`--ios 18/26/27`), `glassEffect` and glass painting |
 | `Sources/SwiftUI/Accessibility` | accessibility tree, tap targets and issues (`--accessibility-*`) |
+| `Sources/SwiftUI/Focus` | tvOS focus engine: focus records on nodes, movement, `@FocusState`, remote presses, focus map (docs/FOCUS.md) |
 | `Sources/SwiftUI/Render` | `Renderer`, runner entry point, device profiles and chrome, image comparison for `compare` |
 | `Sources/SwiftUI/Inert` | APIs with no effect on a static frame: gestures, animation; accessibility modifiers record into the tree |
 | `Sources/Combine`, `Sources/UIKit` | shim modules so those imports resolve |
