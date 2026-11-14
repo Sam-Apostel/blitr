@@ -88,7 +88,7 @@ struct ButtonStyleBox {
 }
 
 enum ButtonStyleKey: EnvironmentKey {
-    static var defaultValue: ButtonStyleBox { ButtonStyleBox { label, role, _ in AnyView(_ButtonVisual(kind: .borderless, label: label, role: role)) } }
+    static var defaultValue: ButtonStyleBox { ButtonStyleBox { label, role, _ in AnyView(_ButtonVisual(kind: .automatic, label: label, role: role)) } }
 }
 
 extension EnvironmentValues {
@@ -133,7 +133,7 @@ extension View {
 public struct DefaultButtonStyle: PrimitiveButtonStyle {
     public init() {}
     public func makeBody(configuration: PrimitiveButtonStyleConfiguration) -> some View {
-        _ButtonVisual(kind: .borderless, label: AnyView(configuration.label), role: configuration.role)
+        _ButtonVisual(kind: .automatic, label: AnyView(configuration.label), role: configuration.role)
     }
 }
 public struct BorderlessButtonStyle: PrimitiveButtonStyle {
@@ -250,7 +250,8 @@ extension View {
 }
 
 struct _ButtonVisual: View {
-    enum Kind { case plain, borderless, bordered, prominent, glass, glassProminent }
+    /// `automatic` is borderless on iOS and bordered on tvOS; `card` exists on tvOS only.
+    enum Kind { case automatic, plain, borderless, bordered, prominent, glass, glassProminent, card }
     let kind: Kind
     let label: AnyView
     let role: ButtonRole?
@@ -263,6 +264,7 @@ struct _ButtonVisual: View {
     @Environment(\.accentColor) private var explicitAccent
     @Environment(\.foregroundStyle) private var explicitForeground
     @Environment(\.font) private var userFont
+    @Environment(\.renderPlatform) private var platform
 
     private var destructive: Bool { role == .destructive }
 
@@ -288,7 +290,10 @@ struct _ButtonVisual: View {
         switch kind {
         case .plain:
             return AnyView(content.opacity(isEnabled ? 1 : 0.3))
-        case .borderless:
+        case .card:
+            Runtime.current?.warn(".buttonStyle(.card) is tvOS only; a real iOS build fails. Drawn like .plain")
+            return AnyView(content.opacity(isEnabled ? 1 : 0.3))
+        case .borderless, .automatic:
             if !isEnabled { return AnyView(content.foregroundStyle(disabledColor)) }
             if explicitForeground != nil && !destructive { return content }
             return AnyView(content.foregroundStyle(Color.accentColor))
@@ -334,7 +339,8 @@ struct _ButtonVisual: View {
     }
 
     var body: some View {
-        styled.env { if destructive { $0.accentColor = Color.red } }
+        if platform == .tvOS { return AnyView(_TVButtonVisual(kind: kind, label: label, role: role)) }
+        return AnyView(styled.env { if destructive { $0.accentColor = Color.red } })
     }
 }
 
@@ -411,8 +417,12 @@ public struct Link<Label: View>: View {
         self.destination = destination
         self.label = label()
     }
+    @Environment(\.renderPlatform) private var platform
+
     public var body: some View {
-        label.foregroundStyle(Color.accentColor)
+        // tvOS draws a link like a button (it cannot open URLs; est. look).
+        (platform == .tvOS ? AnyView(_TVButtonVisual(kind: .automatic, label: AnyView(label), role: nil))
+                           : AnyView(label.foregroundStyle(Color.accentColor)))
             .axInfo(shared: true, context: { ctx in
                 AccessibilityInfo {
                     $0.isElement = true

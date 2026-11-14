@@ -111,8 +111,8 @@ extension EnvironmentValues {
 
 // MARK: - Modifiers
 
-/// Makes the content one focusable element: sets `isFocused` for it when it has focus, records the
-/// element and its activation, and wraps it in the default focus effect.
+/// Makes the content one focusable element: sets `isFocused` for it when it has focus and records the
+/// element and its activation.
 struct FocusElementModifier: ViewModifier, PrimitiveModifier {
     let role: String
     let activate: (@MainActor () -> Void)?
@@ -124,7 +124,7 @@ struct FocusElementModifier: ViewModifier, PrimitiveModifier {
         let engine = ctx.runtime.focus
         let focused = engine.focusedPath == path
         let inner = focused ? ctx.with { $0.isFocused = true } : ctx
-        var nodes = content.nodes(inner)
+        let nodes = content.nodes(inner)
         if isUserFocusable {
             let inside = nodes.flatMap { $0.containsFocusElements() }
             if !inside.isEmpty {
@@ -144,9 +144,8 @@ struct FocusElementModifier: ViewModifier, PrimitiveModifier {
         let info = FocusElementInfo(path: path, role: role, isEnabled: ctx.env.isEnabled, effectDisabled: ctx.env.focusEffectDisabled)
         let record = FocusRecord(.element(info), path: path)
         for node in nodes { node.focusRecords.append(record) }
-        if focused, info.isEnabled, ctx.env.renderPlatform == .tvOS, !info.effectDisabled {
-            nodes = FocusEffect.wrap(nodes, ctx.env)
-        }
+        // No effect is laid over the element here: each tvOS control draws its own focused state from
+        // `isFocused` (Focus/TVFocusLook.swift); custom styles and `.focusable()` views get none, as on tvOS.
         out.append(contentsOf: nodes)
     }
 }

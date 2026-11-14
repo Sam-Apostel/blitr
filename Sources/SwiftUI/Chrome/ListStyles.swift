@@ -243,6 +243,7 @@ extension DynamicViewContent {
 
 /// The "Edit" button of a list's toolbar.
 public struct EditButton: View {
+    private let _tvOSCheck = tvOSUnavailable("EditButton")
     public init() {}
     public var body: some View { Text("Edit").foregroundStyle(.tint) }
 }
