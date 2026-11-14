@@ -7,6 +7,8 @@
 public struct ToolbarItemPlacement: Sendable {
     enum Kind: Hashable, Sendable {
         case leading, trailing, confirmation, principal, bottom, status, secondary, hidden
+        /// iOS 27: trailing edge, in its own capsule, never moved into the overflow menu.
+        case pinnedTrailing
     }
     let kind: Kind
 
@@ -26,6 +28,8 @@ public struct ToolbarItemPlacement: Sendable {
     public static let navigationBarTrailing = ToolbarItemPlacement(kind: .trailing)
     public static let bottomBar = ToolbarItemPlacement(kind: .bottom)
     public static let bottomOrnament = ToolbarItemPlacement(kind: .hidden)
+    /// iOS 27: an item pinned to the trailing edge of the navigation bar.
+    public static let topBarPinnedTrailing = ToolbarItemPlacement(kind: .pinnedTrailing)
 }
 
 /// A bar that toolbar modifiers (`toolbar(_:for:)`, `toolbarBackground`, ...) can target.
@@ -63,9 +67,29 @@ public struct ToolbarCustomizationBehavior: Sendable {
 }
 
 public struct ToolbarDefaultItemKind: Sendable {
-    public static let sidebarToggle = ToolbarDefaultItemKind()
-    public static let title = ToolbarDefaultItemKind()
-    public static let search = ToolbarDefaultItemKind()
+    enum Kind: Sendable { case sidebarToggle, title, search }
+    let kind: Kind
+    public static let sidebarToggle = ToolbarDefaultItemKind(kind: .sidebarToggle)
+    public static let title = ToolbarDefaultItemKind(kind: .title)
+    public static let search = ToolbarDefaultItemKind(kind: .search)
+}
+
+/// iOS 27: how toolbar items collapse while content scrolls. A static frame shows them expanded.
+public struct ToolbarMinimizeBehavior: Hashable, Sendable {
+    let raw: Int
+    public static let automatic = ToolbarMinimizeBehavior(raw: 0)
+    public static let never = ToolbarMinimizeBehavior(raw: 1)
+    public static let onScrollDown = ToolbarMinimizeBehavior(raw: 2)
+    public static let onScrollUp = ToolbarMinimizeBehavior(raw: 3)
+}
+
+/// iOS 27: which items stay visible when a bar runs out of room.
+public struct ToolbarItemVisibilityPriority: Hashable, Comparable, Sendable {
+    let raw: Int
+    public static let automatic = ToolbarItemVisibilityPriority(raw: 0)
+    public static let low = ToolbarItemVisibilityPriority(raw: -1)
+    public static let high = ToolbarItemVisibilityPriority(raw: 1)
+    public static func < (a: Self, b: Self) -> Bool { a.raw < b.raw }
 }
 
 // MARK: - Collected items
@@ -74,6 +98,22 @@ public struct ToolbarDefaultItemKind: Sendable {
 struct ToolbarEntry {
     let placement: ToolbarItemPlacement.Kind
     let resolve: @MainActor (_ adjust: (inout EnvironmentValues) -> Void) -> [Node]
+    /// Set on the entry a `ToolbarSpacer` produces (Liquid Glass bars split item groups at it).
+    var spacer: ToolbarSpacer.Sizing?
+    /// `sharedBackgroundVisibility(_:)`: `.hidden` takes the item off its glass.
+    var sharedBackground: Visibility = .automatic
+    /// `DefaultToolbarItem(kind: .search)`: where the search field goes in a Liquid Glass bar.
+    var isSearchSlot = false
+
+    init(placement: ToolbarItemPlacement.Kind, spacer: ToolbarSpacer.Sizing? = nil, isSearchSlot: Bool = false,
+         resolve: @escaping @MainActor (_ adjust: (inout EnvironmentValues) -> Void) -> [Node]) {
+        self.placement = placement
+        self.resolve = resolve
+        self.spacer = spacer
+        self.isSearchSlot = isSearchSlot
+    }
+    /// Entries that only steer Liquid Glass layout and must not reach the iOS 18 bar.
+    var isGlassOnly: Bool { isSearchSlot || (spacer != nil && placement != .bottom) }
 }
 
 // MARK: - ToolbarContent
@@ -165,8 +205,8 @@ public struct ToolbarItemGroup<Content: View>: ToolbarContent, PrimitiveToolbarC
     }
 }
 
-/// `ToolbarSpacer` (iOS 26): fixed or flexible space between items. In a bottom bar a flexible
-/// spacer spreads items like `Spacer()`; elsewhere it is ignored.
+/// `ToolbarSpacer` (iOS 26): fixed or flexible space between items. Liquid Glass bars split item
+/// groups at it; the iOS 18 bar only honours it in a bottom bar (a flexible spacer spreads items like `Spacer()`).
 public struct ToolbarSpacer: ToolbarContent, CustomizableToolbarContent, PrimitiveToolbarContent {
     public typealias Body = Never
     public enum Sizing: Sendable { case fixed, flexible }
@@ -177,17 +217,38 @@ public struct ToolbarSpacer: ToolbarContent, CustomizableToolbarContent, Primiti
         self.placement = placement
     }
     func collect(_ ctx: ResolveContext, into out: inout [ToolbarEntry]) {
-        guard placement.kind == .bottom else { return }
+        guard placement.kind == .bottom else {
+            out.append(ToolbarEntry(placement: placement.kind, spacer: sizing) { _ in [] })
+            return
+        }
         let flexible = sizing == .flexible
-        out.append(ToolbarEntry(placement: .bottom) { _ in [SpacerNode(axis: .horizontal, minLength: flexible ? 8 : 16)] })
+        out.append(ToolbarEntry(placement: .bottom, spacer: sizing) { _ in [SpacerNode(axis: .horizontal, minLength: flexible ? 8 : 16)] })
     }
 }
 
-/// System-provided items (sidebar toggle, search): nothing to draw on a compact iPhone bar.
+/// System-provided items. Only the search item has an effect: it says where a Liquid Glass bar puts
+/// the `.searchable` field. The sidebar toggle and title have nothing to draw on a compact iPhone bar.
 public struct DefaultToolbarItem: ToolbarContent, CustomizableToolbarContent, PrimitiveToolbarContent {
     public typealias Body = Never
-    public init(kind: ToolbarDefaultItemKind, placement: ToolbarItemPlacement = .automatic) {}
-    func collect(_ ctx: ResolveContext, into out: inout [ToolbarEntry]) {}
+    let kind: ToolbarDefaultItemKind
+    let placement: ToolbarItemPlacement
+    public init(kind: ToolbarDefaultItemKind, placement: ToolbarItemPlacement = .automatic) {
+        self.kind = kind
+        self.placement = placement
+    }
+    func collect(_ ctx: ResolveContext, into out: inout [ToolbarEntry]) {
+        guard kind.kind == .search else { return }
+        out.append(ToolbarEntry(placement: placement.kind, isSearchSlot: true) { _ in [] })
+    }
+}
+
+/// iOS 27: the overflow ("More") menu of a bar, with explicit content. Drawn closed, as the ellipsis item.
+public struct ToolbarOverflowMenu<Content: View>: ToolbarContent, CustomizableToolbarContent, PrimitiveToolbarContent {
+    public typealias Body = Never
+    public init(@ViewBuilder content: () -> Content) {}
+    func collect(_ ctx: ResolveContext, into out: inout [ToolbarEntry]) {
+        out.append(ToolbarEntry(placement: .secondary) { _ in [] })
+    }
 }
 
 /// `ToolbarTitleMenu`: the menu behind the navigation title. Static frame: the title is unchanged.
@@ -258,8 +319,25 @@ public struct ToolbarContentBuilder {
 
 extension ToolbarContent {
     public func hidden(_ hidden: Bool = true) -> some ToolbarContent { _HiddenToolbarContent(base: self, isHidden: hidden) }
-    public func sharedBackgroundVisibility(_ visibility: Visibility) -> Self { self }
+    /// iOS 26: `.hidden` draws the item without the glass it would share with its neighbours.
+    public func sharedBackgroundVisibility(_ visibility: Visibility) -> some ToolbarContent {
+        _SharedBackgroundToolbarContent(base: self, visibility: visibility)
+    }
+    /// iOS 27: which items stay when the bar is crowded. Every item fits in a static frame, so it has no effect.
+    public func visibilityPriority(_ priority: ToolbarItemVisibilityPriority) -> Self { self }
 }
+
+public struct _SharedBackgroundToolbarContent<Base: ToolbarContent>: ToolbarContent, PrimitiveToolbarContent {
+    public typealias Body = Never
+    let base: Base
+    let visibility: Visibility
+    func collect(_ ctx: ResolveContext, into out: inout [ToolbarEntry]) {
+        let start = out.count
+        collectToolbar(base, ctx, into: &out)
+        for i in start..<out.count { out[i].sharedBackground = visibility }
+    }
+}
+extension _SharedBackgroundToolbarContent: CustomizableToolbarContent where Base: CustomizableToolbarContent {}
 extension CustomizableToolbarContent {
     public func defaultCustomization(_ defaultVisibility: Visibility = .automatic, options: ToolbarCustomizationOptions = []) -> Self { self }
     public func customizationBehavior(_ behavior: ToolbarCustomizationBehavior) -> Self { self }
@@ -355,4 +433,6 @@ extension View {
     public func toolbarTitleMenu<C: View>(@ViewBuilder content: () -> C) -> some View { self }
     public func toolbarBackground<V: View>(@ViewBuilder content: () -> V) -> some View { self }
     public func toolbar(removing defaultItemKind: ToolbarDefaultItemKind?) -> some View { self }
+    /// iOS 27: collapsing bars on scroll. A static frame shows the bars expanded.
+    public func toolbarMinimizeBehavior(_ behavior: ToolbarMinimizeBehavior, for bars: ToolbarPlacement...) -> some View { self }
 }
