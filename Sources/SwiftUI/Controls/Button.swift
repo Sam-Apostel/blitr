@@ -268,7 +268,15 @@ public struct Button<Label: View>: View {
     }
 
     public var body: some View {
-        styleBox.make(AnyView(label), role, action)
+        let styled = styleBox.make(AnyView(label), role, action)
+        // Alerts and confirmation dialogs read the role off the action's nodes.
+        if role == .cancel {
+            styled.trait(PresentationActionRoleTraitKey.self, .cancel)
+        } else if role == .destructive {
+            styled.trait(PresentationActionRoleTraitKey.self, .destructive)
+        } else {
+            styled
+        }
     }
 }
 
