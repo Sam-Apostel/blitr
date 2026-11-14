@@ -128,8 +128,11 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
             if ctx.env.designLanguage.isGlass, ctx.env.navigationStackIdentity == nil, ctx.env.renderPlatform != .tvOS {
                 // Outside a NavigationStack the link cannot navigate: a disabled row, label in
                 // the tertiary colour, no chevron. measured: iOS 27.0 simulator (ControlsInputs).
+                let disabledLabel = _NodesView(resolveNodes(label, ctx.child("label").with {
+                    $0.foregroundStyle = AnyShapeStyle(Color(SystemColor.tertiaryLabel))
+                }))
                 view = AnyView(HStack(spacing: 8) {
-                    labelView.foregroundStyle(Color(SystemColor.tertiaryLabel))
+                    disabledLabel
                     Spacer(minLength: 8)
                     if let selected { _NodeView(selected) }
                 })

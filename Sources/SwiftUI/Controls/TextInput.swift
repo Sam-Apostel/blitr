@@ -30,19 +30,44 @@ struct _FieldBody: View {
     @Environment(\.textFieldBordered) private var bordered
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.renderPlatform) private var platform
+    @Environment(\.designLanguage) private var design
+    @Environment(\.displayScale) private var displayScale
 
     var body: some View {
         if platform == .tvOS { return AnyView(_TVFieldBody(text: text, placeholder: placeholder, secure: secure)) }
+        let glass = design.isGlass
         let shown = secure ? String(repeating: "\u{2022}", count: text.count) : text
         let content = Group {
             if text.isEmpty {
                 if let placeholder { placeholder.foregroundStyle(Color(SystemColor.placeholderText)) }
+            } else if secure && glass {
+                // measured: iOS 27.0 simulator (ControlsInputs): 7.33pt dots 10pt apart.
+                HStack(spacing: TextFieldMetrics.dotPitch - TextFieldMetrics.dot) {
+                    ForEach(0..<text.count, id: \.self) { _ in
+                        Circle().fill(ForegroundStyle()).frame(width: TextFieldMetrics.dot, height: TextFieldMetrics.dot)
+                    }
+                }
+                .padding(.leading, TextFieldMetrics.dotInset)
             } else {
                 Text(verbatim: shown)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .opacity(isEnabled ? 1 : 0.5)
+        if bordered && glass {
+            // measured: iOS 27.0 simulator (ControlsInputs): 34pt, 8pt text inset, a hairline
+            // CCCCCC / 333333 border, 4pt corners.
+            let shape = RoundedRectangle(cornerRadius: TextFieldMetrics.borderRadius)
+            return AnyView(content
+                .padding(.horizontal, TextFieldMetrics.borderedInset)
+                .frame(minHeight: 34)
+                .background(Color(SystemColor.background), in: shape)
+                .overlay(shape.strokeBorder(Color(TextFieldMetrics.border), lineWidth: 1 / max(1, displayScale))))
+        }
+        if !bordered && glass {
+            // A plain field is 22pt tall (measured: iOS 27.0 simulator).
+            return AnyView(content.frame(minHeight: TextFieldMetrics.plainHeight))
+        }
         if bordered {
             return AnyView(content
                 .padding(.horizontal, 7)
@@ -53,6 +78,17 @@ struct _FieldBody: View {
             return AnyView(content)
         }
     }
+}
+
+/// iOS 26/27 text field metrics. measured: iOS 27.0 simulator (ControlsInputs).
+enum TextFieldMetrics {
+    static let plainHeight: CGFloat = 22
+    static let borderedInset: CGFloat = 8
+    static let borderRadius: CGFloat = 4
+    static let border = DynamicColor(0xCCCCCC, 0x333333)
+    static let dot: CGFloat = 7.33
+    static let dotPitch: CGFloat = 10
+    static let dotInset: CGFloat = 0.67
 }
 
 public struct TextField<Label: View>: View {
