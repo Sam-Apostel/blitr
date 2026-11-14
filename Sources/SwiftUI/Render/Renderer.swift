@@ -166,7 +166,8 @@ enum Renderer {
                 // the home indicator sits over the bottom of the screen and follows the interface style.
                 DeviceChrome.draw(painter, device: config.device, size: canvasSize,
                                   statusBarScheme: root.preferences[StatusBarSchemeKey.self] ?? scheme,
-                                  homeIndicatorScheme: scheme, showsHousing: config.showsSensorHousing)
+                                  homeIndicatorScheme: scheme, osVersion: config.osVersion,
+                                  showsHousing: config.showsSensorHousing)
             }
         }
         drawFrame()

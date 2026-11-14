@@ -44,7 +44,8 @@ Render options:
       --padding <pt>     Margin around the view in fit layout
       --background <hex> Background color, or "clear"
       --dynamic-type <s> xSmall ... xxxLarge, accessibility1 ... accessibility5
-      --no-chrome        Omit the status bar and home indicator
+      --no-chrome        Omit the status bar and home indicator (iPhones at --ios 27 draw no home
+                         indicator, as the iOS 27.0 simulator does)
       --show-tips        Display TipKit tips (as Tips.showAllTipsForTesting() does); hidden by default
       --assets <dir>     Extra directory with images / .xcassets (repeatable)
       --fonts <dir>      Extra font directory, searched first (repeatable)
