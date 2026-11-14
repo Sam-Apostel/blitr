@@ -43,48 +43,6 @@ public struct FocusState<Value: Hashable>: DynamicProperty, InstallableProperty 
 }
 
 
-// MARK: - AccessibilityFocusState
-
-@propertyWrapper
-public struct AccessibilityFocusState<Value: Hashable>: DynamicProperty, InstallableProperty {
-    final class Storage { var value: Value; init(_ v: Value) { value = v } }
-    final class Box { var storage: Storage; init(_ s: Storage) { storage = s } }
-    let box: Box
-
-    @propertyWrapper
-    public struct Binding {
-        let getter: () -> Value
-        let setter: (Value) -> Void
-        init(get: @escaping () -> Value, set: @escaping (Value) -> Void) { getter = get; setter = set }
-        public var wrappedValue: Value {
-            get { getter() }
-            nonmutating set { setter(newValue) }
-        }
-        public var projectedValue: AccessibilityFocusState<Value>.Binding { self }
-    }
-
-    init(initial: Value) { box = Box(Storage(initial)) }
-    public init() where Value == Bool { self.init(initial: false) }
-    public init(wrappedValue: Value) where Value == Bool { self.init(initial: wrappedValue) }
-    public init<T: Hashable>() where Value == T? { self.init(initial: nil) }
-    public init<T: Hashable>(wrappedValue: Value) where Value == T? { self.init(initial: wrappedValue) }
-
-    public var wrappedValue: Value {
-        get { box.storage.value }
-        nonmutating set { box.storage.value = newValue; CompatStore.markChanged() }
-    }
-    public var projectedValue: AccessibilityFocusState<Value>.Binding {
-        let box = self.box
-        return Binding(get: { box.storage.value }, set: { box.storage.value = $0; CompatStore.markChanged() })
-    }
-
-    @MainActor func install(_ ic: inout InstallContext) {
-        let initial = box.storage
-        box.storage = ic.storage { initial }
-    }
-}
-
-
 // MARK: - Namespace
 
 @propertyWrapper
