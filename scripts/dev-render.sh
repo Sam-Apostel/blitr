@@ -9,7 +9,7 @@ src="$1"; out="$2"; shift 2
 bin="$(cd "$root" && swift build --show-bin-path)"
 work="$(mktemp -d)"; trap 'rm -rf "$work"' EXIT
 python3 "$root/scripts/preprocess.py" "$src" "$work"
-swiftc -swift-version 5 -Onone -I "$bin" -L "$bin" -lSwiftUI -lCombine -lUIKit \
+swiftc -swift-version 5 -Onone -I "$bin" -L "$bin" -lSwiftUI \
   -Xlinker -rpath -Xlinker "$bin" -Xlinker -rpath -Xlinker "$root/Vendor/skia/lib" \
   "$work"/*.swift -o "$work/runner" 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -E "error|warning: unre" -A3 || true
 [ -x "$work/runner" ] || { echo "compile failed" >&2; exit 1; }

@@ -4,6 +4,7 @@
   #Preview("Name", ...) { body }   ->  let __preview_N = _PreviewEntry("Name") { body }
   @Previewable                      ->  (removed)
   @main                             ->  (removed; the generated main.swift is the entry point)
+  import SwiftUI                    ->  import SwiftUI; import UIKit (SwiftUI re-exports UIKit on iOS)
 
 Writes the rewritten file plus a main.swift that registers every preview.
 Comments and string literals are skipped so only real code is touched.
@@ -135,13 +136,16 @@ def rewrite_entries(src):
 def rewrite(src, counter):
     code = code_mask(src)
     out, i, names = [], 0, []
-    for m in re.finditer(r'#Preview\b|@Previewable\s*|@main\b', src):
+    for m in re.finditer(r'#Preview\b|@Previewable\s*|@main\b|\bimport SwiftUI\b(?!\.)', src):
         if not code[m.start()] or m.start() < i: continue
         out.append(src[i:m.start()])
         token = m.group(0)
         if token.startswith('@Previewable'):
             i = m.end()
         elif token == '@main':
+            i = m.end()
+        elif token == 'import SwiftUI':
+            out.append('import SwiftUI; import UIKit')
             i = m.end()
         else:
             j = m.end()

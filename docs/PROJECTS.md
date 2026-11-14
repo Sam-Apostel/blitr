@@ -59,7 +59,8 @@ dependency order, then the target itself into the runner:
 - A module whose files import only Foundation-level modules compiles unchanged (no rewriting, and
   without the SwiftUI module on its search path, so `#if canImport(SwiftUI)` stays false as on Linux).
 - A module that imports SwiftUI (or any other module this tool provides, or any Apple framework) gets
-  the same rewriting as app code (`#Preview`, `@main`, `#if os(...)`, `#available`) and compiles against
+  the same rewriting as app code (`#Preview`, `@main`, `#if os(...)` and `canImport(...)` for the rendered
+  platform, `import UIKit` next to `import SwiftUI` on iOS, tvOS and visionOS, `#available`) and compiles against
   the SwiftUI module. Its own previews are blanked out: only the entry file's previews are registered.
 - Package targets get `-D DEBUG`, `-package-name`, their declared language mode and defines; app targets
   their Debug compilation conditions.

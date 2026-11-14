@@ -81,15 +81,14 @@ iPad only.
 
 ## Implementation
 
-- The API lives in the SwiftUI module (`Sources/SwiftUI/Widgets/Kits`): WidgetKit, ActivityKit and
-  AppIntents are thin modules that re-export SwiftUI, like the UIKit shim. A separately linked
-  library would carry its own copy of SwiftUI and its protocol conformances, and would not find
-  `Text: View` at run time. Runners do not link the shim libraries (they contain no API of their
-  own); only their `.swiftmodule` is needed for `import`.
+- The API is in its own modules, `Sources/WidgetKit`, `Sources/ActivityKit` and `Sources/AppIntents`,
+  so `Activity`, `Timeline` and the rest are only visible where those frameworks are imported. Their
+  code is linked into libSwiftUI (see ARCHITECTURE.md, "Shim modules"). `Button(intent:)` and
+  `Toggle(isOn:intent:)` are in AppIntents (Apple's SwiftUI/AppIntents cross-import overlay).
 - The engine side is in `Sources/SwiftUI/Widgets`: `_WidgetCanvas`, `_LiveActivityCanvas`, metrics,
   and the accented / vibrant color filters. `widgetAccentable` relies on `Painter.suppressesDrawing`.
-- The preprocessor rewrites `#Preview(..., as: ...)` to `SwiftUI._WidgetPreview(...)` with the same
-  arguments and trailing closures; main.swift then flattens preview groups into entries.
+- The preprocessor rewrites `#Preview(..., as: ...)` to `WidgetKit._WidgetPreview(...)` with the same
+  arguments and trailing closures; main.swift then imports WidgetKit and flattens preview groups into entries.
 
 ## Not implemented
 
