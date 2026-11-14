@@ -45,6 +45,70 @@ enum TabBarMetrics {
         let device = _currentConfiguration().device
         return device.idiom == .phone && device.orientation.isLandscape
     }
+
+    /// Liquid Glass tab bar (iOS 26+). Values marked (est.) are estimates kept here for calibration.
+    struct Glass {
+        /// Floating capsule: height, inset from the screen's sides, and its bottom edge above the screen's bottom.
+        var height: CGFloat = 62                    // (est.)
+        var sideInset: CGFloat = 21                 // third-party measurement
+        var bottomInset: CGFloat = 21               // phones with a home indicator
+        var bottomInsetWithoutHomeIndicator: CGFloat = 8   // (est.) iPhone SE
+        /// Selection pill: inset from the capsule's edges.
+        var pillInset: CGFloat = 4                  // (est.)
+        var pillLight: RGBA
+        var pillDark: RGBA
+        /// Icon centre and title baseline from the capsule's top edge.
+        var iconCenterY: CGFloat = 23               // (est.)
+        var titleBaseline: CGFloat = 48             // (est.)
+        var iconFont = Font.system(size: 21, weight: .medium)    // ~23pt glyphs (est.)
+        var titleFont = Font.system(size: 10, weight: .medium)
+        /// Badge top edge from the capsule's top edge.
+        var badgeTop: CGFloat = 6                   // (est.)
+        /// A search / prominent tab: a separate circle this far from the main capsule.
+        var separateGap: CGFloat = 12               // (est.)
+        /// `tabViewBottomAccessory`: capsule height and gap above the bar.
+        var accessoryHeight: CGFloat = 48           // (est.)
+        var accessoryGap: CGFloat = 10              // (est.)
+        var accessoryPadding: CGFloat = 16          // (est.)
+        /// Compact height (landscape iPhone): a shorter capsule sized to its items, centred.
+        var compactHeight: CGFloat = 48             // (est.)
+        var compactItemPadding: CGFloat = 16        // (est.)
+        var compactIconTitleGap: CGFloat = 6        // (est.)
+        var compactAccessoryMinWidth: CGFloat = 360 // (est.)
+        /// iPad top bar.
+        var topBarHeight: CGFloat = 44              // (est.)
+
+        /// iOS 26 draws the pill as a small raised glass platter (lighter than the bar, with a soft shadow);
+        /// iOS 27 as a flat, darker fill.
+        var pillIsRaised = false
+
+        func pill(_ scheme: ColorScheme) -> RGBA { scheme == .dark ? pillDark : pillLight }
+
+        /// Draws the selection pill.
+        @MainActor func drawPill(_ rect: CGRect, scheme: ColorScheme, design: DesignLanguage, in p: Painter) {
+            guard rect.width > 0 else { return }
+            if pillIsRaised {
+                var a = GlassAppearance.system(.regular, scheme: scheme, design: design)
+                a.tint = pill(scheme)
+                a.lensStrength = 4
+                a.shadow = (RGBA(0, 0, 0, scheme == .dark ? 0.3 : 0.12), 6, 1)
+                p.fillGlass(.roundedRect(rect, radius: rect.height / 2), appearance: a)
+            } else {
+                p.fill(Path(roundedRect: rect, cornerRadius: rect.height / 2, style: .circular), with: .color(pill(scheme)), in: rect)
+            }
+        }
+    }
+
+    static func forDesign(_ design: DesignLanguage) -> Glass {
+        switch design {
+        case .liquidGlass27:
+            // iOS 27: the selection pill is darker than the bar.
+            return Glass(pillLight: RGBA(0, 0, 0, 0.1), pillDark: RGBA(0, 0, 0, 0.32))
+        default:
+            // iOS 26: a soft highlight, lighter than the bar.
+            return Glass(pillLight: RGBA(1, 1, 1, 0.7), pillDark: RGBA(0.45, 0.45, 0.48, 0.5), pillIsRaised: true)
+        }
+    }
 }
 
 // MARK: - Tab items and badges on views
@@ -180,7 +244,11 @@ extension View {
 
 // MARK: - iOS 18 Tab API
 
-public enum TabRole: Hashable, Sendable { case search }
+public enum TabRole: Hashable, Sendable {
+    case search
+    /// iOS 27: a tab drawn apart from the others at the trailing end of the tab bar.
+    case prominent
+}
 
 /// A collected tab: its tag, how to build its label and content, and its badge.
 struct TabEntry {
@@ -188,6 +256,7 @@ struct TabEntry {
     var label: TabLabelResolver?
     var badge: Text?
     var content: @MainActor () -> Node
+    var role: TabRole? = nil
 }
 
 @MainActor @preconcurrency
@@ -235,18 +304,20 @@ public struct Tab<Value: Hashable, Content: View, Label: View>: TabContent, Prim
     let tag: AnyHashable?
     let content: Content
     let label: Label
+    let role: TabRole?
 
-    init(tag: AnyHashable?, content: Content, label: Label) {
+    init(tag: AnyHashable?, content: Content, label: Label, role: TabRole? = nil) {
         self.tag = tag
         self.content = content
         self.label = label
+        self.role = role
     }
 
     public init(value: Value, @ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label) {
         self.init(tag: AnyHashable(value), content: content(), label: label())
     }
     public init(value: Value, role: TabRole?, @ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label) {
-        self.init(tag: AnyHashable(value), content: content(), label: label())
+        self.init(tag: AnyHashable(value), content: content(), label: label(), role: role)
     }
 
     func collectTabs(_ ctx: ResolveContext, into out: inout [TabEntry]) {
@@ -254,48 +325,48 @@ public struct Tab<Value: Hashable, Content: View, Label: View>: TabContent, Prim
         let index = out.count
         let tabCtx = ctx.child("tab\(index)")
         out.append(TabEntry(tag: tag, label: { adjust in resolveNodes(label, tabCtx.child("label").with(adjust)) }, badge: nil,
-                            content: { resolveSingle(content, tabCtx.child("content")) }))
+                            content: { resolveSingle(content, tabCtx.child("content")) }, role: role))
     }
 }
 
 extension Tab where Label == DefaultTabLabel {
     public init(_ titleKey: LocalizedStringKey, systemImage: String, value: Value, role: TabRole? = nil, @ViewBuilder content: () -> Content) {
-        self.init(tag: AnyHashable(value), content: content(), label: DefaultTabLabel(title: Text(titleKey), image: Image(systemName: systemImage)))
+        self.init(tag: AnyHashable(value), content: content(), label: DefaultTabLabel(title: Text(titleKey), image: Image(systemName: systemImage)), role: role)
     }
     @_disfavoredOverload
     public init<S: StringProtocol>(_ title: S, systemImage: String, value: Value, role: TabRole? = nil, @ViewBuilder content: () -> Content) {
-        self.init(tag: AnyHashable(value), content: content(), label: DefaultTabLabel(title: Text(title), image: Image(systemName: systemImage)))
+        self.init(tag: AnyHashable(value), content: content(), label: DefaultTabLabel(title: Text(title), image: Image(systemName: systemImage)), role: role)
     }
     public init(_ titleKey: LocalizedStringKey, image: String, value: Value, role: TabRole? = nil, @ViewBuilder content: () -> Content) {
-        self.init(tag: AnyHashable(value), content: content(), label: DefaultTabLabel(title: Text(titleKey), image: Image(image)))
+        self.init(tag: AnyHashable(value), content: content(), label: DefaultTabLabel(title: Text(titleKey), image: Image(image)), role: role)
     }
     @_disfavoredOverload
     public init<S: StringProtocol>(_ title: S, image: String, value: Value, role: TabRole? = nil, @ViewBuilder content: () -> Content) {
-        self.init(tag: AnyHashable(value), content: content(), label: DefaultTabLabel(title: Text(title), image: Image(image)))
+        self.init(tag: AnyHashable(value), content: content(), label: DefaultTabLabel(title: Text(title), image: Image(image)), role: role)
     }
     /// `Tab(value:role: .search) { ... }`: the system search tab.
     public init(value: Value, role: TabRole, @ViewBuilder content: () -> Content) {
-        self.init(tag: AnyHashable(value), content: content(), label: DefaultTabLabel(title: Text(verbatim: "Search"), image: Image(systemName: "magnifyingglass")))
+        self.init(tag: AnyHashable(value), content: content(), label: DefaultTabLabel(title: Text(verbatim: "Search"), image: Image(systemName: "magnifyingglass")), role: role)
     }
 }
 
 extension Tab where Value == Never, Label == DefaultTabLabel {
     public init(_ titleKey: LocalizedStringKey, systemImage: String, role: TabRole? = nil, @ViewBuilder content: () -> Content) {
-        self.init(tag: nil, content: content(), label: DefaultTabLabel(title: Text(titleKey), image: Image(systemName: systemImage)))
+        self.init(tag: nil, content: content(), label: DefaultTabLabel(title: Text(titleKey), image: Image(systemName: systemImage)), role: role)
     }
     @_disfavoredOverload
     public init<S: StringProtocol>(_ title: S, systemImage: String, role: TabRole? = nil, @ViewBuilder content: () -> Content) {
-        self.init(tag: nil, content: content(), label: DefaultTabLabel(title: Text(title), image: Image(systemName: systemImage)))
+        self.init(tag: nil, content: content(), label: DefaultTabLabel(title: Text(title), image: Image(systemName: systemImage)), role: role)
     }
     public init(_ titleKey: LocalizedStringKey, image: String, role: TabRole? = nil, @ViewBuilder content: () -> Content) {
-        self.init(tag: nil, content: content(), label: DefaultTabLabel(title: Text(titleKey), image: Image(image)))
+        self.init(tag: nil, content: content(), label: DefaultTabLabel(title: Text(titleKey), image: Image(image)), role: role)
     }
     @_disfavoredOverload
     public init<S: StringProtocol>(_ title: S, image: String, role: TabRole? = nil, @ViewBuilder content: () -> Content) {
-        self.init(tag: nil, content: content(), label: DefaultTabLabel(title: Text(title), image: Image(image)))
+        self.init(tag: nil, content: content(), label: DefaultTabLabel(title: Text(title), image: Image(image)), role: role)
     }
     public init(role: TabRole, @ViewBuilder content: () -> Content) {
-        self.init(tag: nil, content: content(), label: DefaultTabLabel(title: Text(verbatim: "Search"), image: Image(systemName: "magnifyingglass")))
+        self.init(tag: nil, content: content(), label: DefaultTabLabel(title: Text(verbatim: "Search"), image: Image(systemName: "magnifyingglass")), role: role)
     }
 }
 
@@ -480,6 +551,12 @@ public struct TabView<SelectionValue: Hashable, Content: View>: View, PrimitiveV
     }
 
     func resolve(_ ctx: ResolveContext, into out: inout [Node]) {
+        let accessory = ctx.env.tabViewBottomAccessory
+        let showsBar = ctx.env.tabViewPageMode == nil
+        let ctx = ctx.with {
+            $0.tabViewBottomAccessory = nil
+            if showsBar { $0.hasEnclosingTabBar = true }
+        }
         var entries: [TabEntry]
         if let provider = content as? TabEntriesProvider {
             entries = provider.entries(ctx)
@@ -496,7 +573,13 @@ public struct TabView<SelectionValue: Hashable, Content: View>: View, PrimitiveV
             out.append(PageTabViewNode(content: entries[selected].content(), count: entries.count, selected: selected,
                                        mode: mode, background: ctx.env.pageIndexBackground))
         } else {
-            out.append(TabViewNode(entries: entries, selected: selected, ctx: ctx))
+            let accessoryNode: Node? = accessory.flatMap { resolver in
+                guard ctx.env.designLanguage.isGlass else { return nil }
+                let nodes = resolver(ctx.child("bottomAccessory").with { $0.stackAxis = nil; $0.hasEnclosingTabBar = false })
+                if nodes.isEmpty { return nil }
+                return nodes.count == 1 ? nodes[0] : StackNode(axis: .horizontal, alignment: .center, spacing: nil, children: nodes)
+            }
+            out.append(TabViewNode(entries: entries, selected: selected, ctx: ctx, accessory: accessoryNode))
         }
     }
 }
@@ -561,6 +644,12 @@ final class TabViewNode: Node {
     let topBar: Bool
     /// The index of the selected tab (also read by the accessibility extractor).
     let selectedIndex: Int
+    /// iOS 26+: the bar is a floating glass capsule.
+    let design: DesignLanguage
+    /// `tabViewBottomAccessory` content (glass only).
+    let accessory: Node?
+    /// The tab drawn as a separate circle at the trailing end (`role: .search`, iOS 27 `.prominent`).
+    let separateIndex: Int?
     private let scheme: ColorScheme
     private var capsule = CGRect.zero
     private var itemRects: [CGRect] = []
@@ -571,9 +660,19 @@ final class TabViewNode: Node {
     private var backgroundWidth: CGFloat = 0
     private var showsBackground = false
 
-    init(entries: [TabEntry], selected: Int, ctx: ResolveContext) {
+    // Glass geometry (local coordinates).
+    private var separateRect = CGRect.zero
+    private var accessoryRect = CGRect.zero
+    private var pillRect = CGRect.zero
+    /// Glass only: each tab's frame and the bar's frame, for the accessibility tree. Nil for the flat bar.
+    private(set) var glassItemFrames: [CGRect]?
+    private(set) var glassBarFrame: CGRect?
+
+    init(entries: [TabEntry], selected: Int, ctx: ResolveContext, accessory: Node? = nil) {
         selectedIndex = selected
         let env = ctx.env
+        let design = env.designLanguage
+        self.design = design
         let content = entries[selected].content()
         self.content = content
         var chrome = content.preferences[NavigationChromeKey.self]
@@ -589,9 +688,19 @@ final class TabViewNode: Node {
         backgroundVisibility = settings.backgroundVisibility ?? .automatic
         background = settings.backgroundStyle?._paint(in: barEnv) ?? Material.bar._paint(in: barEnv)
         hairline = .color(SystemColor.separator.resolve(scheme))
+        self.accessory = barVisible && !topBar ? accessory : nil
 
+        var separate: Int? = nil
+        if design.isGlass, !topBar, entries.count > 1 {
+            separate = entries.firstIndex { $0.role == .search || ($0.role == .prominent && design == .liquidGlass27) }
+        }
+        separateIndex = separate
+
+        let glass = TabBarMetrics.forDesign(design)
         let accent = Color.accentColor.rgba(in: barEnv)
-        let gray = TabBarMetrics.unselectedColor.resolve(scheme)
+        let gray = (design.isGlass ? SystemColor.label : TabBarMetrics.unselectedColor).resolve(scheme)
+        let iconFont = design.isGlass ? glass.iconFont : TabBarMetrics.iconFont
+        let titleFont = design.isGlass ? glass.titleFont : TabBarMetrics.titleFont
         var items: [Item] = []
         if barVisible {
             for (i, entry) in entries.enumerated() {
@@ -611,8 +720,8 @@ final class TabViewNode: Node {
                 }
                 var item = Item()
                 if let label = entry.label {
-                    if !topBar { item.icon = label(adjust(TabBarMetrics.iconFont)).lazy.compactMap { $0.firstDescendant(ImageNode.self) }.first }
-                    item.title = label(adjust(topBar ? TabBarMetrics.topTitleFont : TabBarMetrics.titleFont)).lazy.compactMap { $0.firstDescendant(TextNode.self) }.first
+                    if !topBar { item.icon = label(adjust(iconFont)).lazy.compactMap { $0.firstDescendant(ImageNode.self) }.first }
+                    item.title = label(adjust(topBar ? TabBarMetrics.topTitleFont : titleFont)).lazy.compactMap { $0.firstDescendant(TextNode.self) }.first
                 }
                 if let badge = entry.badge, !topBar {
                     var badgeEnv = barEnv
@@ -625,7 +734,7 @@ final class TabViewNode: Node {
             }
         }
         self.items = items
-        super.init(children: [content] + items.flatMap { [$0.icon, $0.title, $0.badge].compactMap { $0 } })
+        super.init(children: [content] + items.flatMap { [$0.icon, $0.title, $0.badge].compactMap { $0 } } + [self.accessory].compactMap { $0 })
         traits = content.traits
         preferences = content.preferences
         preferences.set(NavigationChromeKey.self, chrome)
@@ -638,6 +747,7 @@ final class TabViewNode: Node {
         let safeTop = max(0, ctx.safeRect.minY - ctx.origin.y)
         let safeBottom = min(size.height, ctx.safeRect.maxY - ctx.origin.y)
         if topBar { layoutTopBar(size: size, safeTop: safeTop, safeBottom: safeBottom, ctx); return }
+        if design.isGlass, barVisible, !items.isEmpty { layoutGlassBar(size: size, safeTop: safeTop, ctx); return }
         let compact = m.isCompactHeight
         barTop = barVisible ? safeBottom - (compact ? m.compactHeight : m.height) : safeBottom
         barBottom = max(size.height, ctx.container.maxY - ctx.origin.y)
@@ -694,6 +804,151 @@ final class TabViewNode: Node {
         }
     }
 
+    // MARK: Liquid Glass bar
+
+    private func layoutGlassBar(size: CGSize, safeTop: CGFloat, _ ctx: PlaceContext) {
+        let g = TabBarMetrics.forDesign(design)
+        let compact = TabBarMetrics.isCompactHeight
+        let device = _currentConfiguration().device
+        let screen = ctx.container.offsetBy(dx: -ctx.origin.x, dy: -ctx.origin.y)
+        let height = compact ? g.compactHeight : g.height
+        let bottom = screen.maxY - (device.safeArea.bottom > 0 ? g.bottomInset : g.bottomInsetWithoutHomeIndicator)
+        let top = bottom - height
+        barTop = top
+        let leftLimit = max(screen.minX + g.sideInset, ctx.safeRect.minX - ctx.origin.x)
+        let rightLimit = min(screen.maxX - g.sideInset, ctx.safeRect.maxX - ctx.origin.x)
+        let available = max(0, rightLimit - leftLimit)
+        let separate = separateIndex
+        let mainIndices = items.indices.filter { $0 != separate }
+        let extra = separate == nil ? 0 : g.separateGap + height
+
+        // Item widths in the main capsule: equal shares in portrait; sized to content in compact height.
+        var widths: [CGFloat]
+        var mainWidth: CGFloat
+        if compact {
+            widths = mainIndices.map { i in
+                let item = items[i]
+                let iw = item.icon?.sizeThatFits(.unspecified).width ?? 0
+                let tw = item.title?.sizeThatFits(.unspecified).width ?? 0
+                let gap: CGFloat = item.icon != nil && item.title != nil ? g.compactIconTitleGap : 0
+                return iw + gap + tw + g.compactItemPadding * 2
+            }
+            mainWidth = widths.reduce(0, +) + g.pillInset * 2
+            if mainWidth + extra > available {
+                let k = max(0, available - extra - g.pillInset * 2) / max(1, mainWidth - g.pillInset * 2)
+                widths = widths.map { $0 * k }
+                mainWidth = available - extra
+            }
+        } else {
+            mainWidth = available - extra
+            let share = (mainWidth - g.pillInset * 2) / CGFloat(max(1, mainIndices.count))
+            widths = mainIndices.map { _ in share }
+        }
+        let groupX = compact ? leftLimit + (available - mainWidth - extra) / 2 : leftLimit
+        capsule = CGRect(x: groupX, y: top, width: mainWidth, height: height)
+        separateRect = separate == nil ? .zero : CGRect(x: capsule.maxX + g.separateGap, y: top, width: height, height: height)
+
+        var cells = Array(repeating: CGRect.zero, count: items.count)
+        var x = capsule.minX + g.pillInset
+        for (k, i) in mainIndices.enumerated() {
+            cells[i] = CGRect(x: x, y: top + g.pillInset, width: widths[k], height: height - g.pillInset * 2)
+            x += widths[k]
+        }
+        if let separate { cells[separate] = separateRect.insetBy(dx: g.pillInset, dy: g.pillInset) }
+        pillRect = cells.indices.contains(selectedIndex) ? cells[selectedIndex] : .zero
+
+        // Accessory capsule above the bar.
+        var contentBottom = top
+        if let accessory {
+            // As wide as the bar; in compact height the bar is narrow, so keep a usable minimum width.
+            let groupWidth = compact ? min(available, max(mainWidth + extra, g.compactAccessoryMinWidth)) : available
+            accessoryRect = CGRect(x: compact ? leftLimit + (available - groupWidth) / 2 : leftLimit,
+                                   y: top - g.accessoryGap - g.accessoryHeight, width: groupWidth, height: g.accessoryHeight)
+            contentBottom = accessoryRect.minY
+            let inner = accessoryRect.insetBy(dx: g.accessoryPadding, dy: 0)
+            var actx = ctx
+            actx.container = inner.offsetBy(dx: ctx.origin.x, dy: ctx.origin.y)
+            actx.safeRect = actx.container
+            let s = accessory.sizeThatFits(ProposedViewSize(inner.size))
+            accessory.place(at: CGPoint(x: inner.midX - min(s.width, inner.width) / 2, y: inner.midY - min(s.height, inner.height) / 2),
+                            size: CGSize(width: min(s.width, inner.width), height: min(s.height, inner.height)), actx)
+        }
+
+        // Content: laid out above the bar, drawn under it.
+        let area = CGRect(x: 0, y: safeTop, width: size.width, height: max(0, contentBottom - safeTop))
+        var inner = ctx
+        inner.safeRect = CGRect(x: ctx.safeRect.minX, y: ctx.origin.y + area.minY, width: ctx.safeRect.width, height: area.height)
+        let c = content.sizeThatFits(ProposedViewSize(area.size))
+        content.place(at: CGPoint(x: area.midX - c.width / 2, y: area.midY - c.height / 2), size: c, inner)
+
+        for (i, item) in items.enumerated() {
+            let cell = cells[i]
+            let isSeparate = i == separate
+            var iconMidX = cell.midX
+            var iconTop = top
+            if compact || isSeparate {
+                // Icon and title side by side (a separate tab shows only its icon), centred in the cell.
+                let iconSize = item.icon?.sizeThatFits(.unspecified) ?? .zero
+                let showsTitle = !isSeparate && item.title != nil
+                let maxTitle = max(0, cell.width - iconSize.width - 8)
+                var titleSize = showsTitle ? (item.title?.sizeThatFits(ProposedViewSize(width: maxTitle, height: nil)) ?? .zero) : .zero
+                titleSize.width = min(titleSize.width, maxTitle)
+                let gap: CGFloat = item.icon != nil && showsTitle ? g.compactIconTitleGap : 0
+                let x0 = cell.midX - (iconSize.width + gap + titleSize.width) / 2
+                item.icon?.place(at: CGPoint(x: x0, y: cell.midY - iconSize.height / 2), size: iconSize, ctx)
+                if showsTitle { item.title?.place(at: CGPoint(x: x0 + iconSize.width + gap, y: cell.midY - titleSize.height / 2), size: titleSize, ctx) }
+                else if let title = item.title {
+                    // Not drawn (a separate tab shows its icon only), but placed so it still labels the tab.
+                    var s = title.sizeThatFits(.unspecified)
+                    s.width = min(s.width, cell.width)
+                    title.place(at: CGPoint(x: cell.midX - s.width / 2, y: cell.midY - s.height / 2), size: s, ctx)
+                }
+                iconMidX = x0 + iconSize.width / 2
+                iconTop = cell.midY - iconSize.height / 2 - (g.pillInset + 4)
+            } else {
+                if let icon = item.icon {
+                    let s = icon.sizeThatFits(.unspecified)
+                    icon.place(at: CGPoint(x: cell.midX - s.width / 2, y: top + g.iconCenterY - s.height / 2), size: s, ctx)
+                }
+                if let title = item.title {
+                    var s = title.sizeThatFits(ProposedViewSize(width: cell.width - 4, height: nil))
+                    s.width = min(s.width, cell.width - 4)
+                    let baseline = title.explicitAlignment(VerticalAlignment.firstTextBaseline.key, size: s) ?? s.height
+                    title.place(at: CGPoint(x: cell.midX - s.width / 2, y: top + g.titleBaseline - baseline), size: s, ctx)
+                }
+            }
+            if let badge = item.badge {
+                let s = badge.sizeThatFits(.unspecified)
+                badge.place(at: CGPoint(x: iconMidX + TabBarMetrics.badgeLeadingFromIconCenter,
+                                        y: compact || isSeparate ? iconTop : top + g.badgeTop), size: s, ctx)
+            }
+        }
+        // Hit frames: the whole cell, to the capsule's outer edge.
+        glassItemFrames = cells.enumerated().map { i, cell in
+            i == separate ? separateRect : CGRect(x: cell.minX, y: top, width: cell.width, height: height)
+        }
+        glassBarFrame = separate == nil ? capsule : capsule.union(separateRect)
+    }
+
+    private func drawGlassBar(_ p: Painter) {
+        let g = TabBarMetrics.forDesign(design)
+        let appearance = GlassAppearance.system(.regular, scheme: scheme, design: design)
+        p.fillGlass(.roundedRect(capsule, radius: capsule.height / 2), appearance: appearance)
+        if separateIndex != nil {
+            p.fillGlass(.roundedRect(separateRect, radius: separateRect.height / 2), appearance: appearance)
+        }
+        if accessory != nil {
+            p.fillGlass(.roundedRect(accessoryRect, radius: accessoryRect.height / 2), appearance: appearance)
+        }
+        g.drawPill(pillRect, scheme: scheme, design: design, in: p)
+        accessory?.draw(p)
+        for (i, item) in items.enumerated() {
+            item.icon?.draw(p)
+            if i != separateIndex { item.title?.draw(p) }
+            item.badge?.draw(p)
+        }
+    }
+
     private func layoutTopBar(size: CGSize, safeTop: CGFloat, safeBottom: CGFloat, _ ctx: PlaceContext) {
         let m = TabBarMetrics.self
         let area = CGRect(x: 0, y: safeTop + m.topBarBand, width: size.width, height: max(0, safeBottom - safeTop - m.topBarBand))
@@ -705,7 +960,8 @@ final class TabViewNode: Node {
         let sizes = items.map { $0.title?.sizeThatFits(.unspecified) ?? .zero }
         let widths = sizes.map { $0.width + m.topItemPadding * 2 }
         let total = widths.reduce(0, +) + m.topItemGap * CGFloat(max(0, widths.count - 1)) + m.topBarInset * 2
-        capsule = CGRect(x: (size.width - total) / 2, y: safeTop + m.topBarGap, width: total, height: m.topBarHeight)
+        let height = design.isGlass ? TabBarMetrics.forDesign(design).topBarHeight : m.topBarHeight
+        capsule = CGRect(x: (size.width - total) / 2, y: safeTop + m.topBarGap, width: total, height: height)
         var x = capsule.minX + m.topBarInset
         itemRects = []
         for (item, (s, w)) in zip(items, zip(sizes, widths)) {
@@ -718,6 +974,14 @@ final class TabViewNode: Node {
 
     private func drawTopBar(_ p: Painter) {
         let shape = Path(roundedRect: capsule, cornerRadius: capsule.height / 2, style: .circular)
+        if design.isGlass {
+            p.fillGlass(.roundedRect(capsule, radius: capsule.height / 2), appearance: GlassAppearance.system(.regular, scheme: scheme, design: design))
+            if itemRects.indices.contains(selectedIndex) {
+                TabBarMetrics.forDesign(design).drawPill(itemRects[selectedIndex], scheme: scheme, design: design, in: p)
+            }
+            for child in children.dropFirst() { child.draw(p) }
+            return
+        }
         p.fill(shape, with: .color(SystemColor.secondaryBackground.resolve(scheme)), in: capsule)
         p.stroke(shape, with: .color(SystemColor.separator.resolve(scheme)), style: StrokeStyle(lineWidth: ChromeMetrics.hairline), in: capsule)
         if itemRects.indices.contains(selectedIndex) {
@@ -731,6 +995,7 @@ final class TabViewNode: Node {
         content.draw(p)
         guard barVisible else { return }
         if topBar { drawTopBar(p); return }
+        if design.isGlass, !items.isEmpty { drawGlassBar(p); return }
         if showsBackground {
             let rect = CGRect(x: backgroundX, y: barTop, width: backgroundWidth, height: barBottom - barTop)
             p.fill(Path(rect), with: background, in: rect)

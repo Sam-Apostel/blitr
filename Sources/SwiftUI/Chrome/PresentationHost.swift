@@ -23,6 +23,31 @@ enum SheetMetrics {
     /// iPad (regular width): a centred form sheet over a dimmed presenter.
     static let formSheetSize = CGSize(width: 540, height: 620)
     static let formSheetCornerRadius: CGFloat = 10
+
+    /// Liquid Glass sheets (iOS 26+). Values marked (est.) are estimates kept here for calibration.
+    struct Glass {
+        /// Below the large detent the sheet floats: inset from the screen's sides and bottom.
+        var floatingInset: CGFloat = 8              // (est.)
+        /// Floating corners are concentric with the display corners, but never tighter than this.
+        var floatingMinCornerRadius: CGFloat = 34   // (est.)
+        /// Large detent (attached, opaque) and iPad form sheet.
+        var largeCornerRadius: CGFloat = 38         // (est.)
+        var formSheetCornerRadius: CGFloat = 38     // (est.)
+        /// The floating sheet's glass is more opaque than a bar's, so content stays legible.
+        var tintLight = RGBA(1, 1, 1, 0.72)         // (est.)
+        var tintDark = RGBA(0.11, 0.11, 0.12, 0.72) // (est.)
+
+        /// Radius of a floating card: the display radius less the inset.
+        func floatingCornerRadius() -> CGFloat {
+            max(floatingMinCornerRadius, _currentConfiguration().device.cornerRadius - floatingInset)
+        }
+        func appearance(_ scheme: ColorScheme, design: DesignLanguage) -> GlassAppearance {
+            var a = GlassAppearance.system(.regular, scheme: scheme, design: design)
+            a.tint = scheme == .dark ? tintDark : tintLight
+            return a
+        }
+    }
+    static func forDesign(_ design: DesignLanguage) -> Glass { Glass() }
 }
 
 enum AlertMetrics {
@@ -42,6 +67,35 @@ enum AlertMetrics {
     static let backgroundLight = RGBA(hex: 0xF2F2F2, alpha: 0.8)
     static let backgroundDark = RGBA(hex: 0x252525, alpha: 0.82)
     static let blurRadius: CGFloat = 30
+
+    /// Liquid Glass alert (iOS 26+). Values marked (est.) are estimates kept here for calibration.
+    struct Glass {
+        var width: CGFloat = 300                    // (est.)
+        var cornerRadius: CGFloat = 34              // (est.)
+        /// Padding around the title and message.
+        var textPadding: CGFloat = 24               // (est.)
+        var titleMessageSpacing: CGFloat = 6        // (est.)
+        var titleFontSize: CGFloat = 17
+        var messageFontSize: CGFloat = 15
+        /// Space between the text and the buttons.
+        var textToButtons: CGFloat = 20             // (est.)
+        /// Buttons: inset from the card edges so the capsules sit concentric in the corners.
+        var buttonInset: CGFloat = 14               // (est.; brief said ~24 for all padding)
+        var buttonHeight: CGFloat = 48              // (est.)
+        var buttonGap: CGFloat = 8                  // (est.)
+        var buttonFontSize: CGFloat = 17
+        var buttonTextPadding: CGFloat = 10
+        var buttonFill = SystemColor.fill
+        var tintLight = RGBA(1, 1, 1, 0.7)          // (est.)
+        var tintDark = RGBA(0.13, 0.13, 0.14, 0.7)  // (est.)
+
+        func appearance(_ scheme: ColorScheme, design: DesignLanguage) -> GlassAppearance {
+            var a = GlassAppearance.system(.regular, scheme: scheme, design: design)
+            a.tint = scheme == .dark ? tintDark : tintLight
+            return a
+        }
+    }
+    static func forDesign(_ design: DesignLanguage) -> Glass { Glass() }
 }
 
 enum DialogMetrics {
@@ -57,6 +111,25 @@ enum DialogMetrics {
     static let headerPaddingSide: CGFloat = 16
     static let titleMessageSpacing: CGFloat = 2
     static let cancelBackground = DynamicColor(0xFFFFFF, 0x2C2C2E)
+
+    /// Liquid Glass confirmation dialog (iOS 26+): one glass card at the bottom. (est.) throughout.
+    struct Glass {
+        /// Inset from the screen's sides and bottom, as a floating sheet.
+        var inset: CGFloat = 8
+        var headerFontSize: CGFloat = 13
+        var headerPaddingTop: CGFloat = 18
+        var headerPaddingBottom: CGFloat = 14
+        var headerPaddingSide: CGFloat = 24
+        var titleMessageSpacing: CGFloat = 3
+        var rowHeight: CGFloat = 56
+        var actionFontSize: CGFloat = 17
+        /// Hairlines between rows are inset this far from the card's sides.
+        var separatorInset: CGFloat = 20
+        /// How far the last row may reach into the bottom safe area (the home indicator stays below its label).
+        var homeIndicatorOverlap: CGFloat = 14
+        var cornerRadius: CGFloat { SheetMetrics.forDesign(.liquidGlass26).floatingCornerRadius() }
+    }
+    static func forDesign(_ design: DesignLanguage) -> Glass { Glass() }
 }
 
 // MARK: - Host
@@ -181,6 +254,9 @@ final class SheetLayerNode: PresentationLayerNode {
     private(set) var cardRect = CGRect.zero
     private var showsGrabber = false
     private var isFormSheet = false
+    /// Glass, below the large detent: a card inset from the screen edges with glass behind the content.
+    private(set) var isFloating = false
+    private var isLarge = false
 
     init(content: Node, env: EnvironmentValues) {
         self.content = content
@@ -220,6 +296,7 @@ final class SheetLayerNode: PresentationLayerNode {
         var cardTop = tops.max() ?? largeTop  // the smallest detent
         if let selection = options.selection, detents.contains(selection) { cardTop = top(for: selection, size: size) }
         let isLarge = cardTop <= largeTop + 0.5
+        self.isLarge = isLarge
         showsGrabber = options.dragIndicator == .visible || (options.dragIndicator != .hidden && detents.count > 1)
 
         let dark = env.colorScheme == .dark
@@ -234,11 +311,21 @@ final class SheetLayerNode: PresentationLayerNode {
             backdrop = .dim(interactive ? 0 : (dark ? SheetMetrics.partialDimDark : SheetMetrics.partialDimLight))
         }
 
-        cardRect = CGRect(x: 0, y: cardTop, width: size.width, height: size.height - cardTop)
+        isFloating = env.designLanguage.isGlass && !isLarge
+        var safeInsets = EdgeInsets(top: 0, leading: deviceInsets.leading, bottom: deviceInsets.bottom, trailing: deviceInsets.trailing)
+        if isFloating {
+            let inset = SheetMetrics.forDesign(env.designLanguage).floatingInset
+            cardRect = CGRect(x: inset, y: cardTop, width: size.width - inset * 2, height: max(0, size.height - inset - cardTop))
+            // The device's insets, measured from the card's edges instead of the screen's.
+            safeInsets = EdgeInsets(top: 0, leading: max(0, deviceInsets.leading - inset), bottom: max(0, deviceInsets.bottom - inset),
+                                    trailing: max(0, deviceInsets.trailing - inset))
+        } else {
+            cardRect = CGRect(x: 0, y: cardTop, width: size.width, height: size.height - cardTop)
+        }
         let absCard = cardRect.offsetBy(dx: ctx.origin.x, dy: ctx.origin.y)
         var inner = ctx
         inner.container = absCard
-        inner.safeRect = absCard.inset(by: EdgeInsets(top: 0, leading: deviceInsets.leading, bottom: deviceInsets.bottom, trailing: deviceInsets.trailing))
+        inner.safeRect = absCard.inset(by: safeInsets)
         options.backgroundNode?.place(at: cardRect.origin, size: cardRect.size, inner)
         let safeLocal = inner.safeRect.offsetBy(dx: -ctx.origin.x, dy: -ctx.origin.y)
         let c = content.sizeThatFits(ProposedViewSize(safeLocal.size))
@@ -262,13 +349,32 @@ final class SheetLayerNode: PresentationLayerNode {
     }
 
     override func drawContent(_ p: Painter) {
-        let radius = options.cornerRadius ?? (isFormSheet ? SheetMetrics.formSheetCornerRadius : SheetMetrics.cornerRadius)
-        let shape = isFormSheet ? Path(roundedRect: cardRect, cornerRadius: radius, style: .continuous)
+        let design = env.designLanguage
+        let glass = SheetMetrics.forDesign(design)
+        let defaultRadius: CGFloat
+        if !design.isGlass {
+            defaultRadius = isFormSheet ? SheetMetrics.formSheetCornerRadius : SheetMetrics.cornerRadius
+        } else if isFormSheet {
+            defaultRadius = glass.formSheetCornerRadius
+        } else {
+            defaultRadius = isFloating ? glass.floatingCornerRadius() : glass.largeCornerRadius
+        }
+        let radius = options.cornerRadius ?? defaultRadius
+        let allCorners = isFormSheet || isFloating
+        let shape = allCorners ? Path(roundedRect: cardRect, cornerRadius: radius, style: .continuous)
             : Path(roundedRect: cardRect, cornerRadii: RectangleCornerRadii(topLeading: radius, topTrailing: radius), style: .continuous)
+        let glassBackground = isFloating && options.backgroundNode == nil && options.backgroundPaint == nil
+        if glassBackground {
+            // The dimmed presenter has been drawn: the glass refracts it.
+            p.fillGlass(.roundedRect(cardRect, radius: min(radius, min(cardRect.width, cardRect.height) / 2)),
+                        appearance: glass.appearance(env.colorScheme, design: design))
+        }
         p.save()
         p.clip(shape)
         if let bg = options.backgroundNode {
             bg.draw(p)
+        } else if glassBackground {
+            // drawn above
         } else {
             let paint = options.backgroundPaint ?? .color(env.colorScheme == .dark
                 ? SheetMetrics.elevatedDarkBackground.resolve(.dark) : SystemColor.background.resolve(.light))
@@ -325,6 +431,15 @@ final class DimmedCardLayerNode: PresentationLayerNode {
         backdrop = .dim(env.colorScheme == .dark ? AlertMetrics.dimDark : AlertMetrics.dimLight)
     }
     override func layout(size: CGSize, _ ctx: PlaceContext) {
+        if atBottom, let dialog = card as? DialogCardNode, dialog.design.isGlass {
+            // Glass: inset from the screen edges like a floating sheet.
+            let inset = DialogMetrics.forDesign(dialog.design).inset
+            let left = max(inset, deviceInsets.leading), right = max(inset, deviceInsets.trailing)
+            dialog.bottomPadding = max(0, deviceInsets.bottom - inset - DialogMetrics.forDesign(dialog.design).homeIndicatorOverlap)
+            let c = card.sizeThatFits(ProposedViewSize(width: size.width - left - right, height: nil))
+            card.place(at: CGPoint(x: left, y: size.height - inset - c.height), size: c, ctx)
+            return
+        }
         let width = atBottom ? size.width - deviceInsets.leading - deviceInsets.trailing - DialogMetrics.sideMargin * 2 : AlertMetrics.width
         let c = card.sizeThatFits(ProposedViewSize(width: width, height: nil))
         let x = atBottom ? deviceInsets.leading + DialogMetrics.sideMargin : (size.width - c.width) / 2
@@ -376,18 +491,20 @@ private func textNode(_ string: String, size: CGFloat, weight: Font.Weight, colo
 }
 
 @MainActor
-private func resolveDialogText(_ resolver: NodeResolver?, _ ctx: ResolveContext, size: CGFloat, weight: Font.Weight, color: RGBA) -> Node? {
+private func resolveDialogText(_ resolver: NodeResolver?, _ ctx: ResolveContext, size: CGFloat, weight: Font.Weight, color: RGBA,
+                               alignment: TextAlignment = .center, spacing: CGFloat = AlertMetrics.titleMessageSpacing) -> Node? {
     guard let resolver else { return nil }
     let nodes = resolver(ctx.with {
         $0.font = .system(size: size, weight: weight)
-        $0.multilineTextAlignment = .center
+        $0.multilineTextAlignment = alignment
         $0.foregroundStyle = AnyShapeStyle(Color(color))
         $0.foregroundStyleLevels = nil
         $0.textCase = nil
         $0.stackAxis = nil
     })
     if nodes.isEmpty { return nil }
-    return nodes.count == 1 ? nodes[0] : StackNode(axis: .vertical, alignment: .center, spacing: AlertMetrics.titleMessageSpacing, children: nodes)
+    let stackAlignment: HorizontalAlignment = alignment == .leading ? .leading : .center
+    return nodes.count == 1 ? nodes[0] : StackNode(axis: .vertical, alignment: stackAlignment.key, spacing: spacing, children: nodes)
 }
 
 final class AlertCardNode: Node {
@@ -396,19 +513,35 @@ final class AlertCardNode: Node {
     let actions: [TextNode]
     let separatorColor: RGBA
     let background: RGBA
+    let design: DesignLanguage
+    private let scheme: ColorScheme
     private var horizontalActions = false
     private var hairlines: [CGRect] = []
     /// The cancel action is stored last (its place when stacked).
     private var cancelIsLast = false
+    /// Glass only: each action's capsule (local coordinates, same order as `actions`). Nil for the flat alert.
+    private(set) var glassActionCells: [CGRect]?
 
     init(spec: DialogSpec, ctx: ResolveContext) {
         let env = ctx.env
         let scheme = env.colorScheme
+        self.scheme = scheme
+        let design = env.designLanguage
+        self.design = design
         let label = SystemColor.label.resolve(scheme)
-        title = spec.title.map { t in
-            resolveDialogText(nodeResolver(t), ctx.child("title"), size: AlertMetrics.titleFontSize, weight: .semibold, color: label)
-        } ?? nil
-        message = resolveDialogText(spec.message, ctx.child("message"), size: AlertMetrics.messageFontSize, weight: .regular, color: label)
+        if design.isGlass {
+            let g = AlertMetrics.forDesign(design)
+            title = spec.title.map { t in
+                resolveDialogText(nodeResolver(t), ctx.child("title"), size: g.titleFontSize, weight: .semibold, color: label, alignment: .leading)
+            } ?? nil
+            message = resolveDialogText(spec.message, ctx.child("message"), size: g.messageFontSize, weight: .regular,
+                                        color: SystemColor.secondaryLabel.resolve(scheme), alignment: .leading)
+        } else {
+            title = spec.title.map { t in
+                resolveDialogText(nodeResolver(t), ctx.child("title"), size: AlertMetrics.titleFontSize, weight: .semibold, color: label)
+            } ?? nil
+            message = resolveDialogText(spec.message, ctx.child("message"), size: AlertMetrics.messageFontSize, weight: .regular, color: label)
+        }
         var list = presentationActions(spec, ctx)
         if list.isEmpty { list = [PresentationAction(title: "OK", role: nil)] }
         // UIKit puts the cancel action leftmost when side by side, last when stacked.
@@ -417,8 +550,9 @@ final class AlertCardNode: Node {
             cancelIsLast = true
         }
         let accent = Color.accentColor.rgba(in: env)
+        let fontSize = design.isGlass ? AlertMetrics.forDesign(design).buttonFontSize : AlertMetrics.actionFontSize
         actions = list.map { action in
-            textNode(action.title, size: AlertMetrics.actionFontSize, weight: action.role == .cancel ? .semibold : .regular,
+            textNode(action.title, size: fontSize, weight: action.role == .cancel ? .semibold : .regular,
                      color: action.role == .destructive ? SystemColor.red.resolve(scheme) : accent, env: env)
         }
         separatorColor = SystemColor.separator.resolve(scheme)
@@ -426,30 +560,53 @@ final class AlertCardNode: Node {
         super.init(children: [title, message].compactMap { $0 } + actions)
     }
 
-    private var textWidth: CGFloat { AlertMetrics.width - AlertMetrics.paddingSide * 2 }
+    private var width: CGFloat { design.isGlass ? AlertMetrics.forDesign(design).width : AlertMetrics.width }
+    private var textWidth: CGFloat {
+        design.isGlass ? width - AlertMetrics.forDesign(design).textPadding * 2 : AlertMetrics.width - AlertMetrics.paddingSide * 2
+    }
 
-    private func headerHeight() -> CGFloat {
-        var h = AlertMetrics.paddingTop + AlertMetrics.paddingBottom
+    private func textHeight() -> CGFloat {
+        let spacing = design.isGlass ? AlertMetrics.forDesign(design).titleMessageSpacing : AlertMetrics.titleMessageSpacing
+        var h: CGFloat = 0
         if let title { h += title.sizeThatFits(ProposedViewSize(width: textWidth, height: nil)).height }
         if let message {
-            if title != nil { h += AlertMetrics.titleMessageSpacing }
+            if title != nil { h += spacing }
             h += message.sizeThatFits(ProposedViewSize(width: textWidth, height: nil)).height
         }
         return h
     }
 
+    private func headerHeight() -> CGFloat {
+        if design.isGlass {
+            let g = AlertMetrics.forDesign(design)
+            return g.textPadding + textHeight() + g.textToButtons
+        }
+        return AlertMetrics.paddingTop + AlertMetrics.paddingBottom + textHeight()
+    }
+
     private func fitsSideBySide() -> Bool {
         guard actions.count == 2 else { return false }
-        let half = AlertMetrics.width / 2 - AlertMetrics.actionTextPadding * 2
+        let half: CGFloat
+        if design.isGlass {
+            let g = AlertMetrics.forDesign(design)
+            half = (width - g.buttonInset * 2 - g.buttonGap) / 2 - g.buttonTextPadding * 2
+        } else {
+            half = AlertMetrics.width / 2 - AlertMetrics.actionTextPadding * 2
+        }
         return actions.allSatisfy { $0.sizeThatFits(.unspecified).width <= half }
     }
 
     override func measure(_ proposal: ProposedViewSize) -> CGSize {
-        let rows = fitsSideBySide() ? 1 : actions.count
-        return CGSize(width: AlertMetrics.width, height: headerHeight() + CGFloat(rows) * AlertMetrics.actionHeight)
+        let rows = CGFloat(fitsSideBySide() ? 1 : actions.count)
+        if design.isGlass {
+            let g = AlertMetrics.forDesign(design)
+            return CGSize(width: width, height: headerHeight() + rows * g.buttonHeight + (rows - 1) * g.buttonGap + g.buttonInset)
+        }
+        return CGSize(width: AlertMetrics.width, height: headerHeight() + rows * AlertMetrics.actionHeight)
     }
 
     override func layout(size: CGSize, _ ctx: PlaceContext) {
+        if design.isGlass { layoutGlass(size: size, ctx); return }
         var y = AlertMetrics.paddingTop
         if let title {
             let s = title.sizeThatFits(ProposedViewSize(width: textWidth, height: nil))
@@ -484,8 +641,51 @@ final class AlertCardNode: Node {
         }
     }
 
+    /// Glass: leading-aligned text, then capsule buttons side by side (two) or stacked.
+    private func layoutGlass(size: CGSize, _ ctx: PlaceContext) {
+        let g = AlertMetrics.forDesign(design)
+        var y = g.textPadding
+        if let title {
+            let s = title.sizeThatFits(ProposedViewSize(width: textWidth, height: nil))
+            title.place(at: CGPoint(x: g.textPadding, y: y), size: s, ctx)
+            y += s.height
+        }
+        if let message {
+            if title != nil { y += g.titleMessageSpacing }
+            let s = message.sizeThatFits(ProposedViewSize(width: textWidth, height: nil))
+            message.place(at: CGPoint(x: g.textPadding, y: y), size: s, ctx)
+            y += s.height
+        }
+        y = headerHeight()
+        horizontalActions = fitsSideBySide()
+        let inner = size.width - g.buttonInset * 2
+        var cells: [CGRect] = []
+        for (i, action) in actions.enumerated() {
+            let cell: CGRect
+            if horizontalActions {
+                let column = cancelIsLast ? 1 - i : i
+                let w = (inner - g.buttonGap) / 2
+                cell = CGRect(x: g.buttonInset + CGFloat(column) * (w + g.buttonGap), y: y, width: w, height: g.buttonHeight)
+            } else {
+                cell = CGRect(x: g.buttonInset, y: y + CGFloat(i) * (g.buttonHeight + g.buttonGap), width: inner, height: g.buttonHeight)
+            }
+            cells.append(cell)
+            let s = action.sizeThatFits(ProposedViewSize(width: cell.width - g.buttonTextPadding * 2, height: nil))
+            action.place(at: CGPoint(x: cell.midX - s.width / 2, y: cell.midY - s.height / 2), size: s, ctx)
+        }
+        glassActionCells = cells
+    }
+
     override func drawContent(_ p: Painter) {
         let bounds = CGRect(origin: .zero, size: frame.size)
+        if design.isGlass, let cells = glassActionCells {
+            let g = AlertMetrics.forDesign(design)
+            p.fillGlass(.roundedRect(bounds, radius: g.cornerRadius), appearance: g.appearance(scheme, design: design))
+            let fill = _Paint.color(g.buttonFill.resolve(scheme))
+            for cell in cells { p.fill(Path(roundedRect: cell, cornerRadius: cell.height / 2, style: .circular), with: fill, in: cell) }
+            drawChildren(p)
+            return
+        }
         drawPresentationMaterial(p, Path(roundedRect: bounds, cornerRadius: AlertMetrics.cornerRadius, style: .continuous), tint: background)
         for line in hairlines { p.fill(Path(line), with: .color(separatorColor), in: line) }
         drawChildren(p)
@@ -500,25 +700,37 @@ final class DialogCardNode: Node {
     let separatorColor: RGBA
     let background: RGBA
     let cancelBackground: RGBA
+    let design: DesignLanguage
+    private let scheme: ColorScheme
     private var groupRect = CGRect.zero
     private var cancelRect = CGRect.zero
     private var hairlines: [CGRect] = []
+    /// Glass only: room kept below the last row so it clears the home indicator.
+    var bottomPadding: CGFloat = 0
+    /// Glass only: each row (local coordinates), in the order `actions + [cancel]`. Nil for the flat dialog.
+    private(set) var glassActionCells: [CGRect]?
 
     init(spec: DialogSpec, ctx: ResolveContext) {
         let env = ctx.env
         let scheme = env.colorScheme
+        self.scheme = scheme
+        let design = env.designLanguage
+        self.design = design
+        let glass = DialogMetrics.forDesign(design)
         let secondary = SystemColor.secondaryLabel.resolve(scheme)
+        let headerSize = design.isGlass ? glass.headerFontSize : DialogMetrics.headerFontSize
+        let actionSize = design.isGlass ? glass.actionFontSize : DialogMetrics.actionFontSize
         title = spec.title.map { t in
-            resolveDialogText(nodeResolver(t), ctx.child("title"), size: DialogMetrics.headerFontSize, weight: .semibold, color: secondary)
+            resolveDialogText(nodeResolver(t), ctx.child("title"), size: headerSize, weight: .semibold, color: secondary)
         } ?? nil
-        message = resolveDialogText(spec.message, ctx.child("message"), size: DialogMetrics.headerFontSize, weight: .regular, color: secondary)
+        message = resolveDialogText(spec.message, ctx.child("message"), size: headerSize, weight: .regular, color: secondary)
         let list = presentationActions(spec, ctx)
         let accent = Color.accentColor.rgba(in: env)
         actions = list.filter { $0.role != .cancel }.map { action in
-            textNode(action.title, size: DialogMetrics.actionFontSize, weight: .regular,
+            textNode(action.title, size: actionSize, weight: .regular,
                      color: action.role == .destructive ? SystemColor.red.resolve(scheme) : accent, env: env)
         }
-        cancel = textNode(list.first(where: { $0.role == .cancel })?.title ?? "Cancel", size: DialogMetrics.actionFontSize,
+        cancel = textNode(list.first(where: { $0.role == .cancel })?.title ?? "Cancel", size: actionSize,
                           weight: .semibold, color: accent, env: env)
         separatorColor = SystemColor.separator.resolve(scheme)
         background = scheme == .dark ? AlertMetrics.backgroundDark : AlertMetrics.backgroundLight
@@ -530,11 +742,13 @@ final class DialogCardNode: Node {
 
     private func headerHeight(_ width: CGFloat) -> CGFloat {
         guard hasHeader else { return 0 }
-        let w = width - DialogMetrics.headerPaddingSide * 2
-        var h = DialogMetrics.headerPaddingTop + DialogMetrics.headerPaddingBottom
+        let glass = DialogMetrics.forDesign(design)
+        let side = design.isGlass ? glass.headerPaddingSide : DialogMetrics.headerPaddingSide
+        let w = width - side * 2
+        var h = design.isGlass ? glass.headerPaddingTop + glass.headerPaddingBottom : DialogMetrics.headerPaddingTop + DialogMetrics.headerPaddingBottom
         if let title { h += title.sizeThatFits(ProposedViewSize(width: w, height: nil)).height }
         if let message {
-            if title != nil { h += DialogMetrics.titleMessageSpacing }
+            if title != nil { h += design.isGlass ? glass.titleMessageSpacing : DialogMetrics.titleMessageSpacing }
             h += message.sizeThatFits(ProposedViewSize(width: w, height: nil)).height
         }
         return h
@@ -546,11 +760,15 @@ final class DialogCardNode: Node {
 
     override func measure(_ proposal: ProposedViewSize) -> CGSize {
         let width = proposal.width ?? 377
+        if design.isGlass {
+            return CGSize(width: width, height: headerHeight(width) + CGFloat(actions.count + 1) * DialogMetrics.forDesign(design).rowHeight + bottomPadding)
+        }
         let group = groupHeight(width)
         return CGSize(width: width, height: (group > 0 ? group + DialogMetrics.cancelGap : 0) + DialogMetrics.rowHeight)
     }
 
     override func layout(size: CGSize, _ ctx: PlaceContext) {
+        if design.isGlass { layoutGlass(size: size, ctx); return }
         let w = size.width - DialogMetrics.headerPaddingSide * 2
         let group = groupHeight(size.width)
         groupRect = CGRect(x: 0, y: 0, width: size.width, height: group)
@@ -579,7 +797,48 @@ final class DialogCardNode: Node {
         cancel.place(at: CGPoint(x: cancelRect.midX - s.width / 2, y: cancelRect.midY - s.height / 2), size: s, ctx)
     }
 
+    /// Glass: one card; the header, then a row per action with the cancel action as the last row.
+    private func layoutGlass(size: CGSize, _ ctx: PlaceContext) {
+        let g = DialogMetrics.forDesign(design)
+        let w = size.width - g.headerPaddingSide * 2
+        var y = g.headerPaddingTop
+        hairlines = []
+        if let title {
+            let s = title.sizeThatFits(ProposedViewSize(width: w, height: nil))
+            title.place(at: CGPoint(x: (size.width - s.width) / 2, y: y), size: s, ctx)
+            y += s.height
+        }
+        if let message {
+            if title != nil { y += g.titleMessageSpacing }
+            let s = message.sizeThatFits(ProposedViewSize(width: w, height: nil))
+            message.place(at: CGPoint(x: (size.width - s.width) / 2, y: y), size: s, ctx)
+            y += s.height
+        }
+        y = headerHeight(size.width)
+        var cells: [CGRect] = []
+        for (i, action) in (actions + [cancel]).enumerated() {
+            if i > 0 || hasHeader {
+                hairlines.append(CGRect(x: g.separatorInset, y: y, width: size.width - g.separatorInset * 2, height: ChromeMetrics.hairline))
+            }
+            let cell = CGRect(x: 0, y: y, width: size.width, height: g.rowHeight)
+            cells.append(cell)
+            let s = action.sizeThatFits(ProposedViewSize(width: w, height: nil))
+            action.place(at: CGPoint(x: cell.midX - s.width / 2, y: cell.midY - s.height / 2), size: s, ctx)
+            y += g.rowHeight
+        }
+        glassActionCells = cells
+    }
+
     override func drawContent(_ p: Painter) {
+        if design.isGlass {
+            let g = DialogMetrics.forDesign(design)
+            let bounds = CGRect(origin: .zero, size: frame.size)
+            p.fillGlass(.roundedRect(bounds, radius: g.cornerRadius),
+                        appearance: AlertMetrics.forDesign(design).appearance(scheme, design: design))
+            for line in hairlines { p.fill(Path(line), with: .color(separatorColor), in: line) }
+            drawChildren(p)
+            return
+        }
         if groupRect.height > 0 {
             drawPresentationMaterial(p, Path(roundedRect: groupRect, cornerRadius: DialogMetrics.cornerRadius, style: .continuous), tint: background)
             for line in hairlines { p.fill(Path(line), with: .color(separatorColor), in: line) }
