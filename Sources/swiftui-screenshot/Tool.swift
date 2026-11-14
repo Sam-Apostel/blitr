@@ -31,7 +31,9 @@ Render options:
       --rounded-corners  Clip to the device's rounded display shape, corners transparent
       --show-island     Draw the Dynamic Island / notch over the content (simulator screenshots do not show it)
       --scheme <s>       light | dark | both (default light)
-      --ios <version>    iOS release whose look is drawn: 18, 26, 27 or latest
+      --ios <version>    OS release whose look is drawn: 18, 26, 27 or latest
+      --platform <p>     ios (default) | tvos. Decides which #if os(...) branches of your code are compiled.
+                         Implied by --device apple-tv-*.
       --layout <l>       device (full screen, default) | fit (size of the view) | fixed
       --width <pt>       Canvas width (fixed), or width proposed to the view (fit)
       --height <pt>      Same for height
@@ -176,6 +178,9 @@ struct Options {
     var json = false
     var noCache = false
     var openFonts = false
+    /// Swift's spelling of the rendered platform (iOS, tvOS, ...). Affects compilation, not just drawing.
+    var platform = "iOS"
+    var platformWasSet = false
     var verbose = false
     /// Passed through to the runner unchanged.
     var runnerArguments: [String] = []
@@ -206,6 +211,13 @@ func parse(_ arguments: [String]) -> Options {
         case "--json": options.json = true
         case "--no-cache": options.noCache = true
         case "--open-fonts": options.openFonts = true
+        case "--platform":
+            let raw = value(arg).lowercased()
+            guard let name = ["ios": "iOS", "tvos": "tvOS", "watchos": "watchOS", "macos": "macOS", "visionos": "visionOS"][raw] else {
+                fail("--platform must be ios, tvos, watchos, macos or visionos")
+            }
+            options.platform = name
+            options.platformWasSet = true
         case "-v", "--verbose": options.verbose = true
         case "--assets": options.userAssetDirectories.append(value(arg))
         case "--fonts": options.userFontDirectories.append(value(arg))
@@ -224,6 +236,12 @@ func parse(_ arguments: [String]) -> Options {
             options.inputs.append(arg)
         }
     }
+    // A device implies its platform unless one was given explicitly.
+    if !options.platformWasSet, let index = options.runnerArguments.firstIndex(of: "--device"), index + 1 < options.runnerArguments.count {
+        let device = options.runnerArguments[index + 1].lowercased().filter { $0.isLetter || $0.isNumber }
+        if device.hasPrefix("appletv") || device == "tv" { options.platform = "tvOS" }
+    }
+    options.runnerArguments += ["--platform", options.platform]
     return options
 }
 
@@ -245,6 +263,7 @@ func build(_ options: Options, _ installation: Installation) -> Build {
     }
 
     var preprocessor = Preprocessor()
+    preprocessor.platform = options.platform
     let output = preprocessor.process(sources, viewExpression: options.view)
     guard !output.entries.isEmpty else {
         fail("nothing to render: no #Preview, PreviewProvider or @main App found. Pass --view \"YourView()\" to pick a view.")
