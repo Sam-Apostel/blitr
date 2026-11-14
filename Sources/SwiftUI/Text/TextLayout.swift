@@ -137,11 +137,16 @@ final class TextLayout {
             func feature(_ tag: String) { features.append(hb_feature_t(tag: fourCC(tag), value: 1, start: 0, end: UInt32.max)) }
             if font.monospacedDigit { feature("tnum") }
             if font.smallCaps { feature("smcp") }
-            hb_shape(segment.instance.hbFont, buffer, features, UInt32(features.count))
+            // A sub-font carrying the point size: HarfBuzz only applies size-dependent tracking
+            // (Apple's `trak` table) when it knows the size.
+            let sized = hb_font_create_sub_font(segment.instance.hbFont)
+            hb_font_set_ptem(sized, Float(font.size))
+            hb_shape(sized, buffer, features, UInt32(features.count))
+            hb_font_destroy(sized)
             var count: UInt32 = 0
             let infos = hb_buffer_get_glyph_infos(buffer, &count)!
             let positions = hb_buffer_get_glyph_positions(buffer, &count)!
-            let unit = font.size / segment.instance.file.unitsPerEm
+            let unit = font.size / segment.instance.file.unitsPerEm * segment.instance.advanceScale
             for i in 0..<Int(count) {
                 var g = Glyph(id: UInt16(truncatingIfNeeded: infos[i].codepoint),
                               advance: CGFloat(positions[i].x_advance) * unit + run.kerning,

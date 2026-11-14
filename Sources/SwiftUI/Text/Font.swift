@@ -41,9 +41,9 @@ public struct Font: Hashable, Sendable {
         public var value: CGFloat
         public init(_ value: CGFloat) { self.value = value }
         public static let compressed = Width(-0.8)
-        public static let condensed = Width(-0.4)
+        public static let condensed = Width(-0.2)
         public static let standard = Width(0)
-        public static let expanded = Width(0.4)
+        public static let expanded = Width(0.2)
     }
 
     enum Provider: Hashable, Sendable {
