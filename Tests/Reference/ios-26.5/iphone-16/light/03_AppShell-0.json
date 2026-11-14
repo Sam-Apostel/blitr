@@ -1,0 +1,373 @@
+{
+  "colorScheme": "light",
+  "device": "agent-calibrate-iphone16-ios26",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 106.33,
+        "width": 112.33,
+        "x": 16,
+        "y": 181.67
+      },
+      "label": "$12.4k, Revenue",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 107.67,
+        "width": 112.33,
+        "x": 140.33,
+        "y": 181
+      },
+      "label": "318, Orders",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 105,
+        "width": 112.33,
+        "x": 264.67,
+        "y": 182.33
+      },
+      "label": "9,204, Visitors",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 118.33,
+        "x": 16,
+        "y": 308.67
+      },
+      "label": "Recent activity",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 16.33,
+        "width": 19.33,
+        "x": 34.33,
+        "y": 370
+      },
+      "label": "Shopping Cart",
+      "role": "image",
+      "traits": [
+        "image"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 18,
+        "width": 121.67,
+        "x": 72,
+        "y": 361
+      },
+      "label": "New order #4821",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 10.33,
+        "width": 6,
+        "x": 358.33,
+        "y": 373
+      },
+      "label": "Forward",
+      "role": "image",
+      "traits": [
+        "image"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 14.33,
+        "width": 128.33,
+        "x": 72,
+        "y": 381
+      },
+      "label": "2 items, paid with card",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 17,
+        "width": 17,
+        "x": 35.67,
+        "y": 428.33
+      },
+      "label": "Undo",
+      "role": "image",
+      "traits": [
+        "image"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 18,
+        "width": 100,
+        "x": 72,
+        "y": 419.67
+      },
+      "label": "Refund issued",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 10.33,
+        "width": 6,
+        "x": 358.33,
+        "y": 431.67
+      },
+      "label": "Forward",
+      "role": "image",
+      "traits": [
+        "image"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 14.33,
+        "width": 73,
+        "x": 72,
+        "y": 439.67
+      },
+      "label": "Order #4790",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 16,
+        "width": 17.67,
+        "x": 35.33,
+        "y": 487.67
+      },
+      "label": "Warning",
+      "role": "image",
+      "traits": [
+        "image"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 18,
+        "width": 147.67,
+        "x": 72,
+        "y": 478.33
+      },
+      "label": "Product low on stock",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 10.33,
+        "width": 6,
+        "x": 358.33,
+        "y": 490.33
+      },
+      "label": "Forward",
+      "role": "image",
+      "traits": [
+        "image"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 14.33,
+        "width": 125.67,
+        "x": 72,
+        "y": 498.33
+      },
+      "label": "Canvas Tote has 4 left",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 18,
+        "width": 18.67,
+        "x": 34.67,
+        "y": 545.33
+      },
+      "label": "Favorite",
+      "role": "image",
+      "traits": [
+        "image"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 18,
+        "width": 81.33,
+        "x": 72,
+        "y": 537
+      },
+      "label": "New review",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 10.33,
+        "width": 6,
+        "x": 358.33,
+        "y": 549
+      },
+      "label": "Forward",
+      "role": "image",
+      "traits": [
+        "image"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 14.33,
+        "width": 111,
+        "x": 72,
+        "y": 557
+      },
+      "label": "5 stars from Jordan",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "UILabel",
+      "frame": {
+        "height": 40.67,
+        "width": 173.67,
+        "x": 16,
+        "y": 116.67
+      },
+      "label": "Dashboard",
+      "role": "header",
+      "traits": [
+        "header"
+      ]
+    },
+    {
+      "class": "_UITabButton",
+      "frame": {
+        "height": 54,
+        "width": 95.75,
+        "x": 25,
+        "y": 773
+      },
+      "label": "Home",
+      "role": "button",
+      "traits": [
+        "button",
+        "selected"
+      ]
+    },
+    {
+      "class": "_UITabButton",
+      "frame": {
+        "height": 54,
+        "width": 95.75,
+        "x": 107.42,
+        "y": 773
+      },
+      "label": "Explore",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "_UITabButton",
+      "frame": {
+        "height": 54,
+        "width": 95.75,
+        "x": 189.83,
+        "y": 773
+      },
+      "label": "Inbox",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "_UITabButton",
+      "frame": {
+        "height": 54,
+        "width": 95.75,
+        "x": 272.25,
+        "y": 773
+      },
+      "label": "Account",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 0,
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "03_AppShell",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "26.5",
+  "version": 1
+}
