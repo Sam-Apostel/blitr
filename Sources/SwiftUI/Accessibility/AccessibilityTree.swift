@@ -79,7 +79,7 @@ func axImageLabel(_ node: ImageNode) -> AXLabelPart? {
     case .system(let name)?: return AXLabelPart(text: AXTrait.humanized(symbol: name), source: .symbol)
     case .named(let name)?: return AXLabelPart(text: name, source: .asset)
     case .file(let path)?: return AXLabelPart(text: (path as NSString).lastPathComponent, source: .asset)
-    case nil: return nil
+    case .rendered?, nil: return nil
     }
 }
 

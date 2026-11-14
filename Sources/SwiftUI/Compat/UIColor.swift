@@ -174,8 +174,12 @@ public class UIImage {
     let source: Image.Source
     var template = false
     public var renderingMode: RenderingMode { template ? .alwaysTemplate : .automatic }
-    public var scale: CGFloat { _currentConfiguration().scale ?? _currentConfiguration().device.scale }
+    public var scale: CGFloat {
+        if case .rendered(let rendered) = source { return rendered.scale }
+        return _currentConfiguration().scale ?? _currentConfiguration().device.scale
+    }
     public var size: CGSize {
+        if case .rendered(let rendered) = source { return rendered.bitmap.pointSize }
         guard case .named(let name) = source else { return .zero }
         return MainActor.assumeIsolated { AssetCatalog.shared.bitmap(named: name, scheme: .light)?.pointSize ?? .zero }
     }

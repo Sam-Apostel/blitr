@@ -13,6 +13,11 @@ final class Bitmap: @unchecked Sendable {
         self.image = image
         pointSize = CGSize(width: CGFloat(sk_image_get_width(image)) / scale, height: CGFloat(sk_image_get_height(image)) / scale)
     }
+    /// Takes ownership of a Skia image (ImageRenderer output).
+    init(image: OpaquePointer, pointSize: CGSize) {
+        self.image = image
+        self.pointSize = pointSize
+    }
     deinit { sk_image_unref(image) }
 }
 
@@ -99,6 +104,8 @@ public struct Image: Equatable, Sendable {
         case named(String)
         case system(String)
         case file(String)
+        /// Pixels made while rendering (ImageRenderer).
+        case rendered(RenderedImage)
     }
     var source: Source
     /// `Image(decorative:)`: hidden from assistive technology.
@@ -250,6 +257,8 @@ extension Image {
         case .file(let path):
             guard let bitmap = Bitmap(path: path, scale: 1) else { return .missing(path) }
             return .bitmap(bitmap, template: renderingMode == .template ? foreground : nil)
+        case .rendered(let rendered):
+            return .bitmap(rendered.bitmap, template: renderingMode == .template ? foreground : nil)
         case .named(let name):
             guard let bitmap = AssetCatalog.shared.bitmap(named: name, scheme: env.colorScheme) else {
                 Runtime.current?.warn("Image asset \"\(name)\" not found (pass --assets <dir>); rendered as a placeholder")
