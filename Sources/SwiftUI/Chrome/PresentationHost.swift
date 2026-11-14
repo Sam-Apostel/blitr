@@ -90,8 +90,8 @@ enum AlertMetrics {
         var buttonBottomInset: CGFloat = 15.33      // measured: iOS 27.0 simulator
         var buttonHeight: CGFloat = 48              // measured: iOS 27.0 simulator
         var buttonGap: CGFloat = 8                  // measured: iOS 27.0 simulator
-        /// iOS 27 confirmation dialog on iPhone: the alert's card, this wide, undimmed and without its
-        /// cancel button. measured: iOS 27.0 simulator (buttons 208pt, text 180pt, centred in the safe area)
+        /// Confirmation dialog on iPhone: the alert's card, this wide, undimmed and without its cancel button.
+        /// measured: iOS 26.5 and 27.0 simulators (buttons 208pt, text 180pt, centred in the safe area)
         var dialogWidth: CGFloat = 240
         var buttonFontSize: CGFloat = 17
         var buttonTextPadding: CGFloat = 10
@@ -189,7 +189,7 @@ final class PresentationHostNode: Node {
         case .alert(let spec):
             return DimmedCardLayerNode(card: AlertCardNode(spec: spec, ctx: record.ctx.child("alert")), env: record.ctx.env, atBottom: false)
         case .confirmationDialog(let spec):
-            if record.ctx.env.designLanguage == .liquidGlass27, record.ctx.env.renderPlatform == .iOS,
+            if record.ctx.env.designLanguage.isGlass, record.ctx.env.renderPlatform == .iOS,
                _currentConfiguration().device.idiom == .phone {
                 return DimmedCardLayerNode(card: AlertCardNode(spec: spec, ctx: record.ctx.child("dialog"), dialog: true),
                                            env: record.ctx.env, atBottom: false)
@@ -605,8 +605,8 @@ final class AlertCardNode: Node {
         let fontSize = design.isGlass ? AlertMetrics.forDesign(design).buttonFontSize : AlertMetrics.actionFontSize
         actionHandlers = list.map(\.activate)
         actions = list.map { action in
-            if design == .liquidGlass27 {
-                // Label-coloured, regular weight; destructive red. measured: iOS 27.0 simulator
+            if design.isGlass {
+                // Label-coloured, regular weight; destructive red. measured: iOS 26.5 and 27.0 simulators
                 return textNode(action.title, size: fontSize, weight: .regular,
                                 color: action.role == .destructive ? SystemColor.red.resolve(scheme) : label, env: env)
             }

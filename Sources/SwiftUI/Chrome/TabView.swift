@@ -117,8 +117,9 @@ enum TabBarMetrics {
             // measured: iOS 27.0 simulator (pill 235 on a 249 bar in light, 10 on 32 in dark)
             return Glass(pillLight: RGBA(0, 0, 0, 0.056), pillDark: RGBA(0, 0, 0, 0.69))
         default:
-            // iOS 26: a soft highlight, lighter than the bar.
-            return Glass(pillLight: RGBA(1, 1, 1, 0.7), pillDark: RGBA(0.45, 0.45, 0.48, 0.5), pillIsRaised: true)
+            // iOS 26: a flat fill, darker than the bar in light mode and lighter in dark mode.
+            // measured: iOS 26.5 simulator (pill 235 on a 253 bar in light, 53 on 19 in dark)
+            return Glass(pillLight: RGBA(0, 0, 0, 0.07), pillDark: RGBA(1, 1, 1, 0.14))
         }
     }
 }
