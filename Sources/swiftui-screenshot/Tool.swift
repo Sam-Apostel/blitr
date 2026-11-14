@@ -34,6 +34,7 @@ Render options:
       --show-island     Draw the Dynamic Island / notch over the content (simulator screenshots do not show it)
       --scheme <s>       light | dark | both (default light)
       --ios <version>    OS release whose look is drawn: 18, 26, 27 or latest (default latest)
+      --os <version>     Same as --ios; the version applies to the platform rendered (tvOS 18, 26, 27, ...)
       --platform <p>     ios (default) | tvos. Decides which #if os(...) branches of your code are compiled.
                          Implied by --device apple-tv-*.
       --layout <l>       device (full screen, default) | fit (size of the view) | fixed
@@ -237,6 +238,7 @@ func parse(_ arguments: [String]) -> Options {
         case "--fonts": options.userFontDirectories.append(value(arg))
         case "--device", "--layout", "--width", "--height", "--scale", "--padding", "--background", "--dynamic-type", "--task-budget", "--ios":
             options.runnerArguments += [arg, value(arg)]
+        case "--os": options.runnerArguments += ["--ios", value(arg)]
         case "--no-chrome": options.runnerArguments.append(arg)
         case "--orientation": options.runnerArguments += [arg, value(arg)]
         case "--rounded-corners", "--show-island": options.runnerArguments.append(arg)
