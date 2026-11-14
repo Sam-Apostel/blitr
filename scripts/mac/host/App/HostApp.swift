@@ -38,6 +38,9 @@ enum LaunchOptions {
     static var screen: String { value("-screen") ?? "" }
     static var preview: Int { Int(value("-preview") ?? "0") ?? 0 }
     static var settle: Double { Double(value("-settle") ?? "1.0") ?? 1.0 }
+    /// With `-redump <seconds>`, the element frames are written again at that interval, so a driver that
+    /// moves focus afterwards (the tvOS capture) finds frames for the state it photographed.
+    static var redump: Double? { value("-redump").flatMap(Double.init) }
     static var outDirectory: URL {
         if let dir = value("-out") { return URL(fileURLWithPath: dir) }
         return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -66,6 +69,11 @@ struct HostRoot: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + LaunchOptions.settle) {
             let name = "\(LaunchOptions.screen)-\(LaunchOptions.preview)"
             ElementDump.write(to: out.appendingPathComponent(name + ".json"))
+            if let interval = LaunchOptions.redump {
+                Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in
+                    MainActor.assumeIsolated { ElementDump.write(to: out.appendingPathComponent(name + ".json")) }
+                }
+            }
             DispatchQueue.main.async {
                 try? Data("ok".utf8).write(to: out.appendingPathComponent("ready"))
             }
