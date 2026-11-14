@@ -4,7 +4,7 @@
 // Values are in points. Where a number is an estimate rather than a measured value, the comment
 // says so; the geometry that decides layout (point size, scale, safe-area insets) is what matters most.
 
-enum DeviceIdiom: Sendable { case phone, pad }
+enum DeviceIdiom: Sendable { case phone, pad, tv }
 
 enum DeviceOrientation: Sendable {
     case portrait, landscapeLeft, landscapeRight
@@ -54,12 +54,12 @@ struct DeviceProfile {
     var safeArea: EdgeInsets { orientation.isLandscape ? landscapeSafeArea : portraitSafeArea }
 
     /// iPhones in landscape hide the status bar; iPads keep it.
-    var showsStatusBar: Bool { idiom == .pad || !orientation.isLandscape }
+    var showsStatusBar: Bool { idiom == .pad || (idiom == .phone && !orientation.isLandscape) }
 
     /// Width size class of a full-screen app. iPads are regular. iPhones are compact in portrait, and
     /// in landscape regular when the portrait width is 414pt or more (the Plus/Max/Air sizes, and the 11).
     var horizontalSizeClass: UserInterfaceSizeClass {
-        if idiom == .pad { return .regular }
+        if idiom != .phone { return .regular }
         return orientation.isLandscape && portraitSize.width >= 414 ? .regular : .compact
     }
     /// iPhones are compact in landscape; everything else is regular.
@@ -120,6 +120,16 @@ struct DeviceProfile {
 
     static let table: [DeviceProfile] = [
         // Home button. Landscape has no insets (status bar hidden).
+        // Apple TV: a 1920x1080pt canvas (4K renders it at 2x). The safe area is the overscan
+        // margin tvOS keeps clear: 60pt top and bottom, 80pt at the sides.
+        DeviceProfile(id: "apple-tv-4k", name: "Apple TV 4K", idiom: .tv, portraitSize: CGSize(width: 1920, height: 1080), scale: 2,
+                      portraitSafeArea: EdgeInsets(top: 60, leading: 80, bottom: 60, trailing: 80),
+                      landscapeSafeArea: EdgeInsets(top: 60, leading: 80, bottom: 60, trailing: 80), cornerRadius: 0,
+                      housing: .none, aliases: ["apple-tv", "appletv", "tv", "apple-tv-4k-3rd-generation"]),
+        DeviceProfile(id: "apple-tv-hd", name: "Apple TV HD", idiom: .tv, portraitSize: CGSize(width: 1920, height: 1080), scale: 1,
+                      portraitSafeArea: EdgeInsets(top: 60, leading: 80, bottom: 60, trailing: 80),
+                      landscapeSafeArea: EdgeInsets(top: 60, leading: 80, bottom: 60, trailing: 80), cornerRadius: 0,
+                      housing: .none, aliases: ["apple-tv-1080p"]),
         DeviceProfile(id: "iphone-se", name: "iPhone SE (3rd generation)", idiom: .phone, portraitSize: CGSize(width: 375, height: 667),
                       scale: 2, portraitSafeArea: edges(20, 0, 0, 0), landscapeSafeArea: edges(0, 0, 0, 0), cornerRadius: 0,
                       housing: .homeButton, aliases: ["iphone-se-2", "iphone-se-3", "iPhone SE (2nd generation)", "iphone-8"]),

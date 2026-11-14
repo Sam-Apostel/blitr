@@ -26,6 +26,26 @@ extension EnvironmentValues {
     var designLanguage: DesignLanguage { DesignLanguage(osVersion: platformVersion) }
 }
 
+/// The Apple platform whose look and conventions are rendered. Chosen before compilation,
+/// because `#if os(...)` in user code is resolved by the compiler.
+enum RenderPlatform: String, CaseIterable, Sendable {
+    case iOS, tvOS, watchOS, macOS, visionOS
+
+    init?(argument: String) {
+        guard let match = RenderPlatform.allCases.first(where: { $0.rawValue.lowercased() == argument.lowercased() }) else { return nil }
+        self = match
+    }
+}
+
+enum RenderPlatformKey: EnvironmentKey { static let defaultValue = RenderPlatform.iOS }
+
+extension EnvironmentValues {
+    var renderPlatform: RenderPlatform {
+        get { self[RenderPlatformKey.self] }
+        set { self[RenderPlatformKey.self] = newValue }
+    }
+}
+
 /// Runtime answer to `#available(iOS N, *)`, which the preprocessor rewrites to a call here:
 /// on Linux the compiler would otherwise treat every availability check as true.
 public enum RenderedPlatform {
@@ -33,6 +53,7 @@ public enum RenderedPlatform {
     static let supportedVersions = [18, 26, 27]
     static let defaultVersion = 18
     nonisolated(unsafe) static var current = defaultVersion
+    nonisolated(unsafe) static var platform = RenderPlatform.iOS
 
     public static func isAtLeast(iOS major: Int, _ minor: Int = 0) -> Bool { current >= major }
 }

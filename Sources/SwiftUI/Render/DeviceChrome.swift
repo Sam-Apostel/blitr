@@ -6,7 +6,8 @@ enum DeviceChrome {
     static func draw(_ p: Painter, device: DeviceProfile, size: CGSize, statusBarScheme scheme: ColorScheme,
                      homeIndicatorScheme: ColorScheme, showsHousing: Bool = false) {
         let color = _Paint.color(scheme == .dark ? .white : .black)
-        if device.safeArea.bottom > 0 {
+        // Apple TV has an overscan margin but no home indicator or status bar.
+        if device.safeArea.bottom > 0, device.idiom != .tv {
             // iPhone: 139x5, 8pt above the bottom edge. iPad: longer; 219pt is an estimate.
             let width: CGFloat = device.idiom == .pad ? 219 : 139
             let bar = CGRect(x: (size.width - width) / 2, y: size.height - 8 - 5, width: width, height: 5)

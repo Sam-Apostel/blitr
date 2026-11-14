@@ -43,7 +43,7 @@ public final class UIDevice {
     public enum Orientation: Int, Sendable { case unknown, portrait, portraitUpsideDown, landscapeLeft, landscapeRight, faceUp, faceDown }
     public static let current = UIDevice()
     public static let orientationDidChangeNotification = Notification.Name("UIDeviceOrientationDidChangeNotification")
-    public var userInterfaceIdiom: UIUserInterfaceIdiom { _currentConfiguration().device.idiom == .pad ? .pad : .phone }
+    public var userInterfaceIdiom: UIUserInterfaceIdiom { switch _currentConfiguration().device.idiom { case .pad: return .pad; case .tv: return .tv; case .phone: return .phone } }
     public var name: String { userInterfaceIdiom == .pad ? "iPad" : "iPhone" }
     public var model: String { name }
     public var localizedModel: String { name }
