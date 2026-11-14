@@ -7,6 +7,8 @@ import Foundation
 ///     @main                            ->  (removed; the generated main.swift is the entry point)
 ///     #if os(iOS)                      ->  #if os(Linux)   (so iOS-only branches are the ones rendered)
 ///     @Entry var x: T = v              ->  an explicit EnvironmentKey + computed property
+///     #available(iOS 26, *)            ->  SwiftUI.RenderedPlatform.isAtLeast(iOS: 26)
+///     #unavailable(iOS 26)             ->  !SwiftUI.RenderedPlatform.isAtLeast(iOS: 26)
 ///
 /// Rewrites stay on the same line, so compiler diagnostics still point at the right line.
 struct Preprocessor {
@@ -238,6 +240,12 @@ struct Preprocessor {
             let next = index + t.count < bytes.count ? bytes[index + t.count] : 0
             return !(next == UInt8(ascii: "_") || (next >= 48 && next <= 57) || (next >= 65 && next <= 90) || (next >= 97 && next <= 122))
         }
+        func hasPrefix(_ token: String, at index: Int) -> Bool {
+            let t = Array(token.utf8)
+            guard index + t.count <= bytes.count, mask[index] else { return false }
+            for (k, b) in t.enumerated() where bytes[index + k] != b { return false }
+            return true
+        }
         while i < bytes.count {
             if hasToken("@Previewable", at: i) {
                 i += "@Previewable".utf8.count
@@ -247,6 +255,30 @@ struct Preprocessor {
             if hasToken("@main", at: i) {
                 i += "@main".utf8.count
                 continue
+            }
+            // Availability checks are always true to the Linux compiler; make them follow --ios instead.
+            var availability: (negated: Bool, length: Int)?
+            if hasPrefix("#available", at: i) { availability = (false, "#available".utf8.count) }
+            if hasPrefix("#unavailable", at: i) { availability = (true, "#unavailable".utf8.count) }
+            if let availability {
+                var k = i + availability.length
+                while k < bytes.count, bytes[k] == UInt8(ascii: " ") { k += 1 }
+                if k < bytes.count, bytes[k] == UInt8(ascii: "("), let close = bytes[k...].firstIndex(of: UInt8(ascii: ")")) {
+                    let arguments = String(decoding: bytes[(k + 1)..<close], as: UTF8.self)
+                    // Use the iOS entry; a check that does not mention iOS is left for the compiler.
+                    let iosEntry = arguments.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+                        .first { $0.hasPrefix("iOS ") || $0.hasPrefix("iOS\t") }
+                    if let iosEntry {
+                        let version = iosEntry.dropFirst(3).trimmingCharacters(in: .whitespaces).split(separator: ".")
+                        if let major = version.first.flatMap({ Int($0) }) {
+                            let minor = version.count > 1 ? Int(version[1]) ?? 0 : 0
+                            let call = "\(availability.negated ? "!" : "")SwiftUI.RenderedPlatform.isAtLeast(iOS: \(major), \(minor))"
+                            out += Array(call.utf8)
+                            i = close + 1
+                            continue
+                        }
+                    }
+                }
             }
             if hasToken("os(iOS)", at: i) {
                 out += Array("os(Linux)".utf8)
