@@ -12,6 +12,9 @@ final class ListRowNode: Node {
     let usesDefaultInsets: Bool
     let minHeight: CGFloat
     let chevronPaint: _Paint
+    let chevronSize: CGSize
+    let chevronTrailingPad: CGFloat
+    let chevronReserveWidth: CGFloat
     let separator: SeparatorSetting?
     let separatorTint: TintSetting?
     /// Leading x of the separator below this row, in the row's coordinates (set after layout).
@@ -38,6 +41,9 @@ final class ListRowNode: Node {
                                            bottom: design.rowInsetVertical, trailing: design.rowInsetHorizontal)
         self.minHeight = minHeight
         self.chevronPaint = chevronPaint
+        chevronSize = design.chevronSize
+        chevronTrailingPad = design.chevronTrailingPad
+        chevronReserveWidth = design.chevronReserve
         self.separator = separator
         self.separatorTint = separatorTint
         var kids: [Node] = []
@@ -57,7 +63,7 @@ final class ListRowNode: Node {
         if let v = p.trailing { insets.trailing = v }
     }
 
-    private var chevronReserve: CGFloat { hasChevron ? ListMetrics.chevronBox + ListMetrics.chevronGap : 0 }
+    private var chevronReserve: CGFloat { hasChevron ? chevronReserveWidth : 0 }
     private func badgeReserve() -> CGFloat {
         guard let badge else { return 0 }
         return badge.sizeThatFits(.unspecified).width + ListMetrics.badgeGap
@@ -97,8 +103,8 @@ final class ListRowNode: Node {
         if tvRow { drawTV(p); return }
         drawChildren(p)
         guard hasChevron else { return }
-        let w = ListMetrics.chevronWidth, h = ListMetrics.chevronHeight
-        let right = frame.width - insets.trailing
+        let w = chevronSize.width, h = chevronSize.height
+        let right = frame.width - insets.trailing - chevronTrailingPad
         let midY = frame.height / 2
         var path = Path()
         path.move(to: CGPoint(x: right - w, y: midY - h / 2))
@@ -132,6 +138,8 @@ final class ListNode: Node {
     let usesGlassGeometry: Bool
     /// tvOS: rows without cards or separators; the focused row is a raised white platter (Chrome/TV/TVList.swift).
     let tv: Bool
+    /// The List is the content of a NavigationStack (its bar sits right above it).
+    let underNavigationBar: Bool
 
     // Results of layout, in this node's coordinates.
     private var cards: [(rect: CGRect, radius: CGFloat, rows: Range<Int>, section: Int)] = []
@@ -148,13 +156,18 @@ final class ListNode: Node {
         // tvOS lists have no background of their own (est.): the screen shows through.
         backgroundColor = env.scrollContentBackground == .hidden || env.renderPlatform == .tvOS ? nil : colors.background
         cardColor = colors.card
-        separatorColor = SystemColor.separator.resolve(env.colorScheme)
         rowSpacing = env.listRowSpacing
         listSectionSpacing = env.listSectionSpacing
         tv = env.renderPlatform == .tvOS
         usesGlassGeometry = !tv && env.designLanguage.isGlass && style == .insetGrouped
-        let design = tv ? ListMetrics.forTV() : ListMetrics.forDesign(usesGlassGeometry ? env.designLanguage : .flat)
+        let design = tv ? ListMetrics.forTV() : ListMetrics.forDesign(env.designLanguage, style: style)
         self.design = design
+        if let colors = design.separatorColors {
+            separatorColor = env.colorScheme == .dark ? colors.dark : colors.light
+        } else {
+            separatorColor = SystemColor.separator.resolve(env.colorScheme)
+        }
+        underNavigationBar = env.navigationStackIdentity != nil
         let minHeight = env.explicitMinListRowHeight ?? design.minRowHeight
         let chevronPaint = _Paint.color(SystemColor.tertiaryLabel.resolve(env.colorScheme))
         var badgeEnv = env
@@ -165,13 +178,19 @@ final class ListNode: Node {
 
         func makeRow(_ node: Node, inherited: Traits?) -> ListRowNode {
             func trait<K: TraitKey>(_ key: K.Type) -> K.Value? { node.traits[key] ?? inherited?[key] }
-            return ListRowNode(content: node, background: trait(ListRowBackgroundTraitKey.self),
+            let row = ListRowNode(content: node, background: trait(ListRowBackgroundTraitKey.self),
                                badge: trait(BadgeTraitKey.self).map { $0.makeNode(badgeEnv) },
                                hasChevron: ListNode.hasDisclosure(node),
                                insets: trait(ListRowInsetsTraitKey.self), partialInsets: trait(ListRowPartialInsetsTraitKey.self),
                                design: design, minHeight: minHeight,
                                chevronPaint: chevronPaint, separator: trait(ListRowSeparatorTraitKey.self),
                                separatorTint: trait(ListRowSeparatorTintTraitKey.self))
+            if let inset = design.switchRowInsetVertical, row.usesDefaultInsets, ListNode.containsSwitch(node) {
+                row.insets.top = inset
+                row.insets.bottom = inset
+                row.applyPartialInsets()
+            }
+            return row
         }
 
         var sections: [Section] = []
@@ -208,6 +227,12 @@ final class ListNode: Node {
         return node.children.contains { hasDisclosure($0) }
     }
 
+    /// A row holding a Toggle drawn as a switch.
+    static func containsSwitch(_ node: Node) -> Bool {
+        if node.ax?.info.role == "switch" { return true }
+        return node.children.contains { containsSwitch($0) }
+    }
+
     override func measure(_ proposal: ProposedViewSize) -> CGSize { proposal.replacingUnspecifiedDimensions() }
 
     override func layout(size: CGSize, _ ctx: PlaceContext) {
@@ -220,7 +245,7 @@ final class ListNode: Node {
         let cardX: CGFloat = (style == .insetGrouped || style == .inset) ? ChromeMetrics.insetListMargin(forWidth: size.width) : 0
         let cardW = max(0, size.width - cardX * 2)
         let radius: CGFloat = style == .insetGrouped ? design.cardCornerRadius : 0
-        let plainInset = margin + ListMetrics.plainRowExtraInset
+        let plainInset = margin + design.plainExtraInset
         for section in sections {
             for row in section.rows where row.usesDefaultInsets && style == .plain {
                 row.insets.leading = plainInset
@@ -238,13 +263,25 @@ final class ListNode: Node {
         let scrollOffset = scrollIdentity.flatMap { Runtime.current?.focus.scrollOffsets[$0]?.y } ?? 0
         var y = max(0, ctx.safeRect.minY - ctx.origin.y) - scrollOffset
         let grouped = style.isGroupedFamily
-        let thickness = ListMetrics.separatorThickness
+        let thickness = design.separatorThickness
         var previousHadFooter = false
 
         for (index, section) in sections.enumerated() {
             let hasHeader = section.header != nil
             // Space above the section.
-            if grouped {
+            if grouped, let g = design.sections {
+                // Glass: the previous section ended with its footer box or `sectionBottom`; this one starts
+                // with its header box or `sectionTop` (custom spacing replaces the gap between the two).
+                let custom = (section.spacing?.value ?? listSectionSpacing.value)
+                if index == 0 {
+                    if !hasHeader { y += underNavigationBar ? g.firstSectionTopUnderBar : g.firstSectionTop }
+                } else if let custom {
+                    y += custom
+                } else {
+                    if !previousHadFooter { y += g.sectionBottom }
+                    if !hasHeader { y += g.sectionTop }
+                }
+            } else if grouped {
                 let custom = (section.spacing?.value ?? listSectionSpacing.value)
                 if index == 0 {
                     y += hasHeader ? ListMetrics.firstHeaderTop : ListMetrics.firstSectionTop
@@ -258,12 +295,23 @@ final class ListNode: Node {
             }
             // Header.
             if let header = section.header {
-                if grouped {
+                if grouped, let g = design.sections {
+                    let width = cardW - design.headerInset * 2
+                    let h = header.sizeThatFits(ProposedViewSize(width: width, height: nil))
+                    header.place(at: CGPoint(x: cardX + design.headerInset, y: y + g.headerPaddingTop), size: h, inner)
+                    y += g.headerPaddingTop + h.height + g.headerPaddingBottom
+                } else if grouped {
                     let width = cardW - ListMetrics.headerInset * 2
                     let h = header.sizeThatFits(ProposedViewSize(width: width, height: nil))
                     header.place(at: CGPoint(x: cardX + ListMetrics.headerInset, y: y), size: h, inner)
                     let baseline = header.explicitAlignment(VerticalAlignment.lastTextBaseline.key, size: h) ?? h.height
                     y += baseline + design.headerBaselineToCard
+                } else if let plain = design.plainSections {
+                    if index > 0 { y += plain.gap }
+                    let width = size.width - plainInset * 2
+                    let h = header.sizeThatFits(ProposedViewSize(width: width, height: nil))
+                    header.place(at: CGPoint(x: plainInset, y: y + plain.headerPadding), size: h, inner)
+                    y += h.height + plain.headerPadding * 2
                 } else {
                     let width = size.width - plainInset * 2
                     let h = header.sizeThatFits(ProposedViewSize(width: width, height: nil))
@@ -317,7 +365,12 @@ final class ListNode: Node {
             // Footer.
             previousHadFooter = section.footer != nil
             if let footer = section.footer {
-                if grouped {
+                if grouped, let g = design.sections {
+                    let width = cardW - design.headerInset * 2
+                    let f = footer.sizeThatFits(ProposedViewSize(width: width, height: nil))
+                    footer.place(at: CGPoint(x: cardX + design.headerInset, y: y + g.footerPaddingTop), size: f, inner)
+                    y += g.footerPaddingTop + f.height + g.footerPaddingBottom
+                } else if grouped {
                     y += ListMetrics.footerTopSpacing
                     let width = cardW - ListMetrics.headerInset * 2
                     let f = footer.sizeThatFits(ProposedViewSize(width: width, height: nil))
