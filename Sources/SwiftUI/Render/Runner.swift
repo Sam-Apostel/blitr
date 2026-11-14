@@ -126,6 +126,15 @@ public enum _ScreenshotRunner {
                     }
                     FocusOutputs.request.presses.append(press)
                 }
+            // Read by the widget previews themselves (_WidgetHostOptions); only validated here.
+            case "--widget-family":
+                let v = value(flag)
+                guard _WidgetFamilyID(_argument: v) != nil else {
+                    fail("unknown widget family \"\(v)\". Known: \(_WidgetFamilyID.allCases.map(\.rawValue).joined(separator: ", "))")
+                }
+            case "--widget-rendering-mode":
+                let v = value(flag)
+                guard _WidgetRenderingModeID(_argument: v) != nil else { fail("--widget-rendering-mode must be fullColor, accented or vibrant") }
             default: fail("unknown option \(flag)")
             }
         }

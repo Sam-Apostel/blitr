@@ -45,9 +45,10 @@ values written during layout (inside a `GeometryReader`) reach `onPreferenceChan
 | `Sources/SwiftUI/Glass` | iOS design language (`--ios 18/26/27`), `glassEffect` and glass painting |
 | `Sources/SwiftUI/Accessibility` | accessibility tree, tap targets and issues (`--accessibility-*`) |
 | `Sources/SwiftUI/Focus` | tvOS focus engine: focus records on nodes, movement, `@FocusState`, remote presses, focus map (docs/FOCUS.md) |
+| `Sources/SwiftUI/Widgets` | widget and Live Activity canvases; `Kits/` holds the WidgetKit, ActivityKit and AppIntents API (docs/WIDGETS.md) |
 | `Sources/SwiftUI/Render` | `Renderer`, runner entry point, device profiles and chrome, image comparison for `compare` |
 | `Sources/SwiftUI/Inert` | APIs with no effect on a static frame: gestures, animation; accessibility modifiers record into the tree |
-| `Sources/Combine`, `Sources/UIKit` | shim modules so those imports resolve |
+| `Sources/Combine`, `Sources/UIKit`, `Sources/WidgetKit`, `Sources/ActivityKit`, `Sources/AppIntents` | shim modules so those imports resolve |
 | `Sources/swiftui-screenshot` | the command-line tool and source preprocessor |
 | `Tests/Corpus` | realistic screens rendered in CI as acceptance tests |
 

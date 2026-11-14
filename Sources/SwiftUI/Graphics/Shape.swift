@@ -355,9 +355,16 @@ public struct Circle: InsettableShape {
 
 public struct ContainerRelativeShape: InsettableShape {
     var insetAmount: CGFloat = 0
+    /// The container's corner radius where the shape is created: set while a widget's content is
+    /// resolved (Widgets/WidgetHost.swift), 16pt elsewhere. `.infinity` means a circle.
+    nonisolated(unsafe) static var contextRadius: CGFloat?
+    var radius: CGFloat? = ContainerRelativeShape.contextRadius
     public init() {}
     public nonisolated func path(in rect: CGRect) -> Path {
-        Path(roundedRect: rect.insetBy(dx: insetAmount, dy: insetAmount), cornerRadius: 16, style: .continuous)
+        let r = rect.insetBy(dx: insetAmount, dy: insetAmount)
+        guard let radius else { return Path(roundedRect: r, cornerRadius: 16, style: .continuous) }
+        if radius == .infinity { return Path(ellipseIn: r) }
+        return Path(roundedRect: r, cornerRadius: max(0, radius - insetAmount), style: .continuous)
     }
     public nonisolated func inset(by amount: CGFloat) -> ContainerRelativeShape {
         var copy = self

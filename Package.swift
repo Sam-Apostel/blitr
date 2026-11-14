@@ -17,6 +17,10 @@ let package = Package(
         // Shims so `import Combine` / `import UIKit` resolve (SwiftUI re-exports Combine).
         .library(name: "Combine", type: .dynamic, targets: ["Combine"]),
         .library(name: "UIKit", type: .dynamic, targets: ["UIKit"]),
+        // Shims for widget extensions: `import WidgetKit`, `ActivityKit`, `AppIntents` (see docs/WIDGETS.md).
+        .library(name: "AppIntents", type: .dynamic, targets: ["AppIntents"]),
+        .library(name: "ActivityKit", type: .dynamic, targets: ["ActivityKit"]),
+        .library(name: "WidgetKit", type: .dynamic, targets: ["WidgetKit"]),
         // The command-line tool: compiles user sources against the modules above and renders them.
         .executable(name: "swiftui-screenshot", targets: ["swiftui-screenshot"]),
     ],
@@ -33,6 +37,9 @@ let package = Package(
         .target(name: "Combine", swiftSettings: moduleSettings),
         .target(name: "SwiftUI", dependencies: ["CSkia", "CHarfBuzz", "Combine"], swiftSettings: moduleSettings),
         .target(name: "UIKit", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
+        .target(name: "AppIntents", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
+        .target(name: "ActivityKit", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
+        .target(name: "WidgetKit", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
         .executableTarget(name: "swiftui-screenshot", swiftSettings: [.swiftLanguageMode(.v5)]),
     ]
 )

@@ -425,7 +425,7 @@ final class TextLayout {
             pos[2 * k + 1] = Float(baseline - g.yOffset)
             pen += g.advance
         }
-        guard let blob = sk_textblob_builder_make(builder) else { return }
+        guard !p.suppressesDrawing, let blob = sk_textblob_builder_make(builder) else { return }
         defer { sk_textblob_unref(blob) }
         let skPaint = p.makePaint(paint.kind, bounds: bounds)
         sk_canvas_draw_text_blob(p.canvas, blob, 0, 0, skPaint)

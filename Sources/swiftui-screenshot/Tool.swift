@@ -20,6 +20,8 @@ What is rendered (first match wins):
   #Preview blocks        Selected with --preview <index|name>, or --all for every one
   PreviewProvider types
   @main App              The first WindowGroup's content
+  Widget / WidgetBundle  Each widget from its provider's snapshot, once per supported family
+                         (#Preview(as: .systemSmall) ... timeline: and Live Activity previews are #Preview blocks)
 
 Render options:
   -o, --out <file.png>   Output file (default: <first-source-name>.png)
@@ -46,6 +48,10 @@ Render options:
       --fonts <dir>      Extra font directory, searched first (repeatable)
       --open-fonts       Use the open substitute fonts even if Apple's fonts are installed
       --task-budget <s>  Seconds .task closures may run before the frame is taken (default 0.5)
+      --widget-family <f>          Widgets: render this family (systemSmall, systemMedium, systemLarge,
+                                   systemExtraLarge, accessoryCircular, accessoryRectangular, accessoryInline)
+      --widget-rendering-mode <m>  Widgets: fullColor | accented | vibrant (default: fullColor; vibrant for
+                                   accessory families). See docs/WIDGETS.md
       --accessibility-tree <file.json>  Write the accessibility tree, tap-target data and issues as JSON
       --tap-targets <file.png>          Write the screenshot dimmed with every tap target outlined
                                         (green >= 44x44pt, red below)
@@ -234,6 +240,7 @@ func parse(_ arguments: [String]) -> Options {
         case "--no-chrome": options.runnerArguments.append(arg)
         case "--orientation": options.runnerArguments += [arg, value(arg)]
         case "--rounded-corners", "--show-island": options.runnerArguments.append(arg)
+        case "--widget-family", "--widget-rendering-mode": options.runnerArguments += [arg, value(arg)]
         case "--accessibility-tree", "--tap-targets": options.accessibility.record(arg, value: value(arg))
         case "--accessibility-outline": options.accessibility.record(arg, value: nil)
         case "--focus-map", "--focus-overlay", "--press", "--focus": options.focus.record(arg, value: value(arg))
@@ -317,7 +324,8 @@ func build(_ options: Options, _ installation: Installation) -> Build {
         }
     }
 
-    let listing = run(runner, ["--list"])
+    // The options go along: widget previews expand per --widget-family and --device.
+    let listing = run(runner, ["--list"] + options.runnerArguments)
     guard listing.status == 0 else { fail("runner failed to list previews:\n\(listing.stderr)") }
     let previews: [(Int, String)] = listing.stdout.split(separator: "\n").compactMap { line in
         let parts = line.split(separator: "\t", maxSplits: 1, omittingEmptySubsequences: false)

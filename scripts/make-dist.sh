@@ -51,6 +51,10 @@ for m in SwiftUI Combine UIKit; do
   cp -r "$bin/$m.swiftmodule" "$lib/"
   cp "$bin/lib$m.so" "$lib/"
 done
+# Widget extension imports: their API is in libSwiftUI, so only the module interfaces are needed.
+for m in WidgetKit ActivityKit AppIntents; do
+  cp -r "$bin/$m.swiftmodule" "$lib/"
+done
 
 # Skia, plus the symlink named after its SONAME (the loader looks that name up).
 cp -L Vendor/skia/lib/libSkiaSharp.so "$lib/"
