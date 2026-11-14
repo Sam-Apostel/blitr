@@ -125,3 +125,28 @@ package func _drawText(_ spans: [_TextSpan], in rect: CGRect, context: CGContext
 /// Whether `Font.custom(name, ...)` finds a font (a registered one, or one in the font directories).
 @MainActor
 package func _hasCustomFont(named name: String) -> Bool { FontLibrary.shared.hasCustomFont(named: name) }
+
+// MARK: - Drawing shared by the system buttons of AuthenticationServices and PassKit
+
+/// The Apple logo as the button draws it (drawn here so it shows without Apple's fonts).
+package struct _AppleLogo: Shape {
+    package init() {}
+    package func path(in rect: CGRect) -> Path {
+        func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: rect.minX + x * rect.width, y: rect.minY + y * rect.height) }
+        var path = Path()
+        path.move(to: p(0.5, 0.30))
+        path.addCurve(to: p(0.04, 0.50), control1: p(0.36, 0.22), control2: p(0.06, 0.24))
+        path.addCurve(to: p(0.27, 0.97), control1: p(0.0, 0.70), control2: p(0.14, 0.92))
+        path.addCurve(to: p(0.5, 0.95), control1: p(0.36, 1.0), control2: p(0.43, 0.94))
+        path.addCurve(to: p(0.73, 0.97), control1: p(0.57, 0.94), control2: p(0.64, 1.0))
+        path.addCurve(to: p(0.98, 0.66), control1: p(0.84, 0.92), control2: p(0.93, 0.78))
+        path.addCurve(to: p(0.90, 0.36), control1: p(0.82, 0.60), control2: p(0.78, 0.42))
+        path.addCurve(to: p(0.5, 0.30), control1: p(0.82, 0.24), control2: p(0.62, 0.22))
+        path.closeSubpath()
+        path.move(to: p(0.5, 0.24))
+        path.addCurve(to: p(0.72, 0.0), control1: p(0.49, 0.12), control2: p(0.58, 0.02))
+        path.addCurve(to: p(0.5, 0.24), control1: p(0.73, 0.12), control2: p(0.64, 0.22))
+        path.closeSubpath()
+        return path
+    }
+}

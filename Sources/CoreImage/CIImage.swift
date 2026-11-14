@@ -282,3 +282,23 @@ public struct CIImageRepresentationOption: RawRepresentable, Hashable, Sendable 
     public let rawValue: String
     public init(rawValue: String) { self.rawValue = rawValue }
 }
+
+// MARK: - Core Video pixel buffers (as Vision and AVFoundation hand them out)
+
+package func _emptyPixelBuffer() -> CVPixelBuffer { CVBuffer(image: nil) }
+public final class CVBuffer: @unchecked Sendable {
+    let image: CGImage?
+    init(image: CGImage?) { self.image = image }
+}
+public typealias CVPixelBuffer = CVBuffer
+public typealias CVImageBuffer = CVBuffer
+public func CVPixelBufferGetWidth(_ buffer: CVPixelBuffer) -> Int { buffer.image?.width ?? 0 }
+public func CVPixelBufferGetHeight(_ buffer: CVPixelBuffer) -> Int { buffer.image?.height ?? 0 }
+extension CIImage {
+    public convenience init(cvPixelBuffer pixelBuffer: CVPixelBuffer) {
+        if let image = pixelBuffer.image { self.init(cgImage: image) } else { self.init(content: .empty) }
+    }
+    public convenience init(cvPixelBuffer pixelBuffer: CVPixelBuffer, options: [CIImageOption: Any]? = nil) { self.init(cvPixelBuffer: pixelBuffer) }
+    public convenience init(cvImageBuffer imageBuffer: CVImageBuffer) { self.init(cvPixelBuffer: imageBuffer) }
+    public var pixelBuffer: CVPixelBuffer? { nil }
+}

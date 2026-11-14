@@ -94,6 +94,8 @@ public struct _UIKitRepresentableBody: View {
         if view.isHidden || view.alpha <= 0.01 { return AnyView(Color.clear) }
         var inner: AnyView?
         switch view {
+        case let drawable as _SwiftUIDrawableView:
+            inner = drawable._swiftUIRepresentation
         case let imageView as UIImageView:
             if let image = imageView.isHighlighted ? (imageView.highlightedImage ?? imageView.image) : imageView.image {
                 let base = Image(uiImage: image)
@@ -170,3 +172,9 @@ protocol _AnyHostingController: AnyObject {
     var anyRootView: AnyView { get }
 }
 extension UIHostingController: _AnyHostingController {}
+
+/// A UIKit view (in another framework's module, such as PassKit's buttons) that knows how to look:
+/// a representable wrapping it draws this instead of a placeholder.
+public protocol _SwiftUIDrawableView: UIView {
+    @MainActor var _swiftUIRepresentation: AnyView { get }
+}

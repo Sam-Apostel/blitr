@@ -9,7 +9,7 @@ let skiaLib = Context.packageDirectory + "/Vendor/skia/lib"
 let moduleSettings: [SwiftSetting] = [.swiftLanguageMode(.v5), .unsafeFlags(["-enable-library-evolution"])]
 
 // Modules linked into libSwiftUI next to the SwiftUI module itself (Combine is a dependency of SwiftUI).
-let shimModules = ["Combine", "UniformTypeIdentifiers", "CoreGraphics", "ImageIO", "CoreImage", "CoreText", "ObjectiveC", "QuartzCore", "UIKit", "CoreLocation", "MapKit", "AppIntents", "ActivityKit", "WidgetKit", "CryptoKit", "Security", "Network", "CoreSpotlight", "UserNotifications", "EventKit", "WatchConnectivity", "Contacts"]
+let shimModules = ["Combine", "UniformTypeIdentifiers", "CoreGraphics", "ImageIO", "CoreImage", "CoreText", "ObjectiveC", "QuartzCore", "UIKit", "CoreLocation", "MapKit", "AppIntents", "ActivityKit", "WidgetKit", "CryptoKit", "Security", "Network", "CoreSpotlight", "UserNotifications", "EventKit", "WatchConnectivity", "Contacts", "PhotosUI", "AuthenticationServices", "PassKit", "PDFKit", "Vision", "VisionKit", "EventKitUI", "ContactsUI", "Translation", "QuickLook", "AppKit", "StoreKit", "AVFoundation", "AVKit", "SafariServices", "MessageUI", "CoreMotion", "CoreHaptics"]
 
 let package = Package(
     name: "swift-ui-screenshot",
@@ -64,6 +64,24 @@ let package = Package(
         .target(name: "EventKit", dependencies: ["CoreGraphics", "CoreLocation"], swiftSettings: moduleSettings),
         .target(name: "WatchConnectivity", swiftSettings: moduleSettings),
         .target(name: "Contacts", swiftSettings: moduleSettings),
+        .target(name: "PhotosUI", dependencies: ["SwiftUI", "UIKit", "UniformTypeIdentifiers"], swiftSettings: moduleSettings),
+        .target(name: "AuthenticationServices", dependencies: ["SwiftUI", "UIKit"], swiftSettings: moduleSettings),
+        .target(name: "PassKit", dependencies: ["SwiftUI", "UIKit"], swiftSettings: moduleSettings),
+        .target(name: "PDFKit", dependencies: ["UIKit"], swiftSettings: moduleSettings),
+        .target(name: "Vision", dependencies: ["CoreImage"], swiftSettings: moduleSettings),
+        .target(name: "VisionKit", dependencies: ["UIKit", "Vision"], swiftSettings: moduleSettings),
+        .target(name: "EventKitUI", dependencies: ["UIKit", "EventKit"], swiftSettings: moduleSettings),
+        .target(name: "ContactsUI", dependencies: ["UIKit", "Contacts"], swiftSettings: moduleSettings),
+        .target(name: "Translation", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
+        .target(name: "QuickLook", dependencies: ["SwiftUI", "UIKit"], swiftSettings: moduleSettings),
+        .target(name: "AppKit", dependencies: ["SwiftUI", "QuartzCore", "ImageIO"], swiftSettings: moduleSettings),
+        .target(name: "StoreKit", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
+        .target(name: "AVFoundation", dependencies: ["CoreGraphics"], swiftSettings: moduleSettings),
+        .target(name: "AVKit", dependencies: ["SwiftUI", "AVFoundation"], swiftSettings: moduleSettings),
+        .target(name: "SafariServices", dependencies: ["UIKit"], swiftSettings: moduleSettings),
+        .target(name: "MessageUI", dependencies: ["UIKit"], swiftSettings: moduleSettings),
+        .target(name: "CoreMotion", swiftSettings: moduleSettings),
+        .target(name: "CoreHaptics", swiftSettings: moduleSettings),
         .executableTarget(name: "swiftui-screenshot", swiftSettings: [.swiftLanguageMode(.v5)]),
     ]
 )
