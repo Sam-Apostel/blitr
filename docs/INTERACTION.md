@@ -48,7 +48,7 @@ list the candidates.
 | `dismiss` | Dismisses the topmost sheet, cover, alert or dialog; otherwise goes back. |
 | `back` | Pops the top screen of the innermost navigation stack (screens pushed by steps, and `NavigationStack(path:)` bindings). |
 | `press up\|down\|left\|right\|select\|menu\|playpause` | A Siri Remote press (docs/FOCUS.md). |
-| `wait <seconds>` | Lets time pass: time-driven content keeps moving; animated outputs hold the frame. |
+| `wait <seconds>` | Lets time pass: time-driven content keeps moving; animated outputs hold the frame. `Task.sleep` calls that end by then return, and what they change shows after the wait. |
 | `snapshot [name]` | Emits a frame here (`--frames`, `--filmstrip`). |
 
 ### Selectors
@@ -197,7 +197,8 @@ A capture has its own clock. It only advances by the frame interval, never from 
 **`--date <ISO8601>`** fixes "now" (`Runtime.referenceDate`) for all of the above. A capture without
 `--date` uses a fixed date (2025-06-09T09:41:00Z), so the same input gives the same bytes. User code that
 calls `Date()` or `Date.now` itself is not affected and stays non-deterministic. `.task` work still runs
-within `--task-budget` of real time, as in a still render.
+within `--task-timeout` of real time, as in a still render, with `Task.sleep` on the virtual clock
+(docs/ARCHITECTURE.md, "Tasks, time and network"); each `wait` step moves that clock on.
 
 ## Scrolling
 

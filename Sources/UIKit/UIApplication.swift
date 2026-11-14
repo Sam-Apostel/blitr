@@ -188,7 +188,12 @@ open class UIDevice: NSObject {
     public static let proximityStateDidChangeNotification = Notification.Name("UIDeviceProximityStateDidChangeNotification")
 
     public var userInterfaceIdiom: UIUserInterfaceIdiom {
-        switch _currentConfiguration().device.idiom { case .pad: return .pad; case .tv: return .tv; case .phone: return .phone }
+        switch _currentConfiguration().device.idiom {
+        case .pad: return .pad
+        case .tv: return .tv
+        case .phone: return .phone
+        case .watch: return .unspecified
+        }
     }
     public var name: String { model }
     public var model: String { userInterfaceIdiom == .pad ? "iPad" : userInterfaceIdiom == .tv ? "Apple TV" : "iPhone" }

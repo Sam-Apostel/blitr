@@ -145,7 +145,7 @@ enum ProjectSession {
         if let index = options.runnerArguments.lastIndex(of: "--platform"), index + 1 < options.runnerArguments.count {
             options.runnerArguments[index + 1] = platform
         }
-        if platform == "watchOS" || platform == "macOS" || platform == "visionOS" {
+        if platform == "macOS" || platform == "visionOS" {
             note("warning: \(platform) has no device profile yet; the screen is drawn at iPhone size with iOS chrome")
         }
     }

@@ -36,9 +36,9 @@ A description that does not compile the file is skipped, so a stray `Package.swi
 capture an unrelated file, and a loose file outside any project renders as before. When several targets
 compile the file, applications win over extensions; `--target` chooses.
 
-The target's platform becomes the default `--platform` (tvOS targets render on the Apple TV profile).
-watchOS, macOS and visionOS targets compile with their `#if os(...)` branches but are drawn at iPhone
-size, with a warning, until those platforms have device profiles.
+The target's platform becomes the default `--platform` (tvOS targets render on the Apple TV profile,
+watchOS targets on the Apple Watch Series 10 46mm, in dark). macOS and visionOS targets compile with their
+`#if os(...)` branches but are drawn at iPhone size, with a warning, until those platforms have device profiles.
 
 | Flag | Meaning |
 |---|---|

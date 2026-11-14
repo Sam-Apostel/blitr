@@ -54,6 +54,8 @@ public enum RenderedPlatform {
     static let defaultVersion = 27
     nonisolated(unsafe) static var current = defaultVersion
     nonisolated(unsafe) static var platform = RenderPlatform.iOS
+    /// watchOS defaults to the Extra Large text size on the bigger watches (46mm, 49mm), Large on the others.
+    nonisolated(unsafe) static var watchTextIsExtraLarge = true
 
     public static func isAtLeast(iOS major: Int, _ minor: Int = 0) -> Bool { current >= major }
 }

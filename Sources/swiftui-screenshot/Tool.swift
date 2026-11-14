@@ -32,11 +32,11 @@ Render options:
       --orientation <o>  portrait (default) | landscape (= landscape-left) | landscape-right
       --rounded-corners  Clip to the device's rounded display shape, corners transparent
       --show-island     Draw the Dynamic Island / notch over the content (simulator screenshots do not show it)
-      --scheme <s>       light | dark | both (default light)
+      --scheme <s>       light | dark | both (default light; dark on watchOS, which has no light appearance)
       --ios <version>    OS release whose look is drawn: 18, 26, 27 or latest (default latest)
       --os <version>     Same as --ios; the version applies to the platform rendered (tvOS 18, 26, 27, ...)
-      --platform <p>     ios (default) | tvos. Decides which #if os(...) branches of your code are compiled.
-                         Implied by --device apple-tv-*.
+      --platform <p>     ios (default) | tvos | watchos. Decides which #if os(...) branches of your code are compiled.
+                         Implied by --device apple-tv-* and apple-watch-*.
       --layout <l>       device (full screen, default) | fit (size of the view) | fixed
       --width <pt>       Canvas width (fixed), or width proposed to the view (fit)
       --height <pt>      Same for height
@@ -50,7 +50,10 @@ Render options:
       --assets <dir>     Extra directory with images / .xcassets (repeatable)
       --fonts <dir>      Extra font directory, searched first (repeatable)
       --open-fonts       Use the open substitute fonts even if Apple's fonts are installed
-      --task-budget <s>  Seconds .task closures may run before the frame is taken (default 0.5)
+      --task-timeout <s> Real seconds .task closures may run before the frame is taken (default 0.5)
+      --settle-time <s>  Virtual seconds that pass before the frame is taken: Task.sleep calls that end within
+                         them return at once (default 2). Sleeps that end later wait past the frame
+      --allow-network    Let the code reach the network; by default requests fail at once (offline)
       --widget-family <f>          Widgets: render this family (systemSmall, systemMedium, systemLarge,
                                    systemExtraLarge, accessoryCircular, accessoryRectangular, accessoryInline)
       --widget-rendering-mode <m>  Widgets: fullColor | accented | vibrant (default: fullColor; vibrant for
@@ -237,6 +240,7 @@ struct Options {
     var all = false
     var view: String?
     var schemes = ["light"]
+    var schemeWasSet = false
     var json = false
     var noCache = false
     var openFonts = false
@@ -272,6 +276,7 @@ func parse(_ arguments: [String]) -> Options {
             let v = value(arg)
             guard ["light", "dark", "both"].contains(v) else { fail("--scheme must be light, dark or both") }
             options.schemes = v == "both" ? ["light", "dark"] : [v]
+            options.schemeWasSet = true
         case "--json": options.json = true
         case "--no-cache": options.noCache = true
         case "--open-fonts": options.openFonts = true
@@ -285,10 +290,11 @@ func parse(_ arguments: [String]) -> Options {
         case "-v", "--verbose": options.verbose = true
         case "--assets": options.userAssetDirectories.append(value(arg))
         case "--fonts": options.userFontDirectories.append(value(arg))
-        case "--device", "--layout", "--width", "--height", "--scale", "--padding", "--background", "--dynamic-type", "--task-budget", "--ios":
+        case "--device", "--layout", "--width", "--height", "--scale", "--padding", "--background", "--dynamic-type", "--task-budget", "--task-timeout",
+             "--settle-time", "--ios":
             options.runnerArguments += [arg, value(arg)]
         case "--os": options.runnerArguments += ["--ios", value(arg)]
-        case "--no-chrome", "--show-tips": options.runnerArguments.append(arg)
+        case "--no-chrome", "--show-tips", "--allow-network": options.runnerArguments.append(arg)
         case "--orientation": options.runnerArguments += [arg, value(arg)]
         case "--rounded-corners", "--show-island": options.runnerArguments.append(arg)
         case "--widget-family", "--widget-rendering-mode": options.runnerArguments += [arg, value(arg)]
@@ -308,6 +314,7 @@ func parse(_ arguments: [String]) -> Options {
     if !options.platformWasSet, let index = options.runnerArguments.firstIndex(of: "--device"), index + 1 < options.runnerArguments.count {
         let device = options.runnerArguments[index + 1].lowercased().filter { $0.isLetter || $0.isNumber }
         if device.hasPrefix("appletv") || device == "tv" { options.platform = "tvOS" }
+        if device.hasPrefix("applewatch") || device == "watch" { options.platform = "watchOS" }
     }
     options.runnerArguments += ["--platform", options.platform]
     return options
@@ -390,6 +397,9 @@ func build(_ options: Options, _ installation: Installation) -> Build {
 // MARK: - Commands
 
 func render(_ options: Options, _ installation: Installation) {
+    var options = options
+    // watchOS has no light appearance: watch apps are drawn dark unless --scheme asks otherwise.
+    if !options.schemeWasSet, options.platform == "watchOS" { options.schemes = ["dark"] }
     let built = build(options, installation)
     let (_, autoAssets) = ProjectSession.current == nil ? collectSources(options.inputs) : ([], [])
 

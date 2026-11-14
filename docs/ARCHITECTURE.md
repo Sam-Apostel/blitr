@@ -28,6 +28,26 @@ View value ──resolve──▶ Node tree ──measure/place──▶ frames 
 actions change state (capped), then draws once. Preferences are computed from the live tree, so
 values written during layout (inside a `GeometryReader`) reach `onPreferenceChange` on the next pass.
 
+### Tasks, time and network
+
+A frame is taken of a screen that has just appeared, so its `.task` work runs first, on the main run
+loop, for at most `--task-timeout` real seconds (default 0.5); the state reached by then is drawn, with a
+warning if a task is still busy. Two things keep that from depending on the machine:
+
+- **`Task.sleep` runs on a virtual clock** (`SwiftUIScreenshotFoundation/RenderClock.swift`). Its overloads
+  (`for:`, `nanoseconds:`, `until:clock:`, `for:tolerance:clock:`) shadow the standard library's in every
+  module compiled against the SDK. When every running task is asleep, the clock jumps to the earliest
+  wake-up, as long as that is within `--settle-time` (default 2 s); a sleep that ends later stays asleep
+  past the frame, like a timer on a device when the screenshot is taken, and is not reported. So a
+  "show the result after 1.5 s" delay is drawn done, a slideshow advancing every 5 s shows its first slide,
+  and neither costs real time. An interaction `wait` step moves the settle time on. `Clock.sleep` called
+  on a clock directly is real time. Outside a render (widget timelines) `Task.sleep` is real time.
+- **Renders are offline** (`_RenderNetwork`). HTTP(S) requests fail at once with
+  `URLError(.notConnectedToInternet)` (`URLSession.shared` through a registered `URLProtocol`, other
+  sessions through a proxy that refuses connections), so a screen that loads from a server draws its
+  offline or error state instead of waiting out the timeout. `--allow-network` turns this off. Remote
+  `AsyncImage`s stay in their loading phase either way.
+
 ## Source tree
 
 | Path | Contents |

@@ -36,8 +36,33 @@ public struct Font: Hashable, Sendable {
             case .caption2: return (23, .medium)
             }
         }
+        /// watchOS text styles at the watch's default text size: Large on the 42mm screen, Extra Large
+        /// on the 46mm and 49mm ones (Apple's watchOS typography table; callout and subheadline, which
+        /// the table leaves out, are estimates).
+        func watchMetrics(extraLarge: Bool) -> (size: CGFloat, weight: Weight) {
+            let d: CGFloat = extraLarge ? 1 : 0
+            switch self {
+            case .extraLargeTitle: return (36 + d * 2, .bold)
+            case .extraLargeTitle2: return (32 + d * 2, .bold)
+            case .largeTitle: return (32 + d * 2, .regular)
+            case .title: return (30 + d * 2, .regular)
+            case .title2: return (24 + d * 2, .regular)
+            case .title3: return (19 + d, .regular)
+            case .headline: return (16 + d, .semibold)
+            case .body: return (16 + d, .regular)
+            case .callout: return (15 + d, .regular)
+            case .subheadline: return (15 + d, .regular)
+            case .footnote: return (13 + d, .regular)
+            case .caption: return (13 + d, .regular)
+            case .caption2: return (12 + d, .regular)
+            }
+        }
         package func metrics(for platform: RenderPlatform) -> (size: CGFloat, weight: Weight) {
-            platform == .tvOS ? tvMetrics : metrics
+            switch platform {
+            case .tvOS: return tvMetrics
+            case .watchOS: return watchMetrics(extraLarge: RenderedPlatform.watchTextIsExtraLarge)
+            default: return metrics
+            }
         }
         /// Point size and default weight at the standard Dynamic Type size (Large).
         package var metrics: (size: CGFloat, weight: Weight) {
@@ -176,7 +201,7 @@ extension Font {
             r.size = (m.size * env.dynamicTypeSize.scale(for: style)).rounded()
             r.weight = (weight ?? m.weight).value
             r.family = .system(design ?? env.fontDesign ?? .default)
-            if env.renderPlatform != .tvOS, let advance = style.lineAdvance {
+            if env.renderPlatform != .tvOS, env.renderPlatform != .watchOS, let advance = style.lineAdvance {
                 r.lineAdvance = (advance * r.size / m.size).rounded()
             }
         case .system(let size, let weight, let design):

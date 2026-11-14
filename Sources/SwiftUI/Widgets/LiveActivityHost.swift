@@ -123,7 +123,7 @@ public struct _LiveActivityCanvas: View, PrimitiveView {
             switch device.idiom {
             case .pad: width = device.portraitSize.width >= 1024 ? 500 : 425
             case .phone: width = device.portraitSize.width - 22
-            case .tv:
+            case .tv, .watch:
                 ctx.runtime.warn("Live Activities are not shown on \(device.name)")
                 width = 371
             }

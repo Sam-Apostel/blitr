@@ -77,7 +77,7 @@ swiftui-screenshot version
 | `--orientation portrait\|landscape` | Also `landscape-left` / `landscape-right`. Swaps the size and uses landscape insets; iPhones hide the status bar. `#Preview(traits: .landscapeLeft / .sizeThatFitsLayout / .fixedLayout(...))` set the defaults per preview; flags override them. |
 | `--rounded-corners` | Clip to the device's rounded display, corners transparent. |
 | `--show-island` | Draw the Dynamic Island or notch on top (simulator screenshots do not show it). |
-| `--platform ios\|tvos` | Platform to compile for and draw. Decides which `#if os(...)` branches build. Implied by `--device apple-tv-*`. |
+| `--platform ios\|tvos\|watchos` | Platform to compile for and draw. Decides which `#if os(...)` branches build. Implied by `--device apple-tv-*` and `apple-watch-*`. |
 | `--layout device\|fit\|fixed` | Full screen with status bar (default); just the view's own size; or an exact `--width` / `--height`. `--padding <pt>` adds a margin in `fit`. |
 | `--width <pt>`, `--height <pt>` | Canvas size (`fixed`), or the size proposed to the view (`fit`). |
 | `--scale <n>` | Pixels per point. Default: the device's. |
@@ -86,7 +86,9 @@ swiftui-screenshot version
 | `--dynamic-type xxxLarge` | `xSmall` to `xxxLarge`, `accessibility1` to `accessibility5`. |
 | `--assets dir`, `--fonts dir` | Images and `.xcassets` catalogs; extra fonts searched first. Directories you pass as sources are searched for assets automatically. |
 | `--open-fonts` | Use the bundled open fonts even when Apple's are installed. |
-| `--task-budget <s>` | Seconds `.task` closures may run before the frame is taken (default 0.5). |
+| `--task-timeout <s>` | Real seconds `.task` closures may run before the frame is taken (default 0.5; `--task-budget` is the old name). |
+| `--settle-time <s>` | Virtual seconds that pass before the frame is taken (default 2): `Task.sleep` runs on a virtual clock, so a sleep that ends within them returns at once and one that ends later waits past the frame. |
+| `--allow-network` | Let the code reach the network. By default a render is offline: requests fail at once with `URLError(.notConnectedToInternet)`. |
 | `--accessibility-tree f.json`, `--tap-targets f.png`, `--accessibility-outline` | Accessibility outputs, below. |
 | `--json` | One JSON object per image with path, size and warnings. |
 | `--no-cache`, `-v` | Recompile even if an identical build is cached; show the compiler command. |
@@ -149,7 +151,8 @@ and can store and check per-image scores as a baseline. Options and the report f
 ## Platforms and devices
 
 `swiftui-screenshot devices` lists every profile with its size, scale, cutout and safe area: iPhone SE and 11
-through the 17 family, 16e and Air; iPad, mini, Air and Pro in 11 and 13 inch; Apple TV 4K and HD. The default is
+through the 17 family, 16e and Air; iPad, mini, Air and Pro in 11 and 13 inch; Apple TV 4K and HD; Apple Watch
+Series 10 in 46 and 42mm and Ultra 2. The default is
 `iphone-16`. Portrait and landscape both work, with the Dynamic Island or notch (`--show-island`) and rounded
 display corners (`--rounded-corners`) optional.
 
@@ -161,6 +164,12 @@ look. The glass geometry is estimated from public material, not measured against
 **tvOS (early support).** `--platform tvos` or any `--device apple-tv-*` renders at 1920x1080 points and compiles
 the `#if os(tvOS)` branches of your code. Control styling and a focus engine for tvOS are still in progress, so
 controls currently look like their iOS counterparts.
+
+**watchOS (early support).** `--platform watchos` or any `--device apple-watch-*` (`apple-watch` is the Series 10
+46mm) compiles the `#if os(watchOS)` branches, draws dark with the time in the top corner, uses the watch's text
+style sizes and full-width capsule buttons, and makes watchOS's small UIKit (`UIImage`, `UIColor`, `UIFont`)
+visible to files that import SwiftUI, as on the watch. The watch safe areas and corner radii are estimates. See
+`Examples/Watch.swift`.
 
 
 ## What is supported
@@ -244,7 +253,6 @@ compiled at render time. Its header comment has the build and run lines.
 
 - Animation and interaction capture (GIF or frames)
 - Device frames
-- watchOS
 - macOS
 - Widgets
 

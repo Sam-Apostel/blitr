@@ -1,8 +1,10 @@
 // UIViewRepresentable and UIViewControllerRepresentable. Their body makes the UIKit object (makeCoordinator,
 // make..., update...) and shows what can be drawn from it: an image view's image, a label's text, an
 // activity indicator, a blur or glass view, a hosting controller's SwiftUI root view, and the background
-// colour, corner radius and alpha of any view. Anything else is a placeholder of the proposed size, with
-// one warning naming the wrapped class.
+// colour, corner radius and alpha of any view. Plain containers (a UIView or UIScrollView, or an app's own
+// subclass of one) show the SwiftUI they host through a hosting controller's view; one with nothing in it
+// and no drawing of its own (a probe that only reaches the window or installs a gesture recognizer) shows
+// nothing. Anything else is a placeholder of the proposed size, with one warning naming the wrapped class.
 
 import Foundation
 import SwiftUI
@@ -94,6 +96,11 @@ public struct _UIKitRepresentableBody: View {
         if view.isHidden || view.alpha <= 0.01 { return AnyView(Color.clear) }
         var inner: AnyView?
         switch view {
+        case let hosting as _HostingControllerView:
+            // A hosting controller's view, added to a container: its SwiftUI content.
+            inner = hosting.content
+        case let hosting as _AnyHostingView:
+            inner = hosting.anyRootView
         case let drawable as _SwiftUIDrawableView:
             inner = drawable._swiftUIRepresentation
         case let imageView as UIImageView:
@@ -145,9 +152,8 @@ public struct _UIKitRepresentableBody: View {
                 ShimDiagnostics.warn("\(representable): the subviews of a UIVisualEffectView are not drawn, only its material")
             }
         default:
-            // A plain view with nothing but a background (or nothing at all) can be drawn as that.
-            guard type(of: view) == UIView.self, view.subviews.isEmpty else { return nil }
-            inner = AnyView(Color.clear)
+            guard let contents = drawContainer(view, representable: representable) else { return nil }
+            inner = contents
         }
         var result = inner!
         if let background = color(view.backgroundColor) { result = AnyView(result.background(background)) }
@@ -165,6 +171,72 @@ public struct _UIKitRepresentableBody: View {
         if let height = view.fixedDimension(.height) { result = AnyView(result.frame(height: height)) }
         return result
     }
+}
+
+extension _UIKitRepresentableBody {
+    /// A plain container: UIView or UIScrollView itself, or an app's subclass of one that does not draw
+    /// (`draw(_:)` not overridden, no sublayers). Drawn as nothing when empty (a probe), as its hosted
+    /// SwiftUI when that is what it holds (laid out to fill it, as pinned edge constraints do), and nil
+    /// (a placeholder) when it holds UIKit views whose arrangement cannot be known here.
+    @MainActor static func drawContainer(_ view: UIView, representable: String) -> AnyView? {
+        let kit = uiKitClass(of: type(of: view))
+        guard kit == UIView.self || kit == UIScrollView.self, (view.layer.sublayers ?? []).isEmpty,
+              type(of: view) == kit || !overridesDraw(view) else { return nil }
+        let visible = view.subviews.filter { !$0.isHidden && $0.alpha > 0.01 }
+        if visible.isEmpty { return AnyView(Color.clear) }
+        // Hosted SwiftUI, possibly inside further plain containers. Several hosted views overlap.
+        var children: [AnyView] = []
+        for sub in visible {
+            guard hostsSwiftUI(sub), let drawn = draw(sub, representable: representable) else { return nil }
+            children.append(drawn)
+        }
+        if children.count == 1 { return children[0] }
+        return AnyView(ZStack { ForEach(children.indices, id: \.self) { children[$0] } })
+    }
+
+    /// Whether a subview is (or only contains) hosted SwiftUI.
+    @MainActor private static func hostsSwiftUI(_ view: UIView) -> Bool {
+        if view is _HostingControllerView || view is _AnyHostingView { return true }
+        let kit = uiKitClass(of: type(of: view))
+        guard kit == UIView.self || kit == UIScrollView.self, !view.subviews.isEmpty else { return false }
+        return view.subviews.allSatisfy(hostsSwiftUI)
+    }
+
+    /// Apple frameworks this package provides: a view class from one of them (PDFKit's PDFView, MapKit's
+    /// MKMapView) is that framework's view, not a plain container.
+    private static let frameworks: Set<String> = [
+        "AVFoundation", "AVKit", "ActivityKit", "AppIntents", "AppKit", "AuthenticationServices", "Contacts", "ContactsUI",
+        "CoreLocation", "CoreSpotlight", "EventKit", "EventKitUI", "MapKit", "MessageUI", "PDFKit", "PassKit", "PhotosUI",
+        "QuartzCore", "QuickLook", "SafariServices", "StoreKit", "SwiftUI", "TipKit", "Translation", "UIKit", "Vision",
+        "VisionKit", "WatchKit", "WidgetKit",
+    ]
+
+    /// The nearest class in the view's ancestry that comes from a framework (the view's own class when it
+    /// is UIKit's): UIView for an app's own subclass of it.
+    private static func uiKitClass(of cls: AnyClass) -> AnyClass {
+        var current: AnyClass? = cls
+        while let c = current {
+            let name = String(reflecting: c)
+            if let dot = name.firstIndex(of: "."), frameworks.contains(String(name[..<dot])) { return c }
+            current = _getSuperclass(c)
+        }
+        return UIView.self
+    }
+
+    /// Whether a subclass draws itself in `draw(_:)`: UIView's own implementation records being reached.
+    @MainActor private static func overridesDraw(_ view: UIView) -> Bool {
+        UIView._baseDrawReached = false
+        _ = UIGraphicsImageRenderer(size: CGSize(width: 1, height: 1)).image { _ in view.draw(CGRect(x: 0, y: 0, width: 1, height: 1)) }
+        return !UIView._baseDrawReached
+    }
+}
+
+/// Lets the representable host read a hosting view's root view without knowing its type.
+protocol _AnyHostingView: AnyObject {
+    var anyRootView: AnyView { get }
+}
+extension _UIHostingView: _AnyHostingView {
+    var anyRootView: AnyView { AnyView(rootView) }
 }
 
 /// Lets the representable host read a hosting controller's root view without knowing its type.

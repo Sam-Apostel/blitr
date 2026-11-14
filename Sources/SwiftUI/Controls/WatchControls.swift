@@ -50,3 +50,42 @@ extension TabViewStyle where Self == VerticalPageTabViewStyle {
 }
 
 enum TabViewVerticalPageKey: EnvironmentKey { static let defaultValue = false }
+
+/// watchOS buttons: `automatic` and `bordered` are full-width capsules on a translucent gray platter,
+/// `borderedProminent` fills the capsule with the accent. Estimates from watchOS 10/11 screenshots:
+/// 44pt tall on the 42mm screen, 48pt on the bigger ones; the label in the body font, centred.
+struct _WatchButtonVisual: View {
+    let kind: _ButtonVisual.Kind
+    let label: AnyView
+    let role: ButtonRole?
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accentColor) private var explicitAccent
+    @Environment(\.foregroundStyle) private var explicitForeground
+
+    var body: some View {
+        switch kind {
+        case .plain, .card:
+            return AnyView(label.opacity(isEnabled ? 1 : 0.3))
+        case .borderless:
+            return AnyView(label.foregroundStyle(role == .destructive ? Color.red : Color.accentColor).opacity(isEnabled ? 1 : 0.3))
+        case .automatic, .bordered, .glass, .prominent, .glassProminent:
+            let prominent = kind == .prominent || kind == .glassProminent
+            let height: CGFloat = RenderedPlatform.watchTextIsExtraLarge ? 48 : 44
+            let fill: Color = prominent ? Color.accentColor
+                : role == .destructive ? Color.red.opacity(0.25)
+                : explicitAccent != nil ? Color.accentColor.opacity(0.25) : Color.white.opacity(0.14)
+            var content = label
+            if explicitForeground == nil {
+                content = AnyView(content.foregroundStyle(prominent ? Color.black : role == .destructive ? Color.red : Color.white))
+            }
+            return AnyView(
+                content
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 12)
+                    .frame(maxWidth: .infinity, minHeight: height)
+                    .background(fill, in: Capsule())
+                    .opacity(isEnabled ? 1 : 0.4))
+        }
+    }
+}

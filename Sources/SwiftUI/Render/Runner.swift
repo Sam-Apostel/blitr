@@ -111,7 +111,9 @@ public enum _ScreenshotRunner {
                 let hex = value(flag).trimmingCharacters(in: CharacterSet(charactersIn: "#"))
                 if hex == "clear" || hex == "transparent" { config.background = .clear }
                 else if let v = UInt32(hex, radix: 16) { config.background = RGBA(hex: v) }
-            case "--task-budget": config.taskBudget = Double(value(flag)) ?? 0.5
+            case "--task-timeout", "--task-budget": config.taskTimeout = Double(value(flag)) ?? 0.5
+            case "--settle-time": config.settleTime = max(0, Double(value(flag)) ?? 2)
+            case "--allow-network": config.allowsNetwork = true
             case "--fonts": config.fontDirectories.append(value(flag))
             case "--assets": config.assetDirectories.append(value(flag))
             case "--accessibility-tree": AccessibilityOutputs.request.treePath = value(flag)
@@ -144,13 +146,18 @@ public enum _ScreenshotRunner {
             }
         }
 
+        // Renders run offline: a request fails at once instead of waiting on the network.
+        if !config.allowsNetwork { _RenderNetwork.goOffline() }
+
         if listDevices {
             print(DeviceProfile.listing())
             exit(0)
         }
         // The platform and the device have to agree: a TV platform defaults to an Apple TV, and vice versa.
         if config.platform == .tvOS, !deviceWasSet, let tv = DeviceProfile.lookup("apple-tv-4k") { config.device = tv }
+        if config.platform == .watchOS, !deviceWasSet, let watch = DeviceProfile.lookup("apple-watch-series-10-46mm") { config.device = watch }
         if config.device.idiom == .tv { config.platform = .tvOS }
+        if config.device.idiom == .watch { config.platform = .watchOS }
 
         if listOnly {
             for (i, p) in previews.enumerated() { print("\(i)\t\(p.name ?? "")") }

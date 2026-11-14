@@ -363,6 +363,7 @@ struct _ButtonVisual: View {
 
     var body: some View {
         if platform == .tvOS { return AnyView(_TVButtonVisual(kind: kind, label: label, role: role)) }
+        if platform == .watchOS { return AnyView(_WatchButtonVisual(kind: kind, label: label, role: role)) }
         return AnyView(styled.env { if destructive { $0.accentColor = Color.red } })
     }
 }

@@ -362,14 +362,15 @@ struct Preprocessor {
         return result
     }
 
-    /// Platforms whose SwiftUI re-exports UIKit.
-    static let uiKitPlatforms: Set<String> = ["iOS", "tvOS", "visionOS"]
+    /// Platforms whose SwiftUI makes UIKit visible to a file that imports only SwiftUI. On watchOS that is
+    /// the small UIKit Apple ships there (UIImage, UIColor, UIFont, ...): watch apps use `UIImage` with only
+    /// `import SwiftUI`.
+    static let uiKitPlatforms: Set<String> = ["iOS", "tvOS", "visionOS", "watchOS"]
 
     /// Frameworks the SDK has a module for that Apple does not ship on every platform: `canImport` of one is
     /// false when another platform is rendered.
     static let frameworkPlatforms: [String: Set<String>] = [
-        // watchOS ships a small UIKit (UIImage, UIColor, UIFont) that is importable, though SwiftUI does not re-export it there.
-        "UIKit": uiKitPlatforms.union(["watchOS"]),
+        "UIKit": uiKitPlatforms,
         "ActivityKit": ["iOS"],
         "WidgetKit": ["iOS", "macOS", "watchOS", "visionOS"],
         "AppKit": ["macOS"],
@@ -470,8 +471,8 @@ struct Preprocessor {
                     }
                 }
             }
-            // Apple's SwiftUI re-exports UIKit on iOS, tvOS and visionOS. Here UIKit is a module of its own
-            // (so macOS and watchOS code does not see it), and a file importing SwiftUI imports it as well.
+            // Apple's SwiftUI re-exports UIKit on iOS, tvOS, visionOS and watchOS. Here UIKit is a module of its
+            // own (so macOS code does not see it), and a file importing SwiftUI imports it as well.
             if Self.uiKitPlatforms.contains(platform), hasToken("import SwiftUI", at: i),
                i == 0 || !Self.isIdentifierByte(bytes[i - 1]), !(i + 14 < bytes.count && bytes[i + 14] == UInt8(ascii: ".")) {
                 let lineStart = out.lastIndex(of: UInt8(ascii: "\n")).map { $0 + 1 } ?? 0

@@ -247,8 +247,10 @@ open class UIView: UIResponder, _UILayoutAnchored, UITraitEnvironment, UICoordin
 
     // MARK: Drawing
 
-    /// Custom drawing: called by the representable host with a current graphics context.
-    open func draw(_ rect: CGRect) {}
+    /// Custom drawing. UIView's own does nothing; it records being reached, so the representable host
+    /// can tell a subclass that draws from one that does not (UIRepresentable.swift).
+    open func draw(_ rect: CGRect) { UIView._baseDrawReached = true }
+    nonisolated(unsafe) static var _baseDrawReached = false
     open func setNeedsDisplay() {}
     open func setNeedsDisplay(_ rect: CGRect) {}
     open func tintColorDidChange() {}
