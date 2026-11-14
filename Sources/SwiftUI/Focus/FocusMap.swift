@@ -22,7 +22,7 @@ struct FocusMap {
     let snap: FocusSnapshot
     let initial: Int?
     let focused: Int?
-    /// [element][direction] -> target
+    /// [element][direction] -> target, on the current layout (scroll offsets and state as they are).
     var moves: [[MoveCommandDirection: Int]] = []
     /// Shortest press sequence from the initial focus; nil when unreachable.
     var paths: [[MoveCommandDirection]?] = []
@@ -165,7 +165,9 @@ struct FocusMap {
             ("focused", id(focused)),
             ("presses", .array(presses.map { p in
                 .object([("press", .string(p.press)), ("from", p.from.map { .string($0) } ?? .null),
-                         ("to", p.to.map { .string($0) } ?? .null), ("note", .string(p.note))])
+                         ("to", p.to.map { .string($0) } ?? .null),
+                         ("fromLabel", p.fromLabel.map { .string($0) } ?? .null), ("toLabel", p.toLabel.map { .string($0) } ?? .null),
+                         ("note", .string(p.note))])
             })),
             ("elements", .array(elements)),
             ("sections", .array(sections)),

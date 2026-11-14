@@ -233,6 +233,8 @@ enum TVColors {
 enum TVInListRowKey: EnvironmentKey { static let defaultValue = false }
 /// True for content resolved on a focused white platter: label colors become the dark ones.
 enum TVOnFocusedPlatterKey: EnvironmentKey { static let defaultValue = false }
+/// Rows of a `Form` (not a plain `List`): tvOS 26 draws an automatic picker there as a value row.
+enum TVInFormKey: EnvironmentKey { static let defaultValue = false }
 /// `.hoverEffect(_:)` written on a view.
 enum TVHoverEffectKey: EnvironmentKey { static let defaultValue: HoverEffect? = nil }
 

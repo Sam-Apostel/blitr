@@ -45,7 +45,11 @@ extension Picker {
         if env[PickerPaletteKey.self] {
             ctx.runtime.warn("PickerStyle.palette is not available on tvOS: a real tvOS build fails to compile. Drawn as a segmented picker")
         }
-        if !env[PickerKindExplicitKey.self] { kind = env.isInListRow ? .navigationLink : .segmented }
+        // tvOS 26: in a List the automatic picker is a segmented control with focusable segments; in a Form it is
+        // a row showing the value (measured: tvOS 26.5).
+        if !env[PickerKindExplicitKey.self] {
+            kind = env.isInListRow && (!env.designLanguage.isGlass || env[TVInFormKey.self]) ? .navigationLink : .segmented
+        }
         // tvOS 26 draws an inline picker outside a list as a segmented control (measured: tvOS 26.5).
         if kind == .inline && env.designLanguage.isGlass && !env.isInListRow { kind = .segmented }
         if kind == .wheel {

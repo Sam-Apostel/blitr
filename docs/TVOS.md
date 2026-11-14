@@ -93,7 +93,7 @@ Pixels that differ, light, `--os 26` (threshold 0.1), before and after calibrati
 | Tab Bar (`-3`, `-3-down`) | 63.9%, 63.2% | 0.5%, 0.4% |
 | Sidebar (`-4`) | 81.5% | 0.3% |
 | Pages (`-5`) | 0.1% | 0.1% |
-| Settings List (`-6`, `-6-down-down`) | 67.3%, 65.9% | 3.9%, 10.1% (initial focus, see docs/FOCUS.md) |
+| Settings List (`-6`, `-6-down-down`) | 67.3%, 65.9% | 0.5%, 0.6% |
 | Search (`-7`) | 73.6% | 0.8% |
 | Alert (`-8`, `-8-down`) | 81.4% | 0.4% |
 | Dialog (`-9`) | 79.9% | 0.2% |
@@ -120,7 +120,7 @@ Pixels that differ, light, `--os 26` (threshold 0.1), before and after calibrati
 | NavigationStack | No bar background, no back button; the title (57 pt medium, dimmed: black 42% / white 30%) 4 pt below the safe area's top, content 91 pt below it; toolbar items beside it as buttons. | measured (toolbar item look est.) |
 | List / Form / Section | Every row a capsule with a light film (white 15% light, 10% dark), 66 pt high on an 80 pt pitch, full width, labels 20 pt in; the focused row white and grown 4 pt; uppercase 29 pt headers in the dimmed title color, 6 pt above the first row; 29 pt secondary footers 20 pt below the last row; 26 pt between sections; values black 57% / white 55%. | measured |
 | Toggle | Label and "On" / "Off" (also with `.switch`, which tvOS 26 draws the same way); outside a list a button-like capsule, labels 30 pt in. | measured |
-| Picker | Automatic and `.segmented` outside lists: equal segments across the width offered, 84 pt high, on a light track (white 60%); the selected segment a black 18% pill, the focused one a white lifted pill; semibold labels. `.inline` outside a list: the same segmented control. `.menu` outside a list: a bordered button showing only the value. Inside lists, and `.navigationLink`: a value row. | measured (row pickers est.) |
+| Picker | Automatic and `.segmented` outside lists: equal segments across the width offered, 84 pt high, on a light track (white 60%); the selected segment a black 18% pill, the focused one a white lifted pill; semibold labels. `.inline` outside a list: the same segmented control. `.menu` outside a list: a bordered button showing only the value. Automatic in a `List`: the segmented control, a focus element per option; in a `Form`, and `.navigationLink`: a value row. | measured |
 | Menu, Link | Bordered buttons. | measured |
 | TextField / SecureField | Capsule, 70 pt, white 55% film, text headline size (secure text as large dots), placeholder body size; focused white. The keyboard is not drawn. | measured approx. |
 | searchable | The tvOS 26 search screen: a 52 pt magnifier and the prompt (57 pt bold, dimmed), the "Press ⏯ to change keyboards" hint, the keyboard row (123, SPACE, a-z, delete; the first key white while the keyboard has focus), a hairline, results 245.5 pt below the safe area's top. Typing and suggestions are not simulated (warning). | measured |
