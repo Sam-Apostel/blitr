@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Builds the reference-capture host app for the iOS Simulator from SwiftUI sources.
+# Builds the reference-capture host app for the iOS (or tvOS) Simulator from SwiftUI sources.
 #
-#   scripts/mac/build-host.sh <build-dir> <file.swift>...
+#   [PLATFORM=tvos] scripts/mac/build-host.sh <build-dir> <file.swift>...
 #
 # Produces <build-dir>/ReferenceHost.app and <build-dir>/gen/screens.json. Uses swiftc directly (no
 # Xcode project): each source file is compiled as its own module, then linked into one app.
@@ -12,9 +12,14 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 HOST="$ROOT/scripts/mac/host"
 DEPLOYMENT="${DEPLOYMENT_TARGET:-18.0}"
 ARCH="$(uname -m)"
-TARGET="$ARCH-apple-ios$DEPLOYMENT-simulator"
-SDK="$(xcrun --sdk iphonesimulator --show-sdk-path)"
-SWIFTC=(xcrun --sdk iphonesimulator swiftc -target "$TARGET" -sdk "$SDK" -swift-version 5 -Onone)
+case "${PLATFORM:-ios}" in
+    ios)  SDK_NAME=iphonesimulator;  OS=ios;  PLATFORM_NAME=iPhoneSimulator;  FAMILY="<integer>1</integer><integer>2</integer>" ;;
+    tvos) SDK_NAME=appletvsimulator; OS=tvos; PLATFORM_NAME=AppleTVSimulator; FAMILY="<integer>3</integer>" ;;
+    *) echo "PLATFORM must be ios or tvos" >&2; exit 2 ;;
+esac
+TARGET="$ARCH-apple-$OS$DEPLOYMENT-simulator"
+SDK="$(xcrun --sdk $SDK_NAME --show-sdk-path)"
+SWIFTC=(xcrun --sdk $SDK_NAME swiftc -target "$TARGET" -sdk "$SDK" -swift-version 5 -Onone)
 BUNDLE_ID="${BUNDLE_ID:-dev.swiftui-screenshot.reference-host}"
 
 mkdir -p "$BUILD/bin" "$BUILD/gen" "$BUILD/mods" "$BUILD/obj"
@@ -64,9 +69,9 @@ cat > "$APP/Info.plist" <<PLIST
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>1.0</string>
     <key>CFBundleVersion</key><string>1</string>
-    <key>CFBundleSupportedPlatforms</key><array><string>iPhoneSimulator</string></array>
+    <key>CFBundleSupportedPlatforms</key><array><string>$PLATFORM_NAME</string></array>
     <key>MinimumOSVersion</key><string>$DEPLOYMENT</string>
-    <key>UIDeviceFamily</key><array><integer>1</integer><integer>2</integer></array>
+    <key>UIDeviceFamily</key><array>$FAMILY</array>
     <key>UILaunchScreen</key><dict/>
     <key>UIApplicationSupportsIndirectInputEvents</key><true/>
     <key>UISupportedInterfaceOrientations</key><array>
