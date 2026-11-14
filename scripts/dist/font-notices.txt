@@ -1,0 +1,14 @@
+Fonts bundled in lib/swiftui-screenshot/fonts (all under the SIL Open Font License 1.1,
+whose text follows this list). They stand in for Apple's system fonts.
+
+  Inter (InterVariable*.ttf)
+      Copyright (c) 2016 The Inter Project Authors (https://github.com/rsms/inter)
+  Nunito (Nunito[wght].ttf)
+      Copyright 2014 The Nunito Project Authors (https://github.com/googlefonts/nunito)
+  Source Serif 4 (SourceSerif4*.ttf)
+      Copyright 2014-2023 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'
+  JetBrains Mono (JetBrainsMono*.ttf)
+      Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)
+  Noto Color Emoji (NotoColorEmoji.ttf)
+      Copyright 2021 Google Inc. All Rights Reserved.
+
