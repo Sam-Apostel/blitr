@@ -226,6 +226,17 @@ swift build -c release
 **Docker.** The `Dockerfile` builds the tool on `swift:6.4.2-noble` and keeps the toolchain, since your code is
 compiled at render time. Its header comment has the build and run lines.
 
+## macOS (in progress)
+
+Running natively on a Mac, without Docker, is being worked on in issue #19; until then use Docker or a Linux
+machine. The groundwork is in: Linux-only code compiles out on Darwin, the tool knows `.dylib` and
+`@loader_path`, `scripts/bootstrap.sh` fetches the macOS Skia build and wants HarfBuzz from Homebrew
+(`brew install harfbuzz pkg-config`), and the engine's library is named `libSwiftUIScreenshotEngine` so it
+cannot be mistaken for Apple's SwiftUI. None of it has been built on a Mac yet: `swift build` is expected to
+fail on the modules that share their names with Apple's frameworks (CoreGraphics, Combine, ObjectiveC, ...),
+which is the next step. The manual `macOS (port in progress)` workflow (`.github/workflows/macos.yml`)
+builds and renders a few examples on a macOS runner.
+
 ## Limitations
 
 - **It is an approximation.** Output is close to a simulator screenshot, not identical. Spacing constants for
@@ -253,7 +264,7 @@ compiled at render time. Its header comment has the build and run lines.
 
 - Animation and interaction capture (GIF or frames)
 - Device frames
-- macOS
+- macOS (in progress, see "macOS (in progress)" above)
 - Widgets
 
 ## Licences
