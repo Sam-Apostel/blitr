@@ -442,6 +442,9 @@ final class InteractionSession {
                 _ = picker
                 throw RenderError("\(step): \(describe(e)) opens a menu, which is not drawn. Choose an option with `set \(selector) <option>`")
             }
+            if e.ax.activate == nil, let settable = index.handlers(for: e, where: { $0.setValue != nil && $0.kind != "toggle" && $0.kind != "picker" }) {
+                throw RenderError("\(step): tapping \(describe(e)) opens a \(settable.kind) editor, which is not drawn. Use `set \(selector) <value>`")
+            }
             guard let tap = index.tapAction(e) else {
                 throw RenderError("\(step): \(describe(e)) has no action the capture can run (gestures attached with .gesture() and custom controls are not simulated; onTapGesture and the built-in controls are)")
             }

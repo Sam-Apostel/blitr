@@ -67,7 +67,9 @@ enum StepScript {
         var tokens: [Token] = []
         var raw = ""
         var startLine = 1
-        let chars = Array(script)
+        // Windows line endings are one Character in Swift ("\r\n"): normalize first.
+        let chars = Array(script.replacingOccurrences(of: "\r\n", with: "\n"))
+        let separators: Set<Character> = [" ", "\t", "\r", "\n", ";"]
         var i = 0
 
         func fail(_ message: String, _ l: Int) -> StepScriptError {
@@ -129,14 +131,14 @@ enum StepScript {
                 var token = Token(text: value, quoted: true)
                 if i < chars.count, chars[i] == "[" {
                     var suffix = ""
-                    while i < chars.count, chars[i] != " ", chars[i] != "\n", chars[i] != ";" { suffix.append(chars[i]); raw.append(chars[i]); i += 1 }
+                    while i < chars.count, !separators.contains(chars[i]) { suffix.append(chars[i]); raw.append(chars[i]); i += 1 }
                     token.text += "\u{0}" + suffix
                 }
                 tokens.append(token)
                 continue
             }
             var word = ""
-            while i < chars.count, !" \t\r\n;".contains(chars[i]) {
+            while i < chars.count, !separators.contains(chars[i]) {
                 word.append(chars[i])
                 i += 1
             }
