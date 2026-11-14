@@ -1,0 +1,125 @@
+{
+  "devices": {
+    "apple-tv-4k": {
+      "appearance": "system",
+      "captured": "2026-11-14T11:59:46Z",
+      "colorSpace": "sRGB",
+      "name": "Apple TV 4K (3rd generation)",
+      "pressVariants": [
+        {
+          "presses": "right,right",
+          "preview": "Buttons",
+          "screen": "TVControls"
+        },
+        {
+          "presses": "down",
+          "preview": "Tab Bar",
+          "screen": "TVControls"
+        },
+        {
+          "presses": "down",
+          "preview": "Alert",
+          "screen": "TVControls"
+        },
+        {
+          "presses": "down,down",
+          "preview": "Settings List",
+          "screen": "TVControls"
+        }
+      ],
+      "schemes": [
+        "light",
+        "dark"
+      ]
+    }
+  },
+  "runtimeBuild": "23L470",
+  "screens": [
+    {
+      "key": "TVControls",
+      "module": "Screen_TVControls",
+      "previews": [
+        {
+          "index": 0,
+          "name": "Buttons"
+        },
+        {
+          "index": 1,
+          "name": "Inputs"
+        },
+        {
+          "index": 2,
+          "name": "Inline Picker"
+        },
+        {
+          "index": 3,
+          "name": "Tab Bar"
+        },
+        {
+          "index": 4,
+          "name": "Sidebar"
+        },
+        {
+          "index": 5,
+          "name": "Pages"
+        },
+        {
+          "index": 6,
+          "name": "Settings List"
+        },
+        {
+          "index": 7,
+          "name": "Search"
+        },
+        {
+          "index": 8,
+          "name": "Alert"
+        },
+        {
+          "index": 9,
+          "name": "Dialog"
+        },
+        {
+          "index": 10,
+          "name": "Sheet"
+        },
+        {
+          "index": 11,
+          "name": "Focus Visuals"
+        }
+      ],
+      "source": "Examples/TVControls.swift"
+    },
+    {
+      "key": "13_TVHome",
+      "module": "Screen_13_TVHome",
+      "previews": [
+        {
+          "index": 0
+        },
+        {
+          "index": 1,
+          "name": "Dark"
+        }
+      ],
+      "source": "Tests/Corpus/13_TVHome.swift"
+    },
+    {
+      "key": "14_TVSettings",
+      "module": "Screen_14_TVSettings",
+      "previews": [
+        {
+          "index": 0
+        },
+        {
+          "index": 1,
+          "name": "Dark"
+        }
+      ],
+      "source": "Tests/Corpus/14_TVSettings.swift"
+    }
+  ],
+  "tvosVersion": "26.5",
+  "xcode": "Xcode 27.2",
+  "xcodeBuild": "27B52"
+}
