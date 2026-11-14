@@ -129,8 +129,16 @@ private func installDynamicProperties(of value: Any, _ ic: inout InstallContext)
     for child in Mirror(reflecting: value).children {
         if let property = child.value as? InstallableProperty {
             property.install(&ic)
-        } else if child.value is any DynamicProperty {
+        } else if child.value is any DynamicProperty || holdsDynamicProperties(child.value) {
             installDynamicProperties(of: child.value, &ic)
         }
     }
+}
+
+/// Custom styles may declare `@Environment` (and other dynamic properties) just like views do.
+/// They reach the resolver as a stored property of an applier view, so the installer descends into them.
+@MainActor
+private func holdsDynamicProperties(_ value: Any) -> Bool {
+    value is any ButtonStyle || value is any PrimitiveButtonStyle || value is any ToggleStyle
+        || value is any LabelStyle || value is any ProgressViewStyle || value is any GaugeStyle
 }
