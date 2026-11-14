@@ -62,9 +62,15 @@ extension Section: View, PrimitiveView where Parent: View, Content: View, Footer
                 env.font = .system(size: ListMetrics.plainHeaderFontSize, weight: .semibold)
                 env.foregroundStyle = secondary
             } else if isHeader {
-                env.font = .system(size: ListMetrics.headerFontSize)
+                // iOS 26 inset grouped headers: sentence case, semibold, larger.
+                let design = ListMetrics.forDesign(style == .insetGrouped ? env.designLanguage : .flat)
+                if let weight = design.headerWeight {
+                    env.font = .system(size: design.headerFontSize, weight: weight)
+                } else {
+                    env.font = .system(size: design.headerFontSize)
+                }
                 env.foregroundStyle = secondary
-                env.textCase = .uppercase
+                if design.headerUppercased { env.textCase = .uppercase }
             } else {
                 env.font = .system(size: ListMetrics.footerFontSize)
                 env.foregroundStyle = secondary

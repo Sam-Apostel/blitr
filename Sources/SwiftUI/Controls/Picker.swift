@@ -102,8 +102,10 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
                 Chevron(width: 7, height: 12, weight: 2, color: AnyShapeStyle(Color(SystemColor.tertiaryLabel)))
             })
         case .segmented:
-            let normal = options({ $0.font = .system(size: 13) }, key: "seg")
-            let bold = options({ $0.font = .system(size: 13, weight: .medium) }, key: "seg")
+            let glass = ctx.env.designLanguage.isGlass
+            let size = glass ? ControlGlassMetrics.segmentedFontSize : 13
+            let normal = options({ $0.font = .system(size: size) }, key: "seg")
+            let bold = options({ $0.font = .system(size: size, weight: glass ? .semibold : .medium) }, key: "seg")
             let sel = selectedIndex(normal)
             view = AnyView(SegmentedBody(nodes: normal, selectedNode: sel.map { bold[$0] }, selected: sel))
         case .inline:
@@ -164,8 +166,52 @@ struct SegmentedBody: View {
     let nodes: [Node]
     let selectedNode: Node?
     let selected: Int?
+    @Environment(\.designLanguage) private var design
 
     var body: some View {
+        design.isGlass ? AnyView(glassBody) : AnyView(flatBody)
+    }
+
+    /// iOS 26: capsule track, capsule selection inset 3pt.
+    private var glassBody: some View {
+        let m = ControlGlassMetrics.self
+        let segmentHeight = m.segmentedTrackHeight - 2 * m.segmentedInset
+        return HStack(spacing: 0) {
+            ForEach(Array(nodes.enumerated()), id: \.offset) { pair in
+                let isSel = pair.offset == selected
+                if pair.offset > 0 {
+                    let hide = isSel || pair.offset - 1 == selected
+                    Rectangle().fill(Color(SystemColor.gray3)).frame(width: 1, height: 14).opacity(hide ? 0 : 1)
+                }
+                Group {
+                    if isSel, let selectedNode { _NodeView(selectedNode) } else { _NodeView(pair.element) }
+                }
+                .lineLimit(1)
+                .frame(maxWidth: .infinity)
+                .frame(height: segmentHeight)
+                .axInfo {
+                    $0.isElement = true
+                    $0.addTraits = isSel ? [.button, .selected] : [.button]
+                    $0.children = .combine
+                    $0.isTapTarget = true
+                    $0.systemHitSlop = true
+                }
+                .background {
+                    if isSel {
+                        Capsule()
+                            .fill(Color(DynamicColor(0xFFFFFF, 0x636366)))
+                            .shadow(color: Color.black.opacity(0.12), radius: 3, x: 0, y: 2)
+                            .shadow(color: Color.black.opacity(0.04), radius: 0.5, x: 0, y: 0.5)
+                    }
+                }
+            }
+        }
+        .padding(m.segmentedInset)
+        .frame(maxWidth: .infinity)
+        .background(Color(SystemColor.tertiaryFill), in: Capsule())
+    }
+
+    private var flatBody: some View {
         HStack(spacing: 0) {
             ForEach(Array(nodes.enumerated()), id: \.offset) { pair in
                 let isSel = pair.offset == selected
