@@ -58,6 +58,8 @@ enum ListMetrics {
     static let chevronGap: CGFloat = 8
     static let badgeGap: CGFloat = 8
     static let badgeFontSize: CGFloat = 17
+    /// Safe area pushed down by more than this (below the screen's top inset) means a large title is above.
+    static let largeTitleDepthThreshold: CGFloat = 80
 }
 
 /// The measurements of a List that differ between design languages. `.flat` is exactly the
@@ -102,8 +104,8 @@ struct ListDesignMetrics {
 struct GlassSectionMetrics {
     /// Safe area top to the first card when the first section has no header and no navigation bar is above.
     var firstSectionTop: CGFloat
-    /// The same under a navigation bar: the card starts at the bar's bottom edge.
-    var firstSectionTopUnderBar: CGFloat
+    /// The same under a large title: the card starts at the bar's bottom edge (an inline bar keeps `firstSectionTop`).
+    var firstSectionTopUnderLargeTitle: CGFloat
     var sectionTop: CGFloat
     var sectionBottom: CGFloat
     var headerPaddingTop: CGFloat
@@ -134,7 +136,7 @@ extension ListMetrics {
         m.separatorThickness = 1                                   // measured: iOS 27.0 simulator (3px at 3x)
         m.separatorColors = (RGBA(0, 0, 0, 0.09), RGBA(84 / 255, 84 / 255, 88 / 255, 0.5)) // measured: #E8E8E8 on white, #38383B on #1C1C1E
         m.sections = GlassSectionMetrics(firstSectionTop: 35,      // measured: iOS 27.0 simulator
-                                         firstSectionTopUnderBar: 0, // measured: card at the bar's bottom (165pt)
+                                         firstSectionTopUnderLargeTitle: 0, // measured: card at the large title's bottom (165pt); 35 under an inline bar (10_Agenda sheet)
                                          sectionTop: 17.33,         // measured: footer box to the next card
                                          sectionBottom: 17.67,      // measured: card to the next header box
                                          headerPaddingTop: 10,      // measured: header box 40.33 = 10 + 20.33 + 10

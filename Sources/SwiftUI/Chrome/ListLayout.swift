@@ -227,6 +227,16 @@ final class ListNode: Node {
         return node.children.contains { hasDisclosure($0) }
     }
 
+    /// Whether a large-title navigation bar sits right above the list. The bar is not visible from here, so this
+    /// reads how far the stack pushed the safe area down: an inline bar takes 54pt below the screen's (or a
+    /// sheet's) top inset, a large title 106pt.
+    private func underLargeTitle(_ ctx: PlaceContext) -> Bool {
+        guard underNavigationBar else { return false }
+        var depth = ctx.safeRect.minY - ctx.container.minY
+        if ctx.container.minY < 1 { depth -= _currentConfiguration().device.safeArea.top }
+        return depth > ListMetrics.largeTitleDepthThreshold
+    }
+
     /// A row holding a Toggle drawn as a switch.
     static func containsSwitch(_ node: Node) -> Bool {
         if node.ax?.info.role == "switch" { return true }
@@ -274,7 +284,7 @@ final class ListNode: Node {
                 // with its header box or `sectionTop` (custom spacing replaces the gap between the two).
                 let custom = (section.spacing?.value ?? listSectionSpacing.value)
                 if index == 0 {
-                    if !hasHeader { y += underNavigationBar ? g.firstSectionTopUnderBar : g.firstSectionTop }
+                    if !hasHeader { y += underLargeTitle(ctx) ? g.firstSectionTopUnderLargeTitle : g.firstSectionTop }
                 } else if let custom {
                     y += custom
                 } else {
