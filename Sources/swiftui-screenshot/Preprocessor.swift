@@ -266,7 +266,8 @@ struct Preprocessor {
     /// false when another platform is rendered. AppKit and WatchKit have no module here, so `canImport` of
     /// them is false on every platform.
     static let frameworkPlatforms: [String: Set<String>] = [
-        "UIKit": uiKitPlatforms,
+        // watchOS ships a small UIKit (UIImage, UIColor, UIFont) that is importable, though SwiftUI does not re-export it there.
+        "UIKit": uiKitPlatforms.union(["watchOS"]),
         "ActivityKit": ["iOS"],
         "WidgetKit": ["iOS", "macOS", "watchOS", "visionOS"],
     ]
