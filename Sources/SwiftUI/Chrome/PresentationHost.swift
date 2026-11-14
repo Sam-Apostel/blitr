@@ -137,6 +137,10 @@ enum AlertMetrics {
         var saturation27Light: Float = 2.46
         var tint27Dark = RGBA(0.04, 0.04, 0.04, 0.4)
         var saturation27Dark: Float = 2.0
+        /// iOS 27: the card blurs what is behind it much more than a bar does (the black gaps between the
+        /// cards of GlassTabsAndSheets-5 disappear under it). measured: iOS 27.0 simulator (best of 14...60pt
+        /// over GlassTabsAndSheets-3/4/5 and 11_Profile, both schemes)
+        var blurRadius27: CGFloat = 40
 
         func appearance(_ scheme: ColorScheme, design: DesignLanguage) -> GlassAppearance {
             var a = GlassAppearance.system(.regular, scheme: scheme, design: design)
@@ -144,6 +148,7 @@ enum AlertMetrics {
             if design == .liquidGlass27 {
                 a.tint = scheme == .dark ? tint27Dark : tint27Light
                 a.saturation = scheme == .dark ? saturation27Dark : saturation27Light
+                a.blurRadius = blurRadius27
             }
             return a
         }
