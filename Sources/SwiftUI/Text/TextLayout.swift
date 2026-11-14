@@ -147,9 +147,25 @@ final class TextLayout {
             let infos = hb_buffer_get_glyph_infos(buffer, &count)!
             let positions = hb_buffer_get_glyph_positions(buffer, &count)!
             let unit = font.size / segment.instance.file.unitsPerEm * segment.instance.advanceScale
+            let substitute = segment.instance.sfProMetrics
+            let plainUnit = font.size / segment.instance.file.unitsPerEm
             for i in 0..<Int(count) {
+                var advance = CGFloat(positions[i].x_advance) * unit
+                if let substitute {
+                    // One character drawn by one glyph: give it SF Pro's width, keeping whatever
+                    // pair kerning the substitute applied on top of its own nominal advance.
+                    let cluster = Int(infos[i].cluster)
+                    let alone = (i == 0 || infos[i - 1].cluster != infos[i].cluster)
+                        && (i + 1 == Int(count) || infos[i + 1].cluster != infos[i].cluster)
+                    let nextCluster = i + 1 < Int(count) ? Int(infos[i + 1].cluster) : segment.end
+                    if alone, let scalar = TextLayout.scalar(in: utf8, at: cluster, length: nextCluster - cluster),
+                       let width = substitute.advance(of: scalar, tabularDigits: font.monospacedDigit) {
+                        let nominal = CGFloat(hb_font_get_glyph_h_advance(segment.instance.hbFont, infos[i].codepoint))
+                        advance = width + (CGFloat(positions[i].x_advance) - nominal) * plainUnit
+                    }
+                }
                 var g = Glyph(id: UInt16(truncatingIfNeeded: infos[i].codepoint),
-                              advance: CGFloat(positions[i].x_advance) * unit + run.kerning,
+                              advance: advance + run.kerning,
                               xOffset: CGFloat(positions[i].x_offset) * unit,
                               yOffset: CGFloat(positions[i].y_offset) * unit,
                               cluster: Int(infos[i].cluster), run: runIndex, instance: segment.instance, size: font.size)
@@ -170,6 +186,15 @@ final class TextLayout {
         if TextLayout.shapeCache.count > 4000 { TextLayout.shapeCache.removeAll() }
         TextLayout.shapeCache[key] = result
         return result
+    }
+
+    /// The single scalar encoded by exactly `length` UTF-8 bytes at `offset`, if that is what is there.
+    private static func scalar(in utf8: [UInt8], at offset: Int, length: Int) -> Unicode.Scalar? {
+        guard length >= 1, length <= 4, offset >= 0, offset + length <= utf8.count else { return nil }
+        var iterator = utf8[offset..<(offset + length)].makeIterator()
+        var decoder = UTF8()
+        guard case .scalarValue(let scalar) = decoder.decode(&iterator), iterator.next() == nil else { return nil }
+        return scalar
     }
 
     private func metrics(_ g: Glyph) -> (ascent: CGFloat, descent: CGFloat) {
