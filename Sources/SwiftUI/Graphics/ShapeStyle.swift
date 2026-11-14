@@ -87,6 +87,24 @@ public struct BackgroundStyle: ShapeStyle {
     public func _paint(in environment: EnvironmentValues) -> _Paint {
         environment.backgroundStyle?._paint(in: environment) ?? .color(SystemColor.background.resolve(environment.colorScheme))
     }
+    /// The levels of the system background: `.background.secondary` is the secondary system
+    /// background, not the background at half opacity (measured: iOS 27.0 simulator,
+    /// 07_FitnessDashboard cards are F2F2F7 / 1C1C1E).
+    public var secondary: _BackgroundLevelStyle { _BackgroundLevelStyle(level: 1) }
+    public var tertiary: _BackgroundLevelStyle { _BackgroundLevelStyle(level: 2) }
+    public var quaternary: _BackgroundLevelStyle { _BackgroundLevelStyle(level: 3) }
+    public var quinary: _BackgroundLevelStyle { _BackgroundLevelStyle(level: 4) }
+}
+
+public struct _BackgroundLevelStyle: ShapeStyle {
+    let level: Int
+    public func _paint(in environment: EnvironmentValues) -> _Paint {
+        if let custom = environment.backgroundStyle {
+            return _Paint(.opacity(custom._paint(in: environment).kind, [1, 0.5, 0.25, 0.18, 0.1][min(level, 4)]))
+        }
+        let color = level == 1 ? SystemColor.secondaryBackground : SystemColor.tertiaryBackground
+        return .color(color.resolve(environment.colorScheme))
+    }
 }
 
 public struct TintShapeStyle: ShapeStyle {
