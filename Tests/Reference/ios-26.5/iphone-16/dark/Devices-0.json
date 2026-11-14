@@ -1,0 +1,236 @@
+{
+  "colorScheme": "dark",
+  "device": "agent-calibrate-iphone16-ios26",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 153.33
+      },
+      "label": "horizontal, compact",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 205.33
+      },
+      "label": "vertical, regular",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 315.33
+      },
+      "label": "UIScreen.bounds, 393 x 852",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 367.33
+      },
+      "label": "scale, 3x",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 419.33
+      },
+      "label": "idiom, phone",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 471.33
+      },
+      "label": "orientation, landscape",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 523.33
+      },
+      "label": "GeometryReader, 393 x 759",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 633
+      },
+      "label": "top, 59",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 685
+      },
+      "label": "leading, 0",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 737
+      },
+      "label": "bottom, 34",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 789
+      },
+      "label": "trailing, 0",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 40.33,
+        "width": 361,
+        "x": 16,
+        "y": 113
+      },
+      "label": "Size classes",
+      "role": "header",
+      "traits": [
+        "header",
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 40.33,
+        "width": 361,
+        "x": 16,
+        "y": 275
+      },
+      "label": "Screen",
+      "role": "header",
+      "traits": [
+        "header",
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 40.33,
+        "width": 361,
+        "x": 16,
+        "y": 592.67
+      },
+      "label": "Safe area insets",
+      "role": "header",
+      "traits": [
+        "header",
+        "staticText"
+      ]
+    },
+    {
+      "class": "UILabel",
+      "frame": {
+        "height": 20.67,
+        "width": 54,
+        "x": 169.33,
+        "y": 70.67
+      },
+      "label": "Device",
+      "role": "header",
+      "traits": [
+        "header"
+      ]
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 0,
+  "previewName": "Device info",
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "Devices",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "26.5",
+  "version": 1
+}

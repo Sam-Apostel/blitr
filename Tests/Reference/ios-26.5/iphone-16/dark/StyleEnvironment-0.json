@@ -1,0 +1,93 @@
+{
+  "colorScheme": "dark",
+  "device": "agent-calibrate-iphone16-ios26",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 40.33,
+        "width": 101.33,
+        "x": 146,
+        "y": 337.67
+      },
+      "label": "Enabled",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 40.33,
+        "width": 106.33,
+        "x": 143.33,
+        "y": 398
+      },
+      "label": "Disabled",
+      "role": "button",
+      "traits": [
+        "button",
+        "notEnabled"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 40.33,
+        "width": 76,
+        "x": 158.67,
+        "y": 458.33
+      },
+      "label": "Dark",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 27.67,
+        "x": 181.83,
+        "y": 518.83
+      },
+      "label": "Tag",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 24.33,
+        "x": 217.5,
+        "y": 518.83
+      },
+      "label": "std",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 0,
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "StyleEnvironment",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "26.5",
+  "version": 1
+}

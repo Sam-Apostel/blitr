@@ -1,0 +1,362 @@
+{
+  "colorScheme": "dark",
+  "device": "agent-calibrate-iphone16-ios26",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 81.67,
+        "x": 20,
+        "y": 116
+      },
+      "label": "Borderless",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 36.67,
+        "x": 20,
+        "y": 150.17
+      },
+      "label": "Plain",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 34.33,
+        "width": 94.67,
+        "x": 20,
+        "y": 184.67
+      },
+      "label": "Bordered",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 34.33,
+        "width": 102,
+        "x": 20,
+        "y": 233
+      },
+      "label": "Prominent",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 34.33,
+        "width": 76.67,
+        "x": 20,
+        "y": 281.33
+      },
+      "label": "Cancel",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 34.33,
+        "width": 73.33,
+        "x": 104.67,
+        "y": 281.33
+      },
+      "label": "Delete",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 34.33,
+        "width": 73.33,
+        "x": 186,
+        "y": 281.33
+      },
+      "label": "Delete",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 28,
+        "width": 48.67,
+        "x": 20,
+        "y": 340.67
+      },
+      "label": "Mini",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 28,
+        "width": 57.33,
+        "x": 76.67,
+        "y": 340.67
+      },
+      "label": "Small",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 34.33,
+        "width": 82,
+        "x": 142,
+        "y": 337.67
+      },
+      "label": "Regular",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 50.33,
+        "width": 83.33,
+        "x": 232,
+        "y": 329.67
+      },
+      "label": "Large",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 34.33,
+        "width": 72.67,
+        "x": 20,
+        "y": 394
+      },
+      "label": "Tinted",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 34.33,
+        "width": 72.67,
+        "x": 100.67,
+        "y": 394
+      },
+      "label": "Tinted",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 34.33,
+        "width": 86,
+        "x": 181.33,
+        "y": 394
+      },
+      "label": "Capsule",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 66.33,
+        "x": 20,
+        "y": 449.33
+      },
+      "label": "Disabled",
+      "role": "button",
+      "traits": [
+        "button",
+        "notEnabled"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 34.33,
+        "width": 90.33,
+        "x": 94.33,
+        "y": 442.33
+      },
+      "label": "Disabled",
+      "role": "button",
+      "traits": [
+        "button",
+        "notEnabled"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 34.33,
+        "width": 90.33,
+        "x": 192.67,
+        "y": 442.33
+      },
+      "label": "Disabled",
+      "role": "button",
+      "traits": [
+        "button",
+        "notEnabled"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 34.33,
+        "width": 125.67,
+        "x": 20,
+        "y": 490.67
+      },
+      "label": "With icon",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 50.33,
+        "width": 123.33,
+        "x": 135,
+        "y": 539
+      },
+      "label": "Large wide",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 69,
+        "x": 20,
+        "y": 603.49
+      },
+      "label": "Title only",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 128.67,
+        "x": 22,
+        "y": 637.83
+      },
+      "label": "Title and icon",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 353,
+        "x": 20,
+        "y": 672.16
+      },
+      "label": "Version, 1.2.3",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 73,
+        "x": 20,
+        "y": 706.33
+      },
+      "label": "Open site",
+      "role": "link",
+      "traits": [
+        "button",
+        "link"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 60,
+        "x": 20,
+        "y": 740.67
+      },
+      "label": "Options",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 0,
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "ControlsButtons",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "26.5",
+  "version": 1
+}
