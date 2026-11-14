@@ -1,0 +1,111 @@
+{
+  "colorScheme": "light",
+  "device": "Apple TV 4K (3rd generation)",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 76.68,
+        "width": 260.28,
+        "x": 490.36,
+        "y": 396.66
+      },
+      "label": "Custom style",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 71,
+        "width": 241,
+        "x": 781,
+        "y": 399.5
+      },
+      "label": "Custom style",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 66,
+        "width": 178,
+        "x": 1062,
+        "y": 402
+      },
+      "label": "No effect",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 160,
+        "width": 280,
+        "x": 500,
+        "y": 520.5
+      },
+      "label": ".focusable()",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 160,
+        "width": 280,
+        "x": 820,
+        "y": 520.5
+      },
+      "label": "",
+      "role": "group",
+      "traits": []
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 160,
+        "width": 280,
+        "x": 1140,
+        "y": 520.5
+      },
+      "label": "",
+      "role": "group",
+      "traits": []
+    }
+  ],
+  "focused": {
+    "frame": {
+      "height": 71,
+      "width": 241,
+      "x": 500,
+      "y": 399.5
+    }
+  },
+  "model": "AppleTV14,1",
+  "presses": [],
+  "preview": 11,
+  "safeArea": {
+    "bottom": 60,
+    "left": 80,
+    "right": 80,
+    "top": 60
+  },
+  "scale": 2,
+  "screen": "TVControls",
+  "size": {
+    "height": 1080,
+    "width": 1920
+  },
+  "systemVersion": "26.5",
+  "version": 1
+}

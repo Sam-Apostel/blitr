@@ -1,0 +1,296 @@
+{
+  "colorScheme": "light",
+  "device": "Apple TV 4K (3rd generation)",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 74,
+        "width": 768,
+        "x": 156,
+        "y": 194
+      },
+      "label": "Subtitles",
+      "role": "switch",
+      "traits": [
+        "button",
+        "toggle"
+      ],
+      "value": "1"
+    },
+    {
+      "class": "TVTextField",
+      "frame": {
+        "height": 71,
+        "width": 760,
+        "x": 1000,
+        "y": 198
+      },
+      "label": "",
+      "role": "group",
+      "traits": [],
+      "value": "Name"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 66,
+        "width": 760,
+        "x": 160,
+        "y": 294
+      },
+      "label": "Autoplay",
+      "role": "switch",
+      "traits": [
+        "button",
+        "toggle"
+      ],
+      "value": "0"
+    },
+    {
+      "class": "TVTextField",
+      "frame": {
+        "height": 71,
+        "width": 760,
+        "x": 1000,
+        "y": 299
+      },
+      "label": "",
+      "role": "group",
+      "traits": [],
+      "value": "sam@example.com"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 66,
+        "width": 760,
+        "x": 160,
+        "y": 390
+      },
+      "label": "Switch style",
+      "role": "switch",
+      "traits": [
+        "button",
+        "toggle"
+      ],
+      "value": "1"
+    },
+    {
+      "class": "TVTextField",
+      "frame": {
+        "height": 69.5,
+        "width": 760,
+        "x": 1000,
+        "y": 400
+      },
+      "label": "",
+      "role": "group",
+      "traits": [],
+      "value": "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 66,
+        "width": 760,
+        "x": 160,
+        "y": 486
+      },
+      "label": "Disabled",
+      "role": "switch",
+      "traits": [
+        "button",
+        "toggle",
+        "notEnabled"
+      ],
+      "value": "0"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 66,
+        "width": 234.5,
+        "x": 1000,
+        "y": 499.5
+      },
+      "label": "",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 66,
+        "width": 121,
+        "x": 160,
+        "y": 582
+      },
+      "label": "",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 66,
+        "width": 238,
+        "x": 1000,
+        "y": 595.5
+      },
+      "label": "Privacy Policy",
+      "role": "link",
+      "traits": [
+        "button",
+        "link"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 66,
+        "width": 760,
+        "x": 160,
+        "y": 678
+      },
+      "label": "Quality",
+      "role": "button",
+      "traits": [
+        "button",
+        "notEnabled"
+      ],
+      "value": "Auto"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 35,
+        "width": 214.5,
+        "x": 1002.5,
+        "y": 691.5
+      },
+      "label": "Downloaded",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 10,
+        "width": 760,
+        "x": 1000,
+        "y": 756.5
+      },
+      "label": "",
+      "role": "group",
+      "traits": [
+        "updatesFrequently"
+      ],
+      "value": "40%"
+    },
+    {
+      "class": "UISegment",
+      "frame": {
+        "height": 84,
+        "width": 253,
+        "x": 160,
+        "y": 774
+      },
+      "label": "Movies",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "UISegment",
+      "frame": {
+        "height": 84,
+        "width": 253,
+        "x": 413,
+        "y": 774
+      },
+      "label": "Shows",
+      "role": "button",
+      "traits": [
+        "button",
+        "selected"
+      ]
+    },
+    {
+      "class": "UISegment",
+      "frame": {
+        "height": 84,
+        "width": 254,
+        "x": 666,
+        "y": 774
+      },
+      "label": "Kids",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 40,
+        "width": 40,
+        "x": 1000,
+        "y": 819.5
+      },
+      "label": "",
+      "role": "group",
+      "traits": [
+        "updatesFrequently"
+      ],
+      "value": "1"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 85.5,
+        "width": 104,
+        "x": 1080,
+        "y": 796.5
+      },
+      "label": "Loading",
+      "role": "group",
+      "traits": [
+        "updatesFrequently"
+      ],
+      "value": "1"
+    }
+  ],
+  "focused": {
+    "frame": {
+      "height": 66,
+      "width": 760,
+      "x": 160,
+      "y": 198
+    }
+  },
+  "model": "AppleTV14,1",
+  "presses": [],
+  "preview": 1,
+  "safeArea": {
+    "bottom": 60,
+    "left": 80,
+    "right": 80,
+    "top": 60
+  },
+  "scale": 2,
+  "screen": "TVControls",
+  "size": {
+    "height": 1080,
+    "width": 1920
+  },
+  "systemVersion": "26.5",
+  "version": 1
+}
