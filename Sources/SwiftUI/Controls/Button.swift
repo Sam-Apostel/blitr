@@ -180,14 +180,14 @@ struct ButtonMetrics {
         minHeight = nil
         if design.isGlass {
             // iOS 26/27: capsule buttons, regular-weight labels. measured: iOS 27.0 simulator
-            // (ControlsButtons): regular 34.33pt tall with a 17pt label (12/7 padding), small and
-            // mini both 28pt with a 15pt label (10/5), large 50.33pt (20/15). extraLarge is an estimate.
+            // (ControlsButtons, GlassControls): regular 34.33pt tall with a 17pt label (12/7 padding),
+            // small and mini both 28pt with a 15pt label (10/5), large and extraLarge 50.33pt (20/15).
             switch size {
             case .mini: (h, v, radius, font, weight, minHeight) = (10, 5, 14, .system(size: 15), nil, 28)
             case .small: (h, v, radius, font, weight, minHeight) = (10, 5, 14, .system(size: 15), nil, 28)
             case .regular: (h, v, radius, font, weight, minHeight) = (12, 7, 17, nil, nil, nil)
             case .large: (h, v, radius, font, weight, minHeight) = (20, 15, 25, nil, nil, nil)
-            case .extraLarge: (h, v, radius, font, weight, minHeight) = (24, 18, 30, .system(size: 20), nil, nil)
+            case .extraLarge: (h, v, radius, font, weight, minHeight) = (20, 15, 25, nil, nil, nil)  // measured: same as large
             }
             return
         }
@@ -333,9 +333,9 @@ struct _ButtonVisual: View {
         case .glassProminent:
             guard design.isGlass else { return AnyView(_ButtonVisual(kind: .prominent, label: label, role: role)) }
             let foreground: Color = isEnabled ? .white : disabledColor
-            let semibold = design == .liquidGlass27
+            // measured: iOS 27.0 simulator: the label keeps its regular weight (82pt wide "Regular").
             return AnyView(
-                padded(semibold ? AnyView(content.fontWeight(.semibold).foregroundStyle(foreground)) : AnyView(content.foregroundStyle(foreground)), m)
+                padded(content.foregroundStyle(foreground), m)
                     .modifier(ControlGlassSurface(prominent: true, borderShape: borderShape, enabled: isEnabled)))
         }
     }
@@ -343,6 +343,13 @@ struct _ButtonVisual: View {
     /// The label with the style's padding; glass designs add the fixed control height, and
     /// `.buttonSizing(.flexible)` stretches the button over the available width.
     private func padded<V: View>(_ content: V, _ m: ButtonMetrics) -> AnyView {
+        if design.isGlass, borderShape.kind == .circle {
+            // A circle is as wide as it is tall unless the label is wider (measured: iOS 27.0
+            // simulator, a glass "Icon" circle button is 34.33 x 34.33pt).
+            let size = (userFont ?? m.font)?.resolve(in: EnvironmentValues()).size ?? 17
+            let side = m.minHeight ?? ((size * 1.193359 * 3).rounded(.up) / 3 + 2 * m.v)
+            return AnyView(content.padding(.vertical, m.v).frame(minWidth: side, minHeight: m.minHeight))
+        }
         let padded = content.padding(.horizontal, m.h).padding(.vertical, m.v)
         switch (m.minHeight, sizing.kind) {
         case (nil, .flexible): return AnyView(padded.frame(maxWidth: .infinity))
