@@ -3,10 +3,13 @@
 // Everything here applies only when `env.designLanguage.isGlass`; iOS 26 and 27 share the values.
 
 enum ControlGlassMetrics {
-    // Toggle: wider, flatter switch with a pill knob.
-    static let toggleTrack = CGSize(width: 64, height: 28)       // est.
-    static let toggleKnob = CGSize(width: 39, height: 24)        // est.
-    static let toggleKnobInset: CGFloat = 2                      // est.
+    // Toggle: wider, flatter switch with a pill knob and no knob shadow. measured: iOS 27.0
+    // simulator (GlassControls): 63x28 track, 37x24 knob 2pt from the edges; the off track is
+    // C5C5C7 on white and 464649 on black.
+    static let toggleTrack = CGSize(width: 63, height: 28)
+    static let toggleKnob = CGSize(width: 37, height: 24)
+    static let toggleKnobInset: CGFloat = 2
+    static let toggleOffTrack = DynamicColor(0xC5C5C7, 0x464649)
 
     // Slider: 6pt track, pill thumb.
     static let sliderTrackHeight: CGFloat = 6                    // est.
