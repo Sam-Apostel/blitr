@@ -298,6 +298,8 @@ public struct GroupBox<Label: View, Content: View>: View {
     let label: Label
     let content: Content
     @Environment(\.designLanguage) private var design
+    @Environment(\.groupBoxStyleBox) private var customStyle
+    var forceDefault = false
 
     public init(@ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label) {
         self.content = content()
@@ -309,6 +311,14 @@ public struct GroupBox<Label: View, Content: View>: View {
     }
 
     public var body: some View {
+        if let custom = customStyle, !forceDefault {
+            custom.make(AnyView(label), AnyView(content))
+        } else {
+            defaultBody
+        }
+    }
+
+    private var defaultBody: some View {
         VStack(alignment: .leading, spacing: 8) {
             if !(Label.self is EmptyView.Type) { label.font(.headline) }
             content
