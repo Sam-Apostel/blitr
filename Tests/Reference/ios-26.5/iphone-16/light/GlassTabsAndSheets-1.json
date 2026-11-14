@@ -1,0 +1,276 @@
+{
+  "colorScheme": "light",
+  "device": "agent-calibrate-iphone16-ios26",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 26.33,
+        "width": 65,
+        "x": 32,
+        "y": 242.67
+      },
+      "label": "Card 1",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 26.33,
+        "width": 67.67,
+        "x": 32,
+        "y": 374.67
+      },
+      "label": "Card 2",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 26.33,
+        "width": 68.33,
+        "x": 32,
+        "y": 506.67
+      },
+      "label": "Card 3",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 26.33,
+        "width": 68.67,
+        "x": 32,
+        "y": 638.67
+      },
+      "label": "Card 4",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 26.33,
+        "width": 68.33,
+        "x": 32,
+        "y": 770.67
+      },
+      "label": "Card 5",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 26.33,
+        "width": 68.67,
+        "x": 32,
+        "y": 902.67
+      },
+      "label": "Card 6",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 26.33,
+        "width": 67,
+        "x": 32,
+        "y": 2822.67
+      },
+      "label": "Card 7",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 26.33,
+        "width": 69,
+        "x": 32,
+        "y": 2822.67
+      },
+      "label": "Card 8",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 26.33,
+        "width": 68.67,
+        "x": 32,
+        "y": 2822.67
+      },
+      "label": "Card 9",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 26.33,
+        "width": 79.33,
+        "x": 32,
+        "y": 2822.67
+      },
+      "label": "Card 10",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "UILabel",
+      "frame": {
+        "height": 40.67,
+        "width": 175.67,
+        "x": 16,
+        "y": 116.67
+      },
+      "label": "Listen Now",
+      "role": "header",
+      "traits": [
+        "header"
+      ]
+    },
+    {
+      "class": "_UITabButton",
+      "frame": {
+        "height": 62,
+        "width": 62,
+        "x": 310,
+        "y": 769
+      },
+      "label": "Search",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "_UITabButton",
+      "frame": {
+        "height": 54,
+        "width": 95.67,
+        "x": 25,
+        "y": 773
+      },
+      "label": "Listen Now",
+      "role": "button",
+      "traits": [
+        "button",
+        "selected"
+      ]
+    },
+    {
+      "class": "_UITabButton",
+      "frame": {
+        "height": 54,
+        "width": 95.67,
+        "x": 113.67,
+        "y": 773
+      },
+      "label": "Radio",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "_UITabButton",
+      "frame": {
+        "height": 54,
+        "width": 95.67,
+        "x": 202.33,
+        "y": 773
+      },
+      "label": "Library",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 18,
+        "width": 88,
+        "x": 65,
+        "y": 728
+      },
+      "label": "Now Playing",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 14,
+        "width": 12.67,
+        "x": 322,
+        "y": 730
+      },
+      "label": "Play",
+      "role": "image",
+      "traits": [
+        "image"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 13,
+        "width": 22.67,
+        "x": 349,
+        "y": 730.67
+      },
+      "label": "Forward",
+      "role": "image",
+      "traits": [
+        "image"
+      ]
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 1,
+  "previewName": "Search tab and accessory",
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "GlassTabsAndSheets",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "26.5",
+  "version": 1
+}
