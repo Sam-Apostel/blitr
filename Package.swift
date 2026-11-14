@@ -23,7 +23,6 @@ let package = Package(
         .library(name: "SwiftUI", type: .dynamic, targets: ["SwiftUI"] + shimModules),
         // Foundation's localization API (String(localized:), LocalizedStringResource), which Linux Foundation
         // lacks; SwiftUI re-exports it and project mode imports it into Foundation-only packages.
-        .library(name: "SwiftUIScreenshotFoundation", type: .dynamic, targets: ["SwiftUIScreenshotFoundation"]),
         // The command-line tool: compiles user sources against the modules above and renders them.
         .executable(name: "swiftui-screenshot", targets: ["swiftui-screenshot"]),
     ],
@@ -38,8 +37,8 @@ let package = Package(
         ),
         .systemLibrary(name: "CHarfBuzz", pkgConfig: "harfbuzz", providers: [.apt(["libharfbuzz-dev"])]),
         .target(name: "Combine", swiftSettings: moduleSettings),
-        // Autolinked (-module-link-name), so importers need no extra -l flag.
-        .target(name: "SwiftUIScreenshotFoundation", swiftSettings: moduleSettings + [.unsafeFlags(["-module-link-name", "SwiftUIScreenshotFoundation"])]),
+        // No library of its own: its code is in libSwiftUI, so a process has one copy of its types.
+        .target(name: "SwiftUIScreenshotFoundation", swiftSettings: moduleSettings),
         // Core Graphics sits below SwiftUI (Apple's SwiftUI re-exports it); ImageIO and CoreText build on it.
         .target(name: "CoreGraphics", dependencies: ["CSkia"], swiftSettings: moduleSettings),
         .target(name: "ImageIO", dependencies: ["CoreGraphics", "CSkia"], swiftSettings: moduleSettings),
