@@ -306,6 +306,14 @@ final class TextNode: Node {
         return size
     }
 
+    override func textLeading(_ edge: Edge) -> CGFloat? {
+        guard edge == .top || edge == .bottom else { return nil }
+        let lines = textLayout(width: nil).lines
+        guard let line = edge == .top ? lines.first : lines.last else { return nil }
+        let scale = max(options.scale, 1)
+        return (line.leading * scale - 0.001).rounded(.up) / scale
+    }
+
     override func explicitAlignment(_ key: AlignmentKey, size: CGSize) -> CGFloat? {
         let id = ObjectIdentifier(key.id)
         if id == ObjectIdentifier(VerticalAlignment.FirstTextBaseline.self) { return textLayout(width: size.width).firstBaseline }

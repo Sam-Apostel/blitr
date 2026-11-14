@@ -10,6 +10,10 @@ enum ControlGlassMetrics {
     static let toggleKnob = CGSize(width: 37, height: 24)
     static let toggleKnobInset: CGFloat = 2
     static let toggleOffTrack = DynamicColor(0xC5C5C7, 0x464649)
+    /// iOS 27, in a sheet: the off track and the fills of date pills are stronger over the sheet's glass.
+    /// measured: iOS 27.0 simulator (10_Agenda, form card 214 / 48): off track 139 / 98, date pills 184 / 76.
+    static let sheetToggleOffTrack = DynamicColor(0x787880, 0x787880, alpha: 0.78, darkAlpha: 0.69)
+    static let sheetPillFill = DynamicColor(0x767680, 0x767680, alpha: 0.31, darkAlpha: 0.4)
     /// The switch takes 61pt in layout; its track overhangs 2pt to the right (measured).
     static let toggleLayoutWidth: CGFloat = 61
 
@@ -41,9 +45,12 @@ enum ControlGlassMetrics {
 
     // Prominent glass: opacity of the accent tint over the backdrop.
     static let prominentTintAlpha26: Double = 0.86
-    static let prominentTintAlpha27: Double = 0.94               // iOS 27: better label contrast
-    /// iOS 27 also darkens the accent a little under the white label.
-    static let prominentDarken27: Double = 0.88
+    /// iOS 27: nearly opaque; the accent is darkened a little under the white label in light mode and mixed
+    /// with 10% white in dark mode. measured: iOS 27.0 simulator (GlassControls: 0,128,242 and 27,154,250
+    /// over a rainbow backdrop, for the 0,136,255 / 0,145,255 accent)
+    static let prominentTintAlpha27: Double = 0.98
+    static let prominentDarken27: Double = 0.92
+    static let prominentLighten27Dark: Double = 0.1
 }
 
 /// A Liquid Glass surface for button styles: neutral, or tinted with the accent color.
@@ -58,8 +65,11 @@ struct ControlGlassSurface: ViewModifier, NodeModifier {
         if prominent && enabled {
             let accent = (Color.accentColor).rgba(in: env)
             let refined = env.designLanguage == .liquidGlass27
-            let k = refined ? ControlGlassMetrics.prominentDarken27 : 1
-            appearance.tint = RGBA(accent.r * k, accent.g * k, accent.b * k,
+            let dark = env.colorScheme == .dark
+            // iOS 27 darkens the accent under the label in light mode and lightens it in dark mode.
+            let w = refined && dark ? ControlGlassMetrics.prominentLighten27Dark : 0
+            let k = refined ? (dark ? 1 - w : ControlGlassMetrics.prominentDarken27) : 1
+            appearance.tint = RGBA(accent.r * k + w, accent.g * k + w, accent.b * k + w,
                                    (refined ? ControlGlassMetrics.prominentTintAlpha27 : ControlGlassMetrics.prominentTintAlpha26) * accent.a)
         }
         let shape = borderShape

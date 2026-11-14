@@ -28,7 +28,10 @@ struct GlassAppearance {
     /// The regular and clear system glass. measured: iOS 27.0 simulator, bar items over flat backgrounds:
     /// light glass turns white into 249, gray 241 into 243.5 and yellow (255,240,178) into (255,243,187)
     /// (61% of a 245 gray, then saturation 2.3); dark glass turns black into 31, 17 into 48 and
-    /// (77,64,0) into (105,90,13) (+32 brightness, then saturation 1.33). Light glass has a faint
+    /// (77,64,0) into (105,90,13). Over colourful content dark glass barely lifts what is behind it (the tab bar
+    /// over the cards of GlassTabsAndSheets keeps their brightness), so it scales the backdrop down before
+    /// lifting it: 76% of it, +33 brightness, then saturation 1.32 (least-squares fit of the tab bar and
+    /// bottom accessory of GlassTabsAndSheets-0/1 and the flat values). Light glass has a faint
     /// shadow below it (-3 levels over ~10pt) and a dark hairline; dark glass has neither.
     /// iOS 26 dark glass is darker. measured: iOS 26.5 simulator: it turns black into 19...25, 17 into 31 and
     /// (77,64,0) into (51,43,2) (best linear fit: 45% of a 0.19 gray). iOS 26.5 light glass is whiter over flat
@@ -40,10 +43,10 @@ struct GlassAppearance {
         let is26 = design == .liquidGlass26
         var a = GlassAppearance(
             blurRadius: 14,
-            saturation: dark ? (is26 ? 1 : 1.33) : 2.3,
+            saturation: dark ? (is26 ? 1 : 1.32) : 2.3,
             tint: is26 && dark ? RGBA(0.19, 0.19, 0.2, 0.45)
-                : dark ? RGBA(0, 0, 0, 0.06) : RGBA(0.961, 0.961, 0.961, 0.607),
-            brightness: !is26 && dark ? 0.125 : 0,
+                : dark ? RGBA(0, 0, 0, 0.24) : RGBA(0.961, 0.961, 0.961, 0.607),
+            brightness: !is26 && dark ? 0.129 : 0,
             lensWidth: 9, lensStrength: 12,
             highlight: dark ? (0.3, 0.1) : (0.85, 0.3),
             edge: dark ? RGBA(0, 0, 0, 0.25) : RGBA(0, 0, 0, 0.12),

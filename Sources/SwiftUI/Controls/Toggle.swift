@@ -95,14 +95,16 @@ struct SwitchControl: View {
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.accentColor) private var accent
     @Environment(\.designLanguage) private var design
+    @Environment(\.isElevatedPresentation) private var inSheet
 
     var body: some View {
         let onColor = accent ?? Color(SystemColor.green)
         if design.isGlass {
             // iOS 26/27: 63x28 capsule track with a 37x24 pill knob.
             let m = ControlGlassMetrics.self
+            let offTrack = design == .liquidGlass27 && inSheet ? m.sheetToggleOffTrack : m.toggleOffTrack
             return AnyView(ZStack(alignment: isOn ? .trailing : .leading) {
-                Capsule().fill(isOn ? onColor : Color(m.toggleOffTrack))
+                Capsule().fill(isOn ? onColor : Color(offTrack))
                 Capsule().fill(Color.white)
                     .frame(width: m.toggleKnob.width, height: m.toggleKnob.height).padding(m.toggleKnobInset)
             }

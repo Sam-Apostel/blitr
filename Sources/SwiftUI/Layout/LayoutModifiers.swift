@@ -143,6 +143,16 @@ final class PaddingNode: WrapperNode {
         }
         return amount != 0 ? nil : child.spacing(edge)
     }
+    override func textLeading(_ edge: Edge) -> CGFloat? {
+        let amount: CGFloat
+        switch edge {
+        case .top: amount = insets.top
+        case .bottom: amount = insets.bottom
+        case .leading: amount = insets.leading
+        case .trailing: amount = insets.trailing
+        }
+        return amount != 0 ? nil : child.textLeading(edge)
+    }
     override func explicitAlignment(_ key: AlignmentKey, size: CGSize) -> CGFloat? {
         let inner = CGSize(width: max(0, size.width - insets.horizontal), height: max(0, size.height - insets.vertical))
         guard let v = child.explicitAlignment(key, size: inner) else { return nil }
@@ -189,6 +199,7 @@ final class SecondaryNode: Node {
         secondary.place(at: CGPoint(x: x, y: y), size: s, ctx)
     }
     override func spacing(_ edge: Edge) -> CGFloat? { primary.spacing(edge) }
+    override func textLeading(_ edge: Edge) -> CGFloat? { primary.textLeading(edge) }
     override func explicitAlignment(_ key: AlignmentKey, size: CGSize) -> CGFloat? { primary.explicitAlignment(key, size: size) }
     override func drawContent(_ p: Painter) {
         if secondaryInFront { primary.draw(p); secondary.draw(p) } else { secondary.draw(p); primary.draw(p) }
