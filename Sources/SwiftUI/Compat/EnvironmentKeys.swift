@@ -52,14 +52,6 @@ public enum EditMode: Hashable, Sendable {
     public var isEditing: Bool { self != .inactive }
 }
 
-public struct RedactionReasons: OptionSet, Sendable {
-    public let rawValue: Int
-    public init(rawValue: Int) { self.rawValue = rawValue }
-    public static let placeholder = RedactionReasons(rawValue: 1 << 0)
-    public static let privacy = RedactionReasons(rawValue: 1 << 1)
-    public static let invalidated = RedactionReasons(rawValue: 1 << 2)
-}
-
 // MARK: - Keys
 
 enum DismissKey: EnvironmentKey { static let defaultValue = DismissAction() }
@@ -74,7 +66,6 @@ enum IsSearchingKey: EnvironmentKey { static let defaultValue = false }
 enum IsFocusedKey: EnvironmentKey { static let defaultValue = false }
 enum LayoutDirectionKey: EnvironmentKey { static let defaultValue = LayoutDirection.leftToRight }
 enum ContrastKey: EnvironmentKey { static let defaultValue = ColorSchemeContrast.standard }
-enum RedactionReasonsKey: EnvironmentKey { static let defaultValue = RedactionReasons() }
 
 /// The size classes follow the render configuration: iPhone-sized canvases are compact wide, regular tall.
 /// (Wrapped so an unset value is distinguishable from an explicit nil: `storage[...] as? T?` cannot tell.)
@@ -171,10 +162,6 @@ extension EnvironmentValues {
     public var colorSchemeContrast: ColorSchemeContrast {
         get { self[ContrastKey.self] }
         set { self[ContrastKey.self] = newValue }
-    }
-    public var redactionReasons: RedactionReasons {
-        get { self[RedactionReasonsKey.self] }
-        set { self[RedactionReasonsKey.self] = newValue }
     }
     public var horizontalSizeClass: UserInterfaceSizeClass? {
         get { self[HorizontalSizeClassKey.self].map(\.value) ?? UserInterfaceSizeClass.forCanvas { $0.width >= 700 ? .regular : .compact } }

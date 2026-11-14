@@ -184,18 +184,24 @@ public struct GeometryProxy {
     }
     public func frame(in coordinateSpace: some CoordinateSpaceProtocol) -> CGRect { frame(in: coordinateSpace.coordinateSpace) }
     public func bounds(of coordinateSpace: NamedCoordinateSpace) -> CGRect? { nil }
-    public subscript<T>(anchor: Anchor<T>) -> T { anchor.value }
+    /// An anchor is resolved against the rect its view occupied (absolute), expressed in this proxy's space.
+    public subscript<T>(anchor: Anchor<T>) -> T {
+        anchor.source.make(anchor.rect.offsetBy(dx: -absoluteOrigin.x, dy: -absoluteOrigin.y))
+    }
 }
 
 public struct Anchor<Value> {
-    let value: Value
+    /// Absolute rect of the anchored view (filled in by `anchorPreference`; `.zero` until its first layout).
+    let rect: CGRect
+    let source: Source
+    var value: Value { source.make(rect) }
     public struct Source {
         let make: (CGRect) -> Value
     }
 }
 extension Anchor.Source where Value == CGRect {
     public static var bounds: Anchor<CGRect>.Source { .init { $0 } }
-    public static func rect(_ r: CGRect) -> Anchor<CGRect>.Source { .init { _ in r } }
+    public static func rect(_ r: CGRect) -> Anchor<CGRect>.Source { .init { r.offsetBy(dx: $0.minX, dy: $0.minY) } }
 }
 extension Anchor.Source where Value == CGPoint {
     public static var center: Anchor<CGPoint>.Source { .init { $0.center } }
@@ -207,7 +213,7 @@ extension Anchor.Source where Value == CGPoint {
     public static var topTrailing: Anchor<CGPoint>.Source { .init { CGPoint(x: $0.maxX, y: $0.minY) } }
     public static var bottomLeading: Anchor<CGPoint>.Source { .init { CGPoint(x: $0.minX, y: $0.maxY) } }
     public static var bottomTrailing: Anchor<CGPoint>.Source { .init { CGPoint(x: $0.maxX, y: $0.maxY) } }
-    public static func point(_ p: CGPoint) -> Anchor<CGPoint>.Source { .init { _ in p } }
+    public static func point(_ p: CGPoint) -> Anchor<CGPoint>.Source { .init { CGPoint(x: $0.minX + p.x, y: $0.minY + p.y) } }
 }
 
 final class GeometryNode: Node {
