@@ -10,6 +10,10 @@ enum ControlGlassMetrics {
     static let toggleKnob = CGSize(width: 37, height: 24)
     static let toggleKnobInset: CGFloat = 2
     static let toggleOffTrack = DynamicColor(0xC5C5C7, 0x464649)
+    /// iOS 27, in a sheet: the off track and the fills of date pills are stronger over the sheet's glass.
+    /// measured: iOS 27.0 simulator (10_Agenda, form card 214 / 48): off track 139 / 98, date pills 184 / 76.
+    static let sheetToggleOffTrack = DynamicColor(0x787880, 0x787880, alpha: 0.78, darkAlpha: 0.69)
+    static let sheetPillFill = DynamicColor(0x767680, 0x767680, alpha: 0.31, darkAlpha: 0.4)
     /// The switch takes 61pt in layout; its track overhangs 2pt to the right (measured).
     static let toggleLayoutWidth: CGFloat = 61
 

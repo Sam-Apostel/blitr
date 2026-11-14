@@ -28,14 +28,16 @@ struct _DatePill: View {
     /// Height of the pill on iOS 26/27 (nil: label height + 14).
     var glassHeight: CGFloat? = nil
     @Environment(\.designLanguage) private var design
+    @Environment(\.isElevatedPresentation) private var inSheet
     var body: some View {
         if design.isGlass {
             // measured: iOS 27.0 simulator (ControlsInputs): 12pt side padding; 34.33pt tall alone,
             // 36pt when the time is shown too; capsule.
+            let fill = design == .liquidGlass27 && inSheet ? ControlGlassMetrics.sheetPillFill : SystemColor.tertiaryFill
             return AnyView(Text(verbatim: text)
                 .padding(.horizontal, 12).padding(.vertical, 7)
                 .frame(minHeight: glassHeight)
-                .background(Color(SystemColor.tertiaryFill), in: Capsule()))
+                .background(Color(fill), in: Capsule()))
         }
         return AnyView(Text(verbatim: text)
             .padding(.horizontal, 11).padding(.vertical, 7)
