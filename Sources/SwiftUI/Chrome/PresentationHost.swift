@@ -70,19 +70,25 @@ enum AlertMetrics {
 
     /// Liquid Glass alert (iOS 26+). Values marked (est.) are estimates kept here for calibration.
     struct Glass {
-        var width: CGFloat = 300                    // (est.)
-        var cornerRadius: CGFloat = 34              // (est.)
-        /// Padding around the title and message.
-        var textPadding: CGFloat = 24               // (est.)
-        var titleMessageSpacing: CGFloat = 6        // (est.)
+        var width: CGFloat = 320                    // measured: iOS 27.0 simulator (36.7...356.7pt)
+        /// Concentric with the buttons: half their height plus their inset.
+        var cornerRadius: CGFloat = 40              // (est.)
+        /// Padding beside the title and message, and above the title.
+        var textPadding: CGFloat = 30               // measured: iOS 27.0 simulator
+        var textPaddingTop: CGFloat = 21.67         // measured: iOS 27.0 simulator
+        var titleMessageSpacing: CGFloat = 7.67     // measured: iOS 27.0 simulator
         var titleFontSize: CGFloat = 17
         var messageFontSize: CGFloat = 15
         /// Space between the text and the buttons.
-        var textToButtons: CGFloat = 20             // (est.)
-        /// Buttons: inset from the card edges so the capsules sit concentric in the corners.
-        var buttonInset: CGFloat = 14               // (est.; brief said ~24 for all padding)
-        var buttonHeight: CGFloat = 48              // (est.)
-        var buttonGap: CGFloat = 8                  // (est.)
+        var textToButtons: CGFloat = 20.33          // measured: iOS 27.0 simulator
+        /// Buttons: inset from the card's sides and bottom.
+        var buttonInset: CGFloat = 16               // measured: iOS 27.0 simulator
+        var buttonBottomInset: CGFloat = 15.33      // measured: iOS 27.0 simulator
+        var buttonHeight: CGFloat = 48              // measured: iOS 27.0 simulator
+        var buttonGap: CGFloat = 8                  // measured: iOS 27.0 simulator
+        /// iOS 27 confirmation dialog on iPhone: the alert's card, this wide, undimmed and without its
+        /// cancel button. measured: iOS 27.0 simulator (buttons 208pt, text 180pt, centred in the safe area)
+        var dialogWidth: CGFloat = 240
         var buttonFontSize: CGFloat = 17
         var buttonTextPadding: CGFloat = 10
         var buttonFill = SystemColor.fill
@@ -179,6 +185,11 @@ final class PresentationHostNode: Node {
         case .alert(let spec):
             return DimmedCardLayerNode(card: AlertCardNode(spec: spec, ctx: record.ctx.child("alert")), env: record.ctx.env, atBottom: false)
         case .confirmationDialog(let spec):
+            if record.ctx.env.designLanguage == .liquidGlass27, record.ctx.env.renderPlatform == .iOS,
+               _currentConfiguration().device.idiom == .phone {
+                return DimmedCardLayerNode(card: AlertCardNode(spec: spec, ctx: record.ctx.child("dialog"), dialog: true),
+                                           env: record.ctx.env, atBottom: false)
+            }
             return DimmedCardLayerNode(card: DialogCardNode(spec: spec, ctx: record.ctx.child("dialog")), env: record.ctx.env, atBottom: true)
         }
     }
@@ -443,10 +454,20 @@ final class DimmedCardLayerNode: PresentationLayerNode {
         self.card = card
         self.atBottom = atBottom
         super.init(children: [card])
-        backdrop = .dim(env.colorScheme == .dark ? AlertMetrics.dimDark : AlertMetrics.dimLight)
+        // The iOS 27 dialog card does not dim the screen. measured: iOS 27.0 simulator
+        let undimmed = (card as? AlertCardNode)?.isDialog == true
+        backdrop = .dim(undimmed ? 0 : env.colorScheme == .dark ? AlertMetrics.dimDark : AlertMetrics.dimLight)
     }
     override func layout(size: CGSize, _ ctx: PlaceContext) {
         if card is TVAlertCardNode { card.place(at: .zero, size: size, ctx); return }
+        if let alert = card as? AlertCardNode, alert.design.isGlass {
+            // Glass alerts (and the iOS 27 dialog card) are centred in the safe area.
+            // measured: iOS 27.0 simulator (card centres at 438pt between 59 and 818pt)
+            let c = card.sizeThatFits(ProposedViewSize(width: nil, height: nil))
+            let top = deviceInsets.top, bottom = size.height - deviceInsets.bottom
+            card.place(at: CGPoint(x: (size.width - c.width) / 2, y: (top + bottom - c.height) / 2), size: c, ctx)
+            return
+        }
         if atBottom, let dialog = card as? DialogCardNode, dialog.design.isGlass {
             // Glass: inset from the screen edges like a floating sheet.
             let inset = DialogMetrics.forDesign(dialog.design).inset
@@ -544,13 +565,16 @@ final class AlertCardNode: Node {
     private var cancelIsLast = false
     /// Glass only: each action's capsule (local coordinates, same order as `actions`). Nil for the flat alert.
     private(set) var glassActionCells: [CGRect]?
+    /// iOS 27: a confirmation dialog drawn as a narrower alert card without its cancel action.
+    let isDialog: Bool
 
-    init(spec: DialogSpec, ctx: ResolveContext) {
+    init(spec: DialogSpec, ctx: ResolveContext, dialog: Bool = false) {
         let env = ctx.env
         let scheme = env.colorScheme
         self.scheme = scheme
         let design = env.designLanguage
         self.design = design
+        isDialog = dialog
         let label = SystemColor.label.resolve(scheme)
         if design.isGlass {
             let g = AlertMetrics.forDesign(design)
@@ -566,6 +590,7 @@ final class AlertCardNode: Node {
             message = resolveDialogText(spec.message, ctx.child("message"), size: AlertMetrics.messageFontSize, weight: .regular, color: label)
         }
         var list = presentationActions(spec, ctx)
+        if dialog { list.removeAll { $0.role == .cancel } }
         if list.isEmpty { list = [PresentationAction(title: "OK", role: nil)] }
         // UIKit puts the cancel action leftmost when side by side, last when stacked.
         if let cancel = list.firstIndex(where: { $0.role == .cancel }) {
@@ -576,15 +601,23 @@ final class AlertCardNode: Node {
         let fontSize = design.isGlass ? AlertMetrics.forDesign(design).buttonFontSize : AlertMetrics.actionFontSize
         actionHandlers = list.map(\.activate)
         actions = list.map { action in
-            textNode(action.title, size: fontSize, weight: action.role == .cancel ? .semibold : .regular,
-                     color: action.role == .destructive ? SystemColor.red.resolve(scheme) : accent, env: env)
+            if design == .liquidGlass27 {
+                // Label-coloured, regular weight; destructive red. measured: iOS 27.0 simulator
+                return textNode(action.title, size: fontSize, weight: .regular,
+                                color: action.role == .destructive ? SystemColor.red.resolve(scheme) : label, env: env)
+            }
+            return textNode(action.title, size: fontSize, weight: action.role == .cancel ? .semibold : .regular,
+                            color: action.role == .destructive ? SystemColor.red.resolve(scheme) : accent, env: env)
         }
         separatorColor = SystemColor.separator.resolve(scheme)
         background = scheme == .dark ? AlertMetrics.backgroundDark : AlertMetrics.backgroundLight
         super.init(children: [title, message].compactMap { $0 } + actions)
     }
 
-    private var width: CGFloat { design.isGlass ? AlertMetrics.forDesign(design).width : AlertMetrics.width }
+    private var width: CGFloat {
+        guard design.isGlass else { return AlertMetrics.width }
+        return isDialog ? AlertMetrics.forDesign(design).dialogWidth : AlertMetrics.forDesign(design).width
+    }
     private var textWidth: CGFloat {
         design.isGlass ? width - AlertMetrics.forDesign(design).textPadding * 2 : AlertMetrics.width - AlertMetrics.paddingSide * 2
     }
@@ -603,7 +636,7 @@ final class AlertCardNode: Node {
     private func headerHeight() -> CGFloat {
         if design.isGlass {
             let g = AlertMetrics.forDesign(design)
-            return g.textPadding + textHeight() + g.textToButtons
+            return g.textPaddingTop + textHeight() + g.textToButtons
         }
         return AlertMetrics.paddingTop + AlertMetrics.paddingBottom + textHeight()
     }
@@ -624,7 +657,7 @@ final class AlertCardNode: Node {
         let rows = CGFloat(fitsSideBySide() ? 1 : actions.count)
         if design.isGlass {
             let g = AlertMetrics.forDesign(design)
-            return CGSize(width: width, height: headerHeight() + rows * g.buttonHeight + (rows - 1) * g.buttonGap + g.buttonInset)
+            return CGSize(width: width, height: headerHeight() + rows * g.buttonHeight + (rows - 1) * g.buttonGap + g.buttonBottomInset)
         }
         return CGSize(width: AlertMetrics.width, height: headerHeight() + rows * AlertMetrics.actionHeight)
     }
@@ -668,7 +701,7 @@ final class AlertCardNode: Node {
     /// Glass: leading-aligned text, then capsule buttons side by side (two) or stacked.
     private func layoutGlass(size: CGSize, _ ctx: PlaceContext) {
         let g = AlertMetrics.forDesign(design)
-        var y = g.textPadding
+        var y = g.textPaddingTop
         if let title {
             let s = title.sizeThatFits(ProposedViewSize(width: textWidth, height: nil))
             title.place(at: CGPoint(x: g.textPadding, y: y), size: s, ctx)
