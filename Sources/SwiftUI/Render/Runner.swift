@@ -4,8 +4,18 @@
 public struct _PreviewEntry {
     let name: String?
     let make: @MainActor () -> AnyView
-    public init<V: View>(_ name: String? = nil, @ViewBuilder _ body: @escaping @MainActor () -> V) {
+    /// Per-preview defaults from `#Preview(traits:)`; explicit command-line options override them.
+    let orientation: String?
+    let layout: String?
+    let width: Double?
+    let height: Double?
+    public init<V: View>(_ name: String? = nil, orientation: String? = nil, layout: String? = nil, width: Double? = nil,
+                         height: Double? = nil, @ViewBuilder _ body: @escaping @MainActor () -> V) {
         self.name = name
+        self.orientation = orientation
+        self.layout = layout
+        self.width = width
+        self.height = height
         self.make = { AnyView(body()) }
     }
 }
@@ -23,6 +33,9 @@ public enum _ScreenshotRunner {
         var index = 0
         var previewName: String?
         var listOnly = false
+        var listDevices = false
+        var orientation: DeviceOrientation?
+        var layoutSet = false
         var args = Array(CommandLine.arguments.dropFirst())
 
         func fail(_ message: String) -> Never {
@@ -42,12 +55,23 @@ public enum _ScreenshotRunner {
                 if let i = Int(v) { index = i } else { previewName = v }
             case "--list": listOnly = true
             case "--device":
-                let key = value(flag).lowercased()
-                guard let device = DeviceProfile.all[key] else {
-                    fail("unknown device \"\(key)\". Known: \(DeviceProfile.all.keys.sorted().joined(separator: ", "))")
+                let key = value(flag)
+                guard let device = DeviceProfile.lookup(key) else {
+                    fail("unknown device \"\(key)\". Known: \(DeviceProfile.table.map(\.id).joined(separator: ", "))")
                 }
                 config.device = device
+            case "--list-devices": listDevices = true
+            case "--orientation":
+                switch DeviceProfile.normalize(value(flag)) {
+                case "portrait": orientation = .portrait
+                case "landscape", "landscapeleft": orientation = .landscapeLeft
+                case "landscaperight": orientation = .landscapeRight
+                default: fail("--orientation must be portrait, landscape, landscape-left or landscape-right")
+                }
+            case "--rounded-corners": config.roundedCorners = true
+            case "--show-island": config.showsSensorHousing = true
             case "--layout":
+                layoutSet = true
                 switch value(flag) {
                 case "device": config.layout = .device
                 case "fit", "sizeThatFits": config.layout = .sizeThatFits
@@ -84,6 +108,10 @@ public enum _ScreenshotRunner {
             }
         }
 
+        if listDevices {
+            print(DeviceProfile.listing())
+            exit(0)
+        }
         if listOnly {
             for (i, p) in previews.enumerated() { print("\(i)\t\(p.name ?? "")") }
             exit(0)
@@ -96,6 +124,28 @@ public enum _ScreenshotRunner {
             index = match
         }
         guard previews.indices.contains(index) else { fail("preview index \(index) out of range (found \(previews.count))") }
+
+        // `#Preview(traits:)` supplies defaults; flags given on the command line win.
+        let entry = previews[index]
+        if orientation == nil {
+            switch entry.orientation {
+            case "landscapeLeft"?: orientation = .landscapeLeft
+            case "landscapeRight"?: orientation = .landscapeRight
+            default: break
+            }
+        }
+        config.device.orientation = orientation ?? .portrait
+        if !layoutSet {
+            switch entry.layout {
+            case "fit"?: config.layout = .sizeThatFits
+            case "fixed"?: config.layout = .fixed
+            default: break
+            }
+        }
+        if !layoutSet, entry.layout == "fixed" {
+            if config.width == nil { config.width = entry.width.map { CGFloat($0) } }
+            if config.height == nil { config.height = entry.height.map { CGFloat($0) } }
+        }
 
         do {
             let result = try Renderer.render(previews[index].make(), config: config, to: output)
