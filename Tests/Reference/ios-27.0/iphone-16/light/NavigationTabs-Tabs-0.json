@@ -1,0 +1,529 @@
+{
+  "colorScheme": "light",
+  "device": "agent-calibrate-iphone16-ios27",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 47.33,
+        "x": 16,
+        "y": 176
+      },
+      "label": "Row 0",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 44.33,
+        "x": 16,
+        "y": 218.33
+      },
+      "label": "Row 1",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 46.67,
+        "x": 16,
+        "y": 260.67
+      },
+      "label": "Row 2",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 47.33,
+        "x": 16,
+        "y": 303
+      },
+      "label": "Row 3",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 47.33,
+        "x": 16,
+        "y": 345.33
+      },
+      "label": "Row 4",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 47,
+        "x": 16,
+        "y": 387.67
+      },
+      "label": "Row 5",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 47.33,
+        "x": 16,
+        "y": 430
+      },
+      "label": "Row 6",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 46.33,
+        "x": 16,
+        "y": 472.33
+      },
+      "label": "Row 7",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 47.33,
+        "x": 16,
+        "y": 514.67
+      },
+      "label": "Row 8",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 47.33,
+        "x": 16,
+        "y": 557
+      },
+      "label": "Row 9",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 54.67,
+        "x": 16,
+        "y": 599.33
+      },
+      "label": "Row 10",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 52,
+        "x": 16,
+        "y": 641.67
+      },
+      "label": "Row 11",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 54.33,
+        "x": 16,
+        "y": 684
+      },
+      "label": "Row 12",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 54.67,
+        "x": 16,
+        "y": 726.33
+      },
+      "label": "Row 13",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 55,
+        "x": 16,
+        "y": 768.67
+      },
+      "label": "Row 14",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 54.33,
+        "x": 16,
+        "y": 811
+      },
+      "label": "Row 15",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 54.67,
+        "x": 16,
+        "y": 853.33
+      },
+      "label": "Row 16",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 53.67,
+        "x": 16,
+        "y": 895.67
+      },
+      "label": "Row 17",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 55,
+        "x": 16,
+        "y": 938
+      },
+      "label": "Row 18",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 54.67,
+        "x": 16,
+        "y": 980.33
+      },
+      "label": "Row 19",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 57,
+        "x": 16,
+        "y": 1022.67
+      },
+      "label": "Row 20",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 54.33,
+        "x": 16,
+        "y": 1065
+      },
+      "label": "Row 21",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 56.67,
+        "x": 16,
+        "y": 1107.33
+      },
+      "label": "Row 22",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 57,
+        "x": 16,
+        "y": 1149.67
+      },
+      "label": "Row 23",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 57,
+        "x": 16,
+        "y": 1192
+      },
+      "label": "Row 24",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 57,
+        "x": 16,
+        "y": 1234.33
+      },
+      "label": "Row 25",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 57.33,
+        "x": 16,
+        "y": 1276.67
+      },
+      "label": "Row 26",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 56,
+        "x": 16,
+        "y": 1319
+      },
+      "label": "Row 27",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 57.33,
+        "x": 16,
+        "y": 1361.33
+      },
+      "label": "Row 28",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 57.33,
+        "x": 16,
+        "y": 1403.67
+      },
+      "label": "Row 29",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "UILabel",
+      "frame": {
+        "height": 40.67,
+        "width": 175.67,
+        "x": 16,
+        "y": 116.67
+      },
+      "label": "Listen Now",
+      "role": "header",
+      "traits": [
+        "header"
+      ]
+    },
+    {
+      "class": "_UITabButton",
+      "frame": {
+        "height": 54,
+        "width": 81.71,
+        "x": 25,
+        "y": 773
+      },
+      "label": "Home",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "_UITabButton",
+      "frame": {
+        "height": 54,
+        "width": 96.18,
+        "x": 86.71,
+        "y": 773
+      },
+      "label": "Listen Now",
+      "role": "button",
+      "traits": [
+        "button",
+        "selected"
+      ],
+      "value": "3 items"
+    },
+    {
+      "class": "_UITabButton",
+      "frame": {
+        "height": 54,
+        "width": 81.71,
+        "x": 162.88,
+        "y": 773
+      },
+      "label": "Radio",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "_UITabButton",
+      "frame": {
+        "height": 54,
+        "width": 81.71,
+        "x": 224.59,
+        "y": 773
+      },
+      "label": "Library",
+      "role": "button",
+      "traits": [
+        "button"
+      ],
+      "value": "New"
+    },
+    {
+      "class": "_UITabButton",
+      "frame": {
+        "height": 54,
+        "width": 81.71,
+        "x": 286.29,
+        "y": 773
+      },
+      "label": "Search",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 0,
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "NavigationTabs-Tabs",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "27.0",
+  "version": 1
+}

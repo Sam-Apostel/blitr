@@ -94,6 +94,14 @@ extension ListMetrics {
                                  headerBaselineToCard: 12)         // about 8pt below the descenders, est.
     }
 
+    /// tvOS rows: full-width platters without cards or separators (values in TVMetrics, est.).
+    static func forTV() -> ListDesignMetrics {
+        ListDesignMetrics(minRowHeight: TVMetrics.rowMinHeight, rowInsetVertical: TVMetrics.rowVerticalInset,
+                          rowInsetHorizontal: TVMetrics.rowHorizontalInset, cardCornerRadius: TVMetrics.rowCornerRadius,
+                          separatorTrailingInset: 0, headerFontSize: TVMetrics.headerFontSize, headerWeight: .semibold,
+                          headerUppercased: false, headerBaselineToCard: TVMetrics.headerBottomGap)
+    }
+
     @MainActor static func colors(_ env: EnvironmentValues, style: ListStyleKind) -> (background: RGBA, card: RGBA) {
         let scheme = env.colorScheme
         let elevated = env.isElevatedPresentation && scheme == .dark

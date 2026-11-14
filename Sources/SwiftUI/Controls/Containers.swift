@@ -98,6 +98,7 @@ struct _GraphicalCalendar: View {
 }
 
 public struct DatePicker<Label: View>: View {
+    private let _tvOSCheck = tvOSUnavailable("DatePicker")
     let date: Date
     let components: DatePickerComponents
     let label: Label?
@@ -198,6 +199,7 @@ struct ColorWell: View {
 }
 
 public struct ColorPicker<Label: View>: View {
+    private let _tvOSCheck = tvOSUnavailable("ColorPicker")
     let color: Color
     let label: Label
     @Environment(\.isEnabled) private var isEnabled
@@ -237,6 +239,7 @@ extension ColorPicker where Label == Text {
 // MARK: - DisclosureGroup
 
 public struct DisclosureGroup<Label: View, Content: View>: View {
+    private let _tvOSCheck = tvOSUnavailable("DisclosureGroup")
     let label: Label
     let content: Content
     let binding: Binding<Bool>?
@@ -291,6 +294,7 @@ extension DisclosureGroup where Label == Text {
 // MARK: - GroupBox
 
 public struct GroupBox<Label: View, Content: View>: View {
+    private let _tvOSCheck = tvOSUnavailable("GroupBox")
     let label: Label
     let content: Content
     @Environment(\.designLanguage) private var design

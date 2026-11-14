@@ -1,0 +1,194 @@
+{
+ "_doc": "Hand-curated classification of confirmed gaps that belong to SwiftUI (or to modules that `import SwiftUI` re-exports). Key = API string as printed by compare.py. cls: a visual, b inert, c platform-specific (tvOS/watchOS/macOS only; the 'then' field says whether it paints), d other framework. 'group' merges call-site variants into one table row.",
+ "entries": {
+  ".containerBackground(_:for:)": {
+   "cls": "a",
+   "group": ".containerBackground(_:for:)",
+   "note": "paints the widget / tab-view / navigation container background; widgets and watchOS apps cannot render without it"
+  },
+  ".containerBackground(for:_:)": {
+   "cls": "a",
+   "group": ".containerBackground(_:for:)",
+   "note": ""
+  },
+  "containerBackground(for:) .widget": {
+   "cls": "a",
+   "group": ".containerBackground(_:for:)",
+   "note": ""
+  },
+  "containerBackground(for:) .tabView": {
+   "cls": "a",
+   "group": ".containerBackground(_:for:)",
+   "note": ""
+  },
+  ".groupBoxStyle(_:)": {
+   "cls": "a",
+   "note": "changes the look of GroupBox (card, plain, custom GroupBoxStyle)"
+  },
+  ".labeledContentStyle(_:)": {
+   "cls": "a",
+   "note": "custom LabeledContentStyle: layout of LabeledContent rows"
+  },
+  ".menuIndicator(_:)": {
+   "cls": "a",
+   "note": "shows/hides the chevron on Menu and Picker(.menu) labels"
+  },
+  "Table(...)": {
+   "cls": "a",
+   "group": "Table / TableColumn / TableRow",
+   "note": "multi-column table (macOS, iPadOS, iOS 17 collapses to first column); columns, headers, rows"
+  },
+  "TableColumn(...)": {
+   "cls": "a",
+   "group": "Table / TableColumn / TableRow",
+   "note": ""
+  },
+  "TableRow(...)": {
+   "cls": "a",
+   "group": "Table / TableColumn / TableRow",
+   "note": ""
+  },
+  "Text(timerInterval:countsDown:)": {
+   "cls": "a",
+   "note": "live countdown/up timer text; a static frame shows the formatted interval"
+  },
+  "ProgressView(timerInterval:countsDown:_:currentValueLabel:)": {
+   "cls": "a",
+   "note": "timer-driven progress bar"
+  },
+  "ProgressView(timerInterval:countsDown:)": {
+   "cls": "a",
+   "note": "timer-driven progress bar"
+  },
+  ".previewDisplayName(_:)": {
+   "cls": "b",
+   "group": "Xcode preview modifiers (.previewLayout/.previewDevice/.previewDisplayName/.previewContext)",
+   "note": "preview-only metadata; layout and device are covered by the tool's --layout/--device flags"
+  },
+  ".previewLayout(_:)": {
+   "cls": "b",
+   "group": "Xcode preview modifiers (.previewLayout/.previewDevice/.previewDisplayName/.previewContext)",
+   "note": ""
+  },
+  ".previewContext(_:)": {
+   "cls": "b",
+   "group": "Xcode preview modifiers (.previewLayout/.previewDevice/.previewDisplayName/.previewContext)",
+   "note": ""
+  },
+  "previewContext(viewKind:) .dynamicIsland": {
+   "cls": "b",
+   "group": "Xcode preview modifiers (.previewLayout/.previewDevice/.previewDisplayName/.previewContext)",
+   "note": ""
+  },
+  ".previewDevice(_:)": {
+   "cls": "b",
+   "group": "Xcode preview modifiers (.previewLayout/.previewDevice/.previewDisplayName/.previewContext)",
+   "note": ""
+  },
+  "@Observable": {
+   "cls": "b",
+   "fw": "Observation",
+   "note": "macro: observation plumbing, no pixels; unknown attribute here, so every @Observable model fails to compile"
+  },
+  "@ObservationIgnored": {
+   "cls": "b",
+   "fw": "Observation",
+   "note": "companion macro of @Observable"
+  },
+  "@Entry": {
+   "cls": "b",
+   "note": "macro that declares a custom EnvironmentValues key (values still reach the view)"
+  },
+  ".menuOrder(_:)": {
+   "cls": "b",
+   "note": "order of items inside an opened menu"
+  },
+  "ContextMenu(...)": {
+   "cls": "b",
+   "note": "legacy contextMenu(_:) payload; only visible when the menu is open"
+  },
+  ".itemProvider(_:)": {
+   "cls": "b",
+   "note": "drag source payload"
+  },
+  ".onMoveCommand(_:)": {
+   "cls": "c",
+   "then": "b",
+   "plat": "tvOS/macOS",
+   "note": "directional-pad / arrow-key move handler"
+  },
+  ".onExitCommand(_:)": {
+   "cls": "c",
+   "then": "b",
+   "plat": "tvOS/macOS",
+   "note": "Menu-button / Esc handler"
+  },
+  ".onPlayPauseCommand(_:)": {
+   "cls": "c",
+   "then": "b",
+   "plat": "tvOS",
+   "note": "Play/Pause remote button handler"
+  },
+  "toggleStyle(_:) .checkbox": {
+   "cls": "c",
+   "then": "a",
+   "plat": "macOS",
+   "note": "checkbox-style Toggle"
+  },
+  "pickerStyle(_:) .radioGroup": {
+   "cls": "c",
+   "then": "a",
+   "plat": "macOS",
+   "note": "radio-button Picker"
+  },
+  "MenuBarExtra(...)": {
+   "cls": "c",
+   "then": "b",
+   "plat": "macOS",
+   "note": "menu bar scene; not part of a window frame"
+  },
+  "CommandGroup(replacing:) .appSettings": {
+   "cls": "c",
+   "then": "b",
+   "plat": "macOS",
+   "note": "menu-bar commands"
+  },
+  ".popoverTip(_:)": {
+   "cls": "d",
+   "fw": "TipKit",
+   "note": "tip popover"
+  },
+  "ImageRenderer(...)": {
+   "cls": "a",
+   "note": "renders a SwiftUI view to an image (share cards, exports); output is the view's own pixels"
+  },
+  "Menu(_:_:primaryAction:)": {
+   "cls": "b",
+   "note": "Menu with a primary tap action; only visible when opened"
+  },
+  ".move(fromOffsets:toOffset:)": {
+   "cls": "b",
+   "note": "collection helper used by onMove; no pixels"
+  },
+  "DynamicIsland(...)": {
+   "cls": "d",
+   "fw": "ActivityKit",
+   "note": "Live Activity island layout"
+  },
+  ".dynamicIsland(verticalPlacement:)": {
+   "cls": "d",
+   "fw": "ActivityKit",
+   "note": "Live Activity island layout"
+  },
+  "TabSection(_:_:)": {
+   "cls": "a",
+   "note": "groups tabs in the iPad/macOS sidebar-adaptable tab bar (iOS 18)"
+  },
+  "tabViewStyle(_:) .verticalPage": {
+   "cls": "c",
+   "then": "a",
+   "plat": "watchOS",
+   "note": "full-screen vertical paging TabView on watch"
+  }
+ }
+}

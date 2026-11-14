@@ -206,6 +206,7 @@ public struct DefaultShareLinkLabel: View {
 public struct ShareLink<Data, PreviewImage, PreviewIcon, Label>: View
 where Data: RandomAccessCollection, Data.Element: Transferable, PreviewImage: Transferable, PreviewIcon: Transferable, Label: View {
     let label: Label
+    private let _tvOSCheck = tvOSUnavailable("ShareLink")
 
     init(label: Label) { self.label = label }
 

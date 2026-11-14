@@ -5,6 +5,7 @@ private func clamp01(_ v: Double) -> Double { v.isNaN ? 0 : max(0, min(1, v)) }
 // MARK: - Slider
 
 public struct Slider<Label: View, ValueLabel: View>: View {
+    private let _tvOSCheck = tvOSUnavailable("Slider")
     let fraction: Double
     let minLabel: AnyView?
     let maxLabel: AnyView?
@@ -148,6 +149,7 @@ extension Slider where ValueLabel == EmptyView {
 // MARK: - Stepper
 
 public struct Stepper<Label: View>: View {
+    private let _tvOSCheck = tvOSUnavailable("Stepper")
     let label: Label
     let canDecrement: Bool
     let canIncrement: Bool
@@ -355,6 +357,8 @@ public struct ProgressView<Label: View, CurrentValueLabel: View>: View {
     let label: AnyView?
     let currentValueLabel: AnyView?
     @Environment(\.progressStyleBox) private var styleBox
+    /// tvOS draws larger indicators (est.: a 60pt spinner, an 8pt bar).
+    @Environment(\.renderPlatform) private var platform
 
     init(fraction: Double?, label: AnyView?, currentValueLabel: AnyView?) {
         self.fraction = fraction
@@ -393,7 +397,7 @@ public struct ProgressView<Label: View, CurrentValueLabel: View>: View {
     private var linear: some View {
         VStack(alignment: .leading, spacing: 6) {
             if let label { label }
-            LinearBar(fraction: fraction ?? 0.3)
+            LinearBar(fraction: fraction ?? 0.3, height: platform == .tvOS ? 8 : 4)
             if let currentValueLabel {
                 currentValueLabel.font(.footnote).foregroundStyle(.secondary)
             }
@@ -404,13 +408,13 @@ public struct ProgressView<Label: View, CurrentValueLabel: View>: View {
         HStack(spacing: 8) {
             if let fraction {
                 ZStack {
-                    Circle().stroke(Color(SystemColor.secondaryFill), lineWidth: 3)
-                    Circle().trim(from: 0, to: fraction).stroke(Color.accentColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                    Circle().stroke(Color(SystemColor.secondaryFill), lineWidth: platform == .tvOS ? 6 : 3)
+                    Circle().trim(from: 0, to: fraction).stroke(Color.accentColor, style: StrokeStyle(lineWidth: platform == .tvOS ? 6 : 3, lineCap: .round))
                         .rotationEffect(.degrees(-90))
                 }
-                .frame(width: 20, height: 20)
+                .frame(width: platform == .tvOS ? 60 : 20, height: platform == .tvOS ? 60 : 20)
             } else {
-                Spinner()
+                Spinner(size: platform == .tvOS ? 60 : 20)
             }
             if let label { label.font(.footnote).foregroundStyle(.secondary) }
         }
@@ -488,6 +492,7 @@ extension View {
 }
 
 public struct Gauge<Label: View, CurrentValueLabel: View, BoundsLabel: View, MarkedValueLabels: View>: View {
+    private let _tvOSCheck = tvOSUnavailable("Gauge")
     let fraction: Double
     let label: AnyView
     let current: AnyView?

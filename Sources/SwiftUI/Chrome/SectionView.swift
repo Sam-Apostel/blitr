@@ -55,6 +55,13 @@ extension Section: View, PrimitiveView where Parent: View, Content: View, Footer
             env.isInListRow = false
             env.stackAxis = nil
             let secondary = AnyShapeStyle(Color(SystemColor.secondaryLabel.resolve(scheme)))
+            if env.renderPlatform == .tvOS {
+                // tvOS: sentence-case secondary headers and footers (est. sizes, TVMetrics).
+                env.font = isHeader ? .system(size: TVMetrics.headerFontSize, weight: .semibold) : .system(size: TVMetrics.footerFontSize)
+                env.foregroundStyle = isHeader && env.headerProminence == .increased ? AnyShapeStyle(Color(SystemColor.label.resolve(scheme))) : secondary
+                env.foregroundStyleLevels = nil
+                return
+            }
             if isHeader && env.headerProminence == .increased {
                 env.font = .system(size: ListMetrics.prominentHeaderFontSize, weight: .semibold)
                 env.foregroundStyle = AnyShapeStyle(Color(SystemColor.label.resolve(scheme)))

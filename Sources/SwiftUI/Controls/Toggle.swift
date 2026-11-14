@@ -57,13 +57,23 @@ public struct SwitchToggleStyle: ToggleStyle {
     public init() {}
     public init(tint: Color) { self.tint = tint }
     public func makeBody(configuration: ToggleStyleConfiguration) -> some View {
-        _SwitchToggle(label: AnyView(configuration.label), isOn: configuration.$isOn).env { if let t = tint { $0.accentColor = t } }
+        _SwitchToggle(label: AnyView(configuration.label), isOn: configuration.$isOn, explicitSwitch: true).env { if let t = tint { $0.accentColor = t } }
     }
 }
 public struct ButtonToggleStyle: ToggleStyle {
     public init() {}
     public func makeBody(configuration: ToggleStyleConfiguration) -> some View {
         _ButtonToggle(label: AnyView(configuration.label), isOn: configuration.isOn)
+    }
+}
+
+/// tvOS has no button toggle style; draws the tvOS toggle and warns.
+struct _ButtonToggleOnTV: View {
+    let label: AnyView
+    let isOn: Bool
+    var body: some View {
+        Runtime.current?.warn("ToggleStyle.button is not available on tvOS: a real tvOS build fails to compile. Drawn as the tvOS toggle")
+        return _TVToggle(label: label, isOn: isOn, showsSwitch: false)
     }
 }
 
@@ -115,11 +125,15 @@ struct SwitchControl: View {
 struct _SwitchToggle: View {
     let label: AnyView
     let isOn: Binding<Bool>
+    /// `.toggleStyle(.switch)` (tvOS draws its own toggle unless a switch is asked for).
+    var explicitSwitch = false
+    @Environment(\.renderPlatform) private var platform
     var body: some View {
-        HStack {
+        if platform == .tvOS { return AnyView(_TVToggle(label: label, isOn: isOn.wrappedValue, showsSwitch: explicitSwitch)) }
+        return AnyView(HStack {
             ControlLabel(label: label)
             SwitchControl(isOn: isOn.wrappedValue)
-        }
+        })
     }
 }
 
@@ -127,12 +141,14 @@ struct _ButtonToggle: View {
     let label: AnyView
     let isOn: Bool
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.renderPlatform) private var platform
     var body: some View {
-        label
+        if platform == .tvOS { return AnyView(_ButtonToggleOnTV(label: label, isOn: isOn)) }
+        return AnyView(label
             .foregroundStyle(isOn ? Color.white : Color.accentColor)
             .padding(.horizontal, 12).padding(.vertical, 7)
             .background(isOn ? Color.accentColor : Color(SystemColor.tertiaryFill), in: RoundedRectangle(cornerRadius: 8))
-            .opacity(isEnabled ? 1 : 0.4)
+            .opacity(isEnabled ? 1 : 0.4))
     }
 }
 

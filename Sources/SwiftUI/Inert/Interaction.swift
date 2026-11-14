@@ -4,9 +4,11 @@
 // MARK: - Hover
 
 public struct HoverEffect: Sendable {
-    public static let automatic = HoverEffect()
-    public static let highlight = HoverEffect()
-    public static let lift = HoverEffect()
+    enum Kind: Sendable { case automatic, highlight, lift }
+    let kind: Kind
+    public static let automatic = HoverEffect(kind: .automatic)
+    public static let highlight = HoverEffect(kind: .highlight)
+    public static let lift = HoverEffect(kind: .lift)
 }
 
 public enum HoverPhase: Equatable {
@@ -25,8 +27,11 @@ extension View {
                                   perform action: @escaping (HoverPhase) -> Void) -> some View { self }
     public func onContinuousHover(coordinateSpace: some CoordinateSpaceProtocol = .local,
                                   perform action: @escaping (HoverPhase) -> Void) -> some View { self }
-    public func hoverEffect(_ effect: HoverEffect = .automatic, isEnabled: Bool = true) -> some View { self }
-    public func hoverEffectDisabled(_ disabled: Bool = true) -> some View { self }
+    /// No pointer on a static frame; on tvOS the effect is drawn while the enclosing focusable view has focus (Focus/TVFocusLook.swift).
+    public func hoverEffect(_ effect: HoverEffect = .automatic, isEnabled: Bool = true) -> some View {
+        modifier(HoverEffectModifier(effect: effect, isEnabled: isEnabled))
+    }
+    public func hoverEffectDisabled(_ disabled: Bool = true) -> some View { env { $0[HoverEffectDisabledKey.self] = disabled } }
 }
 
 // MARK: - Drag and drop

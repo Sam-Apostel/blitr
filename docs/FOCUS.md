@@ -74,8 +74,10 @@ nearer than) any element, focus enters the section at its element nearest to the
 static map uses this history-free rule for presses too. Sections:
 
 - `.focusSection()`: the frame of the modified view.
-- The tab bar, spanning the full screen width. Entering it lands on the selected tab, and it also wins
-  a tie with its own items.
+- The tab bar, spanning the full screen width at the top of the screen, where tvOS draws it (and where
+  the renderer draws it on tvOS, so "up" from the content reaches it). Entering it lands on the selected
+  tab, and it also wins a tie with its own items. A `.sidebarAdaptable` sidebar is a section of its own
+  frame at the leading edge.
 - Every `List` / `Form`.
 
 Lazy stacks, grids, their rows and scroll views are not sections: plain geometry decides.
@@ -144,16 +146,16 @@ presentations show up in the next press and in the PNG.
 
 ## Focused appearance
 
-`Focus/FocusEffect.swift` holds the one default focus effect: the focused control is scaled 1.06 over
-a rounded platter (white in light mode, translucent in dark mode) with a soft shadow. Chrome without a
-view of its own (tab items, alert buttons, the search field) gets a white outline instead. It is meant
-to be replaced by real tvOS control styles that read `isFocused`.
+Each tvOS control draws its own focused state from `isFocused` (docs/TVOS.md): bordered buttons, toggles,
+pickers and text fields turn into white lifted platters, `.card` / `.borderless` / `.plain` lift their
+content, list rows become raised white platters, tab items, alert buttons and the search field draw
+their own focused look. Custom `ButtonStyle`s and `.focusable()` views get no system effect, as on tvOS:
+read `@Environment(\.isFocused)`, or add `.hoverEffect(.highlight)` / `.hoverEffect(.lift)`.
+`Focus/TVFocusLook.swift` holds the shared metrics and the lift node. The scale is drawn only.
 
 ## Known differences from tvOS
 
-- The renderer still draws iOS chrome on tvOS (a bottom tab bar, iOS-sized controls); moves are
-  computed from what is drawn, so they follow the real layout once the tvOS styles land.
 - UIKit remembers the last focused element of a section and returns to it; the map always uses the
   nearest element. UIKit also prefers items it scrolled to, uses focus guides with their own preferred
   environments, and animates scrolling; none of that is modelled.
-- Focus effect geometry (the 1.06 scale, parallax) does not change the frames used for movement.
+- Focus effect geometry (the lift scale, parallax) does not change the frames used for movement.

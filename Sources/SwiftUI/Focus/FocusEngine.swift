@@ -189,9 +189,11 @@ final class FocusEngine {
     /// Set once a press moved focus; a @FocusState change after that no longer counts as initial focus.
     var userMoved = false
 
-    /// True when the focused element is chrome without its own focus effect.
+    /// The frame of the focused element when it is chrome without a focused look of its own. Tab items,
+    /// alert buttons and the search field draw their own tvOS focused state (Chrome/TV).
     var focusedChromeFrame: CGRect? {
-        guard let i = snapshot.index(of: focusedPath), snapshot.elements[i].synthesized else { return nil }
+        guard let i = snapshot.index(of: focusedPath), snapshot.elements[i].synthesized,
+              !["tab", "alertAction", "searchField"].contains(snapshot.elements[i].role) else { return nil }
         return snapshot.elements[i].frame
     }
 

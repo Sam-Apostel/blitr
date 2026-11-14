@@ -206,8 +206,9 @@ final class FocusExtractor {
         let barFrame = n.glassBarFrame.map { $0.offsetBy(dx: own.minX, dy: own.minY) }
             ?? CGRect(x: own.minX, y: top, width: own.width, height: TabBarMetrics.height)
         let base = n.focusPath ?? synthPath("tabView")
-        // The tab bar spans the screen width as a focus target, as UIKit's does.
-        let sectionFrame = CGRect(x: screen.minX, y: barFrame.minY, width: screen.width, height: barFrame.height)
+        // The tab bar spans the screen width as a focus target, as UIKit's does; a tvOS sidebar is its own frame.
+        let sectionFrame = n.tv?.isSidebar == true ? barFrame
+            : CGRect(x: screen.minX, y: barFrame.minY, width: screen.width, height: barFrame.height)
         let k = addSection(kind: "tabBar", path: base.appending("tabBar"), frame: sectionFrame, key: nil)
         var inner = ctx
         inner.sections.append(k)
@@ -243,10 +244,14 @@ final class FocusExtractor {
             inner.visible = intersect(ctx.visible, sheet.cardRect.offsetBy(dx: sheet.absoluteOrigin.x, dy: sheet.absoluteOrigin.y))
             visit(sheet.content, inner)
         case let cover as CoverLayerNode:
-            snap.modalKind = "fullScreenCover"
+            snap.modalKind = cover.tvSheet ? "sheet" : "fullScreenCover"
             visit(cover.content, ctx)
         case let dimmed as DimmedCardLayerNode:
-            if let alert = dimmed.card as? AlertCardNode {
+            if let tv = dimmed.card as? TVAlertCardNode {
+                snap.modalKind = "alert"
+                cardActions(card: rect(tv), texts: tv.actions, cells: tv.actionCells, handlers: tv.actionHandlers,
+                            rowHeight: TVMetrics.buttonHeight, sideBySide: false, dismiss: top.dismiss, ctx)
+            } else if let alert = dimmed.card as? AlertCardNode {
                 snap.modalKind = "alert"
                 cardActions(card: rect(alert), texts: alert.actions, cells: alert.glassActionCells, handlers: alert.actionHandlers,
                             rowHeight: AlertMetrics.actionHeight, sideBySide: true, dismiss: top.dismiss, ctx)

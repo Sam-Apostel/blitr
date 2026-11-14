@@ -16,6 +16,11 @@ final class ListRowNode: Node {
     let separatorTint: TintSetting?
     /// Leading x of the separator below this row, in the row's coordinates (set after layout).
     var separatorLeading: CGFloat = 0
+    /// tvOS: the row is one focusable element (it draws the platter), and whether that element has focus.
+    var tvRow = false
+    var tvSingleElement = false
+    var tvFocused = false
+    var tvGlass = false
 
     /// Per-edge overrides from `.listRowInsets(_:_:)`, applied over the default insets.
     let partialInsets: PartialRowInsets?
@@ -89,6 +94,7 @@ final class ListRowNode: Node {
     }
 
     override func drawContent(_ p: Painter) {
+        if tvRow { drawTV(p); return }
         drawChildren(p)
         guard hasChevron else { return }
         let w = ListMetrics.chevronWidth, h = ListMetrics.chevronHeight
@@ -124,26 +130,30 @@ final class ListNode: Node {
     let design: ListDesignMetrics
     /// The glass looks apply to inset grouped lists only (plain and grouped keep their geometry).
     let usesGlassGeometry: Bool
+    /// tvOS: rows without cards or separators; the focused row is a raised white platter (Chrome/TV/TVList.swift).
+    let tv: Bool
 
     // Results of layout, in this node's coordinates.
     private var cards: [(rect: CGRect, radius: CGFloat, rows: Range<Int>, section: Int)] = []
     private var separators: [(rect: CGRect, color: RGBA)] = []
-    private(set) var bleed = EdgeInsets()
+    var bleed = EdgeInsets()
     /// Structural identity, so the focus engine can scroll the list to the focused row.
     var scrollIdentity: IdentityPath?
     /// Height of everything in the list (after layout), for the largest scroll offset.
-    private(set) var contentHeight: CGFloat = 0
+    var contentHeight: CGFloat = 0
 
     init(items: [Node], style: ListStyleKind, env: EnvironmentValues) {
         self.style = style
         let colors = ListMetrics.colors(env, style: style)
-        backgroundColor = env.scrollContentBackground == .hidden ? nil : colors.background
+        // tvOS lists have no background of their own (est.): the screen shows through.
+        backgroundColor = env.scrollContentBackground == .hidden || env.renderPlatform == .tvOS ? nil : colors.background
         cardColor = colors.card
         separatorColor = SystemColor.separator.resolve(env.colorScheme)
         rowSpacing = env.listRowSpacing
         listSectionSpacing = env.listSectionSpacing
-        usesGlassGeometry = env.designLanguage.isGlass && style == .insetGrouped
-        let design = ListMetrics.forDesign(usesGlassGeometry ? env.designLanguage : .flat)
+        tv = env.renderPlatform == .tvOS
+        usesGlassGeometry = !tv && env.designLanguage.isGlass && style == .insetGrouped
+        let design = tv ? ListMetrics.forTV() : ListMetrics.forDesign(usesGlassGeometry ? env.designLanguage : .flat)
         self.design = design
         let minHeight = env.explicitMinListRowHeight ?? design.minRowHeight
         let chevronPaint = _Paint.color(SystemColor.tertiaryLabel.resolve(env.colorScheme))
@@ -183,6 +193,7 @@ final class ListNode: Node {
         }
         flushLoose()
         self.sections = sections
+        if tv { ListNode.markTVFocus(sections.flatMap(\.rows), glass: env.designLanguage.isGlass) }
         var kids: [Node] = []
         for s in sections {
             if let h = s.header { kids.append(h) }
@@ -202,6 +213,7 @@ final class ListNode: Node {
     override func layout(size: CGSize, _ ctx: PlaceContext) {
         let own = CGRect(origin: ctx.origin, size: size)
         bleed = ctx.safeAreaBleed(for: own, edges: .all)
+        if tv { layoutTV(size: size, ctx); return }
         cards = []
         separators = []
         let margin = ChromeMetrics.layoutMargin(forWidth: size.width)
@@ -329,6 +341,15 @@ final class ListNode: Node {
         p.clip(visible)
         if let backgroundColor {
             p.fill(Path(visible), with: .color(backgroundColor), in: visible)
+        }
+        if tv {
+            for section in sections {
+                section.header?.draw(p)
+                for row in section.rows { row.draw(p) }
+                section.footer?.draw(p)
+            }
+            p.restore()
+            return
         }
         for (index, section) in sections.enumerated() {
             section.header?.draw(p)

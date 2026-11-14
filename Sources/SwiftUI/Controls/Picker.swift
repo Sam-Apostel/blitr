@@ -20,6 +20,9 @@ extension PickerStyle where Self == PalettePickerStyle { public static var palet
 
 enum PickerKind { case menu, segmented, inline, wheel, navigationLink }
 enum PickerKindKey: EnvironmentKey { static let defaultValue = PickerKind.menu }
+/// Whether `.pickerStyle` was written (tvOS chooses the automatic style differently from iOS).
+enum PickerKindExplicitKey: EnvironmentKey { static let defaultValue = false }
+enum PickerPaletteKey: EnvironmentKey { static let defaultValue = false }
 extension EnvironmentValues {
     var pickerKind: PickerKind {
         get { self[PickerKindKey.self] }
@@ -30,6 +33,8 @@ extension EnvironmentValues {
 extension View {
     public func pickerStyle<S: PickerStyle>(_ style: S) -> some View {
         env {
+            $0[PickerKindExplicitKey.self] = !(style is DefaultPickerStyle)
+            if style is PalettePickerStyle { $0[PickerPaletteKey.self] = true }
             switch style {
             case is SegmentedPickerStyle, is PalettePickerStyle: $0.pickerKind = .segmented
             case is InlinePickerStyle: $0.pickerKind = .inline
@@ -58,7 +63,7 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
         self.label = label
     }
 
-    private func selectedIndex(_ nodes: [Node]) -> Int? {
+    func selectedIndex(_ nodes: [Node]) -> Int? {
         let current = selection.wrappedValue
         return nodes.firstIndex { node in
             guard let tag = node.traits[TagTraitKey.self] ?? node.traits[IDTraitKey.self] else { return false }
@@ -68,6 +73,7 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
     }
 
     func resolve(_ ctx: ResolveContext, into out: inout [Node]) {
+        if ctx.env.renderPlatform == .tvOS { resolveTV(ctx, into: &out); return }
         let kind = ctx.env.pickerKind
         let enabled = ctx.env.isEnabled
         let labelNodes = resolveNodes(label, ctx.child("label"))

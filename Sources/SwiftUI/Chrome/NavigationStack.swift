@@ -416,6 +416,8 @@ final class NavigationStackNode: Node {
     let subtitle: Node?
     /// Liquid Glass bar metrics; nil draws the iOS 18 bar.
     let glass: NavigationGlassMetrics?
+    /// tvOS: a centred title at the top and toolbar items as tvOS buttons, no bar chrome (Chrome/TV/TVNavigation.swift).
+    let tv: Bool
     /// Glass: the search field may go to the bottom bar (iPhone, automatic/toolbar placement).
     private let searchPrefersBottom: Bool
     private let tabBarHostsContent: Bool
@@ -428,8 +430,8 @@ final class NavigationStackNode: Node {
     private var showsBottomEdge = false
 
     // Computed in layout (local coordinates).
-    private var barTop: CGFloat = 0
-    private var barRegionBottom: CGFloat = 0
+    var barTop: CGFloat = 0
+    var barRegionBottom: CGFloat = 0
     private var backgroundTop: CGFloat = 0
     /// Bars extend under the side safe areas (a landscape iPhone), like the container does.
     private var backgroundX: CGFloat = 0
@@ -447,12 +449,24 @@ final class NavigationStackNode: Node {
         self.content = content
         barVisible = navBar.visibility != .hidden
 
-        let glass: NavigationGlassMetrics? = env.designLanguage.isGlass ? .forDesign(env.designLanguage) : nil
+        let tv = env.renderPlatform == .tvOS
+        self.tv = tv
+        if tv, chrome.titleDisplayMode != nil {
+            Runtime.current?.warn("navigationBarTitleDisplayMode is not available on tvOS: a real tvOS build fails to compile")
+        }
+        let glass: NavigationGlassMetrics? = !tv && env.designLanguage.isGlass ? .forDesign(env.designLanguage) : nil
         self.glass = glass
 
         // Environment every bar element is resolved with.
         let barAdjust: (inout EnvironmentValues) -> Void
-        if let glass {
+        if tv {
+            barAdjust = { e in
+                e.colorScheme = barScheme
+                e.stackAxis = .horizontal
+                e.isInListRow = false
+                e.lineLimit = 1
+            }
+        } else if let glass {
             // Liquid Glass: medium-weight 17pt labels, monochrome (an item's own `.tint` still applies),
             // buttons report their role, labels show their icon.
             barAdjust = { e in
@@ -508,8 +522,9 @@ final class NavigationStackNode: Node {
             case .hidden: break
             }
         }
-        if hasSecondary { trailing.append(EllipsisCircleNode(color: accent)) }
-        if glass == nil, let previousTitle, chrome.backButtonHidden != true {
+        if hasSecondary && !tv { trailing.append(EllipsisCircleNode(color: accent)) }
+        // tvOS has no back button: the remote's Menu button goes back.
+        if glass == nil, !tv, let previousTitle, chrome.backButtonHidden != true {
             var titleEnv = barEnv
             titleEnv.foregroundStyle = AnyShapeStyle(_FixedPaintStyle(accent))
             let backTitle = previousTitle.isEmpty ? nil : Text(verbatim: previousTitle).makeNode(titleEnv)
@@ -521,7 +536,7 @@ final class NavigationStackNode: Node {
         statusItem = status
 
         // Titles.
-        showsLargeTitle = displayMode == .large && chrome.title.map { !$0.plain.isEmpty } ?? false
+        showsLargeTitle = !tv && displayMode == .large && chrome.title.map { !$0.plain.isEmpty } ?? false
         let titleAdjust: (inout EnvironmentValues) -> Void = { e in
             barAdjust(&e)
             e.foregroundStyle = nil
@@ -530,7 +545,7 @@ final class NavigationStackNode: Node {
             e.truncationMode = .tail
         }
         let subtitleSource = glass == nil ? nil : chrome.subtitle.flatMap { $0.plain.isEmpty ? nil : $0 }
-        let inlineFont = glass.map { subtitleSource == nil ? $0.inlineTitleFont : $0.inlineTitleWithSubtitleFont }
+        let inlineFont = tv ? TVMetrics.navigationTitleFont : glass.map { subtitleSource == nil ? $0.inlineTitleFont : $0.inlineTitleWithSubtitleFont }
             ?? NavigationBarMetrics.inlineTitleFont
         if let title = chrome.title, !title.plain.isEmpty || principal == nil {
             if showsLargeTitle {
@@ -620,6 +635,7 @@ final class NavigationStackNode: Node {
     override func measure(_ proposal: ProposedViewSize) -> CGSize { proposal.replacingUnspecifiedDimensions() }
 
     override func layout(size: CGSize, _ ctx: PlaceContext) {
+        if tv { layoutTV(size: size, ctx); return }
         if let glass {
             layoutGlass(glass, size: size, ctx)
             return
@@ -735,6 +751,7 @@ final class NavigationStackNode: Node {
     }
 
     override func drawContent(_ p: Painter) {
+        if tv { drawChildren(p); return }
         if glass != nil {
             drawGlass(p)
             return

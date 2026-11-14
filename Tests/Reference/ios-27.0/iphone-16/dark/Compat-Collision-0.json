@@ -1,0 +1,64 @@
+{
+  "colorScheme": "dark",
+  "device": "agent-calibrate-iphone16-ios27",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 16,
+        "x": 188.5,
+        "y": 395
+      },
+      "label": "a1",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 17.33,
+        "x": 187.83,
+        "y": 417.33
+      },
+      "label": "b1",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 42.33,
+        "width": 387.33,
+        "x": 2.83,
+        "y": 439.67
+      },
+      "label": "Optional(SwiftUI.UserInterfaceSizeClass.compact) Optional(SwiftUI.UserInterfaceSizeClass.regular)",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 0,
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "Compat-Collision",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "27.0",
+  "version": 1
+}

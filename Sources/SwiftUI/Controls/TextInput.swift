@@ -29,8 +29,10 @@ struct _FieldBody: View {
     var secure = false
     @Environment(\.textFieldBordered) private var bordered
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.renderPlatform) private var platform
 
     var body: some View {
+        if platform == .tvOS { return AnyView(_TVFieldBody(text: text, placeholder: placeholder, secure: secure)) }
         let shown = secure ? String(repeating: "\u{2022}", count: text.count) : text
         let content = Group {
             if text.isEmpty {
@@ -42,13 +44,13 @@ struct _FieldBody: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .opacity(isEnabled ? 1 : 0.5)
         if bordered {
-            content
+            return AnyView(content
                 .padding(.horizontal, 7)
                 .frame(minHeight: 34)
                 .background(Color(SystemColor.background), in: RoundedRectangle(cornerRadius: 6))
-                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color(SystemColor.separator), lineWidth: 0.5))
+                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color(SystemColor.separator), lineWidth: 0.5)))
         } else {
-            content
+            return AnyView(content)
         }
     }
 }
@@ -156,6 +158,7 @@ extension SecureField {
 // MARK: - TextEditor
 
 public struct TextEditor: View {
+    private let _tvOSCheck = tvOSUnavailable("TextEditor")
     let text: String
     public init(text: Binding<String>) { self.text = text.wrappedValue }
 

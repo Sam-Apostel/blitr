@@ -1,0 +1,10 @@
+# name repo sha platforms   (sha HEAD = resolve then pin below)
+foodtruck apple/sample-food-truck 3954a769e99f3cc53297d94f2b960ceb2665b3d6 ios,macos
+icecubes Dimillian/IceCubesApp 98098b9c4b5928f89f338203193c2bf40ab7f38c ios,macos
+swiftfin jellyfin/Swiftfin e1f78c656c0284f11a7d35a14bd8bbf3072cd718 ios,tvos
+yattee yattee/yattee 10ea2798eee437b70cb4670a0d1ec2763d52596b ios,tvos,macos
+clendar vinhnx/Clendar 883c2ddbf5032de8384eeaa85794778cb258b1c1 ios,watchos
+xcodesapp XcodesOrg/XcodesApp 9836fd8392e506ed12fbb8b99a404259b5b357ff macos
+controlroom twostraws/ControlRoom 1764564f7923f0afc0d216ede573e20bd3c19f6e macos
+swiftuianim amosgyamfi/open-swiftui-animations abc1d4ce7abce391a60fa2c8a2b87d48e83d8ec1 ios
+backyardbirds apple/sample-backyard-birds 1843d5655bf884b501e2889ad9862ec58978fdbe ios,macos

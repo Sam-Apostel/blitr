@@ -31,7 +31,10 @@ jobs:
           # Every file must compile against the module and render; a failure here is a regression.
           find Examples Tests/Corpus -name '*.swift' | sort | while read -r file; do
             echo "::group::$file"
-            "$bin/swiftui-screenshot" render "$file" --all --out-dir "out/$(dirname "$file")" --scheme both
+            # tvOS screens render on the Apple TV profile (which also compiles their #if os(tvOS) branches).
+            device=""
+            case "$file" in *TV*.swift) device="--device apple-tv" ;; esac
+            "$bin/swiftui-screenshot" render "$file" --all --out-dir "out/$(dirname "$file")" --scheme both $device
             echo "::endgroup::"
           done
 
