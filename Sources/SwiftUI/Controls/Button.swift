@@ -269,6 +269,7 @@ public struct Button<Label: View>: View {
 
     public var body: some View {
         let styled = styleBox.make(AnyView(label), role, action)
+            .axInfo(shared: true, context: { ctx in .button(enabled: ctx.env.isEnabled, activate: action) })
         // Alerts and confirmation dialogs read the role off the action's nodes.
         if role == .cancel {
             styled.trait(PresentationActionRoleTraitKey.self, .cancel)
@@ -319,7 +320,18 @@ public struct Link<Label: View>: View {
         self.destination = destination
         self.label = label()
     }
-    public var body: some View { label.foregroundStyle(Color.accentColor) }
+    public var body: some View {
+        label.foregroundStyle(Color.accentColor)
+            .axInfo(shared: true, context: { ctx in
+                AccessibilityInfo {
+                    $0.isElement = true
+                    $0.addTraits = [.link]
+                    $0.children = .combine
+                    $0.isTapTarget = true
+                    $0.isEnabled = ctx.env.isEnabled
+                }
+            })
+    }
 }
 
 extension Link where Label == Text {
@@ -352,6 +364,7 @@ public struct Menu<Label: View, Content: View>: View {
     /// A closed menu looks like a button with the menu's label; the items are not shown.
     public var body: some View {
         Button(action: primaryAction ?? {}) { label }
+            .axInfo(shared: true) { $0.addTraits = [.hasPopup] }
     }
 }
 

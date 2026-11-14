@@ -559,18 +559,20 @@ final class TabViewNode: Node {
     let hairline: _Paint
     /// iPad regular width: text tabs in a capsule at the top instead of a bar at the bottom.
     let topBar: Bool
-    private let selectedIndex: Int
+    /// The index of the selected tab (also read by the accessibility extractor).
+    let selectedIndex: Int
     private let scheme: ColorScheme
     private var capsule = CGRect.zero
     private var itemRects: [CGRect] = []
 
-    private var barTop: CGFloat = 0
+    private(set) var barTop: CGFloat = 0
     private var barBottom: CGFloat = 0
     private var backgroundX: CGFloat = 0
     private var backgroundWidth: CGFloat = 0
     private var showsBackground = false
 
     init(entries: [TabEntry], selected: Int, ctx: ResolveContext) {
+        selectedIndex = selected
         let env = ctx.env
         let content = entries[selected].content()
         self.content = content
@@ -580,7 +582,6 @@ final class TabViewNode: Node {
         barVisible = settings.visibility != .hidden
         let scheme = (settings.colorScheme ?? nil) ?? env.colorScheme
         self.scheme = scheme
-        selectedIndex = selected
         let topBar = barVisible && _currentConfiguration().device.idiom == .pad && env.horizontalSizeClass == .regular
         self.topBar = topBar
         var barEnv = env

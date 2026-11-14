@@ -142,6 +142,8 @@ enum Renderer {
         let ok = sk_pngencoder_encode(stream, pixmap, &options)
         sk_filewstream_destroy(stream)
         guard ok else { throw RenderError("PNG encoding failed") }
+        try AccessibilityOutputs.finish(root: root, config: config, scheme: env.colorScheme, canvasSize: canvasSize, scale: scale,
+                                        painter: painter, surface: surface)
         return RenderResult(pixelSize: (pixelWidth, pixelHeight), warnings: runtime.warnings)
     }
 }
