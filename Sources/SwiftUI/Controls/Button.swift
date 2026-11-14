@@ -348,7 +348,9 @@ struct _ButtonVisual: View {
             // simulator, a glass "Icon" circle button is 34.33 x 34.33pt).
             let size = (userFont ?? m.font)?.resolve(in: EnvironmentValues()).size ?? 17
             let side = m.minHeight ?? ((size * 1.193359 * 3).rounded(.up) / 3 + 2 * m.v)
-            return AnyView(content.padding(.vertical, m.v).frame(minWidth: side, minHeight: m.minHeight))
+            // It still takes 6pt either side in layout (measured: the next button sits 14pt away
+            // in an HStack with 8pt spacing).
+            return AnyView(content.padding(.vertical, m.v).frame(minWidth: side, minHeight: m.minHeight).padding(.horizontal, 6))
         }
         let padded = content.padding(.horizontal, m.h).padding(.vertical, m.v)
         switch (m.minHeight, sizing.kind) {
