@@ -487,6 +487,7 @@ final class AXExtractor {
 
     private func tabView(_ n: TabViewNode, _ ctx: Ctx) -> [AXElement] {
         var result = visit(n.content, ctx)
+        if let accessory = n.accessory { result += visit(accessory, ctx) }
         guard !n.items.isEmpty else { return result }
         let own = rect(n)
         let width = own.width / CGFloat(n.items.count)
@@ -507,7 +508,11 @@ final class AXExtractor {
                 axLabelParts(badge, into: &badgeParts, geometry: geometry)
                 if !badgeParts.isEmpty { e.value = badgeParts.map(\.text).joined(separator: ", ") }
             }
-            e.frame = CGRect(x: own.minX + width * CGFloat(i), y: top, width: width, height: TabBarMetrics.height)
+            if let frames = n.glassItemFrames, frames.indices.contains(i) {
+                e.frame = frames[i].offsetBy(dx: own.minX, dy: own.minY)
+            } else {
+                e.frame = CGRect(x: own.minX + width * CGFloat(i), y: top, width: width, height: TabBarMetrics.height)
+            }
             e.interactive = true
             e.rawHitFrame = e.frame
             e.hitFrame = e.frame
@@ -518,7 +523,8 @@ final class AXExtractor {
         bar.role = "tabBar"
         bar.roleIsDerived = false
         bar.traits = [.tabBar]
-        bar.frame = CGRect(x: own.minX, y: top, width: own.width, height: TabBarMetrics.height)
+        bar.frame = n.glassBarFrame.map { $0.offsetBy(dx: own.minX, dy: own.minY) }
+            ?? CGRect(x: own.minX, y: top, width: own.width, height: TabBarMetrics.height)
         bar.children = tabs
         bar.offscreen = geometry && !overlaps(bar.frame, ctx.visible)
         result.append(bar)
@@ -630,6 +636,12 @@ final class AXExtractor {
         if let message = card.message { kids += visit(message, ctx) }
         let centers = card.actions.map { rect($0).midX }
         let sideBySide = card.actions.count == 2 && centers.allSatisfy { abs($0 - box.midX) > 1 }
+        if let cells = card.glassActionCells, cells.count == card.actions.count {
+            for (action, cell) in zip(card.actions, cells) {
+                kids.append(actionButton(action, cell: cell.offsetBy(dx: box.minX, dy: box.minY), ctx))
+            }
+            return modal(role: "alert", frame: box, children: kids, ctx)
+        }
         for action in card.actions {
             let t = rect(action)
             let h = AlertMetrics.actionHeight
@@ -646,6 +658,12 @@ final class AXExtractor {
         var kids: [AXElement] = []
         if let title = card.title { kids += visit(title, ctx) }
         if let message = card.message { kids += visit(message, ctx) }
+        if let cells = card.glassActionCells, cells.count == card.actions.count + 1 {
+            for (action, cell) in zip(card.actions + [card.cancel], cells) {
+                kids.append(actionButton(action, cell: cell.offsetBy(dx: box.minX, dy: box.minY), ctx))
+            }
+            return modal(role: "dialog", frame: box, children: kids, ctx)
+        }
         for action in card.actions + [card.cancel] {
             let t = rect(action)
             let h = DialogMetrics.rowHeight

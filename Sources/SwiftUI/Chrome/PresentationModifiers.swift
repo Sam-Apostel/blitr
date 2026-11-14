@@ -184,6 +184,42 @@ extension View {
                actions: error.map { nodeResolver(actions($0)) }, message: error.map { nodeResolver(message($0)) })
     }
 
+    // item: (iOS 27): presented while the item is non-nil.
+    public func alert<Item, A: View>(_ titleKey: LocalizedStringKey, item: Binding<Item?>,
+                                     @ViewBuilder actions: (Item) -> A) -> some View {
+        let value = item.wrappedValue
+        return _alert(value != nil, title: Text(titleKey), actions: value.map { nodeResolver(actions($0)) }, message: nil)
+    }
+    @_disfavoredOverload
+    public func alert<S: StringProtocol, Item, A: View>(_ title: S, item: Binding<Item?>,
+                                                        @ViewBuilder actions: (Item) -> A) -> some View {
+        let value = item.wrappedValue
+        return _alert(value != nil, title: Text(title), actions: value.map { nodeResolver(actions($0)) }, message: nil)
+    }
+    public func alert<Item, A: View>(_ title: Text, item: Binding<Item?>, @ViewBuilder actions: (Item) -> A) -> some View {
+        let value = item.wrappedValue
+        return _alert(value != nil, title: title, actions: value.map { nodeResolver(actions($0)) }, message: nil)
+    }
+    public func alert<Item, A: View, M: View>(_ titleKey: LocalizedStringKey, item: Binding<Item?>,
+                                              @ViewBuilder actions: (Item) -> A, @ViewBuilder message: (Item) -> M) -> some View {
+        let value = item.wrappedValue
+        return _alert(value != nil, title: Text(titleKey), actions: value.map { nodeResolver(actions($0)) },
+                      message: value.map { nodeResolver(message($0)) })
+    }
+    @_disfavoredOverload
+    public func alert<S: StringProtocol, Item, A: View, M: View>(_ title: S, item: Binding<Item?>,
+                                                                 @ViewBuilder actions: (Item) -> A, @ViewBuilder message: (Item) -> M) -> some View {
+        let value = item.wrappedValue
+        return _alert(value != nil, title: Text(title), actions: value.map { nodeResolver(actions($0)) },
+                      message: value.map { nodeResolver(message($0)) })
+    }
+    public func alert<Item, A: View, M: View>(_ title: Text, item: Binding<Item?>,
+                                              @ViewBuilder actions: (Item) -> A, @ViewBuilder message: (Item) -> M) -> some View {
+        let value = item.wrappedValue
+        return _alert(value != nil, title: title, actions: value.map { nodeResolver(actions($0)) },
+                      message: value.map { nodeResolver(message($0)) })
+    }
+
     // Deprecated Alert value.
     public func alert(isPresented: Binding<Bool>, content: () -> Alert) -> some View {
         let alert = isPresented.wrappedValue ? content() : nil
@@ -265,6 +301,43 @@ extension View {
                                                         presenting data: T?, @ViewBuilder actions: (T) -> A, @ViewBuilder message: (T) -> M) -> some View {
         _dialog(isPresented.wrappedValue && data != nil, title: title, titleVisibility: titleVisibility,
                 actions: data.map { nodeResolver(actions($0)) }, message: data.map { nodeResolver(message($0)) })
+    }
+
+    // item: (iOS 27): presented while the item is non-nil.
+    public func confirmationDialog<Item, A: View>(_ titleKey: LocalizedStringKey, item: Binding<Item?>, titleVisibility: Visibility = .automatic,
+                                                  @ViewBuilder actions: (Item) -> A) -> some View {
+        let value = item.wrappedValue
+        return _dialog(value != nil, title: Text(titleKey), titleVisibility: titleVisibility, actions: value.map { nodeResolver(actions($0)) }, message: nil)
+    }
+    @_disfavoredOverload
+    public func confirmationDialog<S: StringProtocol, Item, A: View>(_ title: S, item: Binding<Item?>, titleVisibility: Visibility = .automatic,
+                                                                     @ViewBuilder actions: (Item) -> A) -> some View {
+        let value = item.wrappedValue
+        return _dialog(value != nil, title: Text(title), titleVisibility: titleVisibility, actions: value.map { nodeResolver(actions($0)) }, message: nil)
+    }
+    public func confirmationDialog<Item, A: View>(_ title: Text, item: Binding<Item?>, titleVisibility: Visibility = .automatic,
+                                                  @ViewBuilder actions: (Item) -> A) -> some View {
+        let value = item.wrappedValue
+        return _dialog(value != nil, title: title, titleVisibility: titleVisibility, actions: value.map { nodeResolver(actions($0)) }, message: nil)
+    }
+    public func confirmationDialog<Item, A: View, M: View>(_ titleKey: LocalizedStringKey, item: Binding<Item?>, titleVisibility: Visibility = .automatic,
+                                                           @ViewBuilder actions: (Item) -> A, @ViewBuilder message: (Item) -> M) -> some View {
+        let value = item.wrappedValue
+        return _dialog(value != nil, title: Text(titleKey), titleVisibility: titleVisibility,
+                       actions: value.map { nodeResolver(actions($0)) }, message: value.map { nodeResolver(message($0)) })
+    }
+    @_disfavoredOverload
+    public func confirmationDialog<S: StringProtocol, Item, A: View, M: View>(_ title: S, item: Binding<Item?>, titleVisibility: Visibility = .automatic,
+                                                                              @ViewBuilder actions: (Item) -> A, @ViewBuilder message: (Item) -> M) -> some View {
+        let value = item.wrappedValue
+        return _dialog(value != nil, title: Text(title), titleVisibility: titleVisibility,
+                       actions: value.map { nodeResolver(actions($0)) }, message: value.map { nodeResolver(message($0)) })
+    }
+    public func confirmationDialog<Item, A: View, M: View>(_ title: Text, item: Binding<Item?>, titleVisibility: Visibility = .automatic,
+                                                           @ViewBuilder actions: (Item) -> A, @ViewBuilder message: (Item) -> M) -> some View {
+        let value = item.wrappedValue
+        return _dialog(value != nil, title: title, titleVisibility: titleVisibility,
+                       actions: value.map { nodeResolver(actions($0)) }, message: value.map { nodeResolver(message($0)) })
     }
 
     // Deprecated ActionSheet value.
