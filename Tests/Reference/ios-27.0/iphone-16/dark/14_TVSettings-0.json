@@ -1,0 +1,213 @@
+{
+  "colorScheme": "dark",
+  "device": "agent-calibrate-iphone16-ios27",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 205.33
+      },
+      "label": "Autoplay Next Episode",
+      "role": "switch",
+      "traits": [
+        "button",
+        "toggle"
+      ],
+      "value": "1"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 257.33
+      },
+      "label": "Subtitles",
+      "role": "switch",
+      "traits": [
+        "button",
+        "toggle"
+      ],
+      "value": "0"
+    },
+    {
+      "class": "UIKitIconPreferringButton",
+      "frame": {
+        "height": 34.33,
+        "width": 329,
+        "x": 32,
+        "y": 318.33
+      },
+      "label": "Streaming Quality, Automatic",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 361.33
+      },
+      "label": "Audio Language, English",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 483.33
+      },
+      "label": "Reduce Loud Sounds",
+      "role": "switch",
+      "traits": [
+        "button",
+        "toggle"
+      ],
+      "value": "1"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 593.33
+      },
+      "label": "Signed in as, Robin",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 645.33
+      },
+      "label": "Manage Subscription",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 52,
+        "width": 361,
+        "x": 16,
+        "y": 697.33
+      },
+      "label": "Sign Out",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 40.33,
+        "width": 361,
+        "x": 16,
+        "y": 165
+      },
+      "label": "Playback",
+      "role": "header",
+      "traits": [
+        "header",
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 29.67,
+        "width": 361,
+        "x": 16,
+        "y": 413.33
+      },
+      "label": "Higher quality uses more bandwidth.",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 40.33,
+        "width": 361,
+        "x": 16,
+        "y": 443
+      },
+      "label": "Sound",
+      "role": "header",
+      "traits": [
+        "header",
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 40.33,
+        "width": 361,
+        "x": 16,
+        "y": 553
+      },
+      "label": "Account",
+      "role": "header",
+      "traits": [
+        "header",
+        "staticText"
+      ]
+    },
+    {
+      "class": "UILabel",
+      "frame": {
+        "height": 40.67,
+        "width": 133,
+        "x": 16,
+        "y": 116.67
+      },
+      "label": "Settings",
+      "role": "header",
+      "traits": [
+        "header"
+      ]
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 0,
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "14_TVSettings",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "27.0",
+  "version": 1
+}
