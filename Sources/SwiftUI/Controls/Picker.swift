@@ -35,9 +35,10 @@ extension View {
         env {
             $0[PickerKindExplicitKey.self] = !(style is DefaultPickerStyle)
             if style is PalettePickerStyle { $0[PickerPaletteKey.self] = true }
+            $0[PickerRadioKey.self] = style is RadioGroupPickerStyle
             switch style {
             case is SegmentedPickerStyle, is PalettePickerStyle: $0.pickerKind = .segmented
-            case is InlinePickerStyle: $0.pickerKind = .inline
+            case is InlinePickerStyle, is RadioGroupPickerStyle: $0.pickerKind = .inline
             case is WheelPickerStyle: $0.pickerKind = .wheel
             case is NavigationLinkPickerStyle: $0.pickerKind = .navigationLink
             default: $0.pickerKind = .menu
@@ -166,6 +167,22 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
             let bold = options({ $0.font = .system(size: size, weight: glass ? .semibold : .medium) }, key: "seg")
             let sel = selectedIndex(normal)
             view = AnyView(SegmentedBody(nodes: normal, selectedNode: sel.map { bold[$0] }, selected: sel, select: selector(normal)))
+        case .inline where ctx.env[PickerRadioKey.self]:
+            // macOS radio group: the label, then one radio button per option.
+            let nodes = options({ _ in }, key: "radio")
+            let sel = selectedIndex(nodes)
+            view = AnyView(HStack(alignment: .top, spacing: 8) {
+                if !labelNodes.isEmpty { labelView }
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(Array(nodes.enumerated()), id: \.offset) { pair in
+                        HStack(spacing: 6) {
+                            _RadioCircle(isOn: pair.offset == sel)
+                            _NodeView(pair.element)
+                        }
+                        .focusElement(role: "option", activate: { [select = selector(nodes)] in select(pair.offset) })
+                    }
+                }
+            })
         case .inline where ctx.env.designLanguage.isGlass && !ctx.env.isInListRow && ctx.env.renderPlatform != .tvOS:
             // Outside a list an inline picker is a wheel (measured: iOS 27.0 simulator,
             // ControlsInputs: an adjustable wheel element, squeezed by the full stack).

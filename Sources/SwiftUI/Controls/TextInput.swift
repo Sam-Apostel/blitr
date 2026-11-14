@@ -19,7 +19,8 @@ extension EnvironmentValues {
 }
 extension View {
     public func textFieldStyle<S: TextFieldStyle>(_ style: S) -> some View {
-        env { $0.textFieldBordered = style is RoundedBorderTextFieldStyle }
+        if style is SquareBorderTextFieldStyle { Runtime.current?.warn("SquareBorderTextFieldStyle (macOS) is drawn with a rounded border") }
+        return env { $0.textFieldBordered = style is RoundedBorderTextFieldStyle || style is SquareBorderTextFieldStyle }
     }
 }
 

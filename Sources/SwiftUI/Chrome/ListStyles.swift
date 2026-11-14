@@ -20,7 +20,7 @@ extension ListStyle {
         case is GroupedListStyle: return .grouped
         case is PlainListStyle: return .plain
         case is InsetListStyle: return .inset
-        default: return nil
+        default: return _platformKind
         }
     }
 }
