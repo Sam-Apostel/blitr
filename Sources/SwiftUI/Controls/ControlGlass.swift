@@ -36,7 +36,7 @@ enum ControlGlassMetrics {
     static let segmentedFontSize: CGFloat = 14                   // est. (13 to 14)
 
     // Containers.
-    static let groupBoxRadius: CGFloat = 20                      // est.
+    static let groupBoxRadius: CGFloat = 8                       // measured: iOS 27.0 simulator
 
     // Prominent glass: opacity of the accent tint over the backdrop.
     static let prominentTintAlpha26: Double = 0.86

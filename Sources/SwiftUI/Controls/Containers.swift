@@ -25,11 +25,21 @@ func formatted(_ date: Date, _ format: String) -> String {
 
 struct _DatePill: View {
     let text: String
+    /// Height of the pill on iOS 26/27 (nil: label height + 14).
+    var glassHeight: CGFloat? = nil
     @Environment(\.designLanguage) private var design
     var body: some View {
-        Text(verbatim: text)
+        if design.isGlass {
+            // measured: iOS 27.0 simulator (ControlsInputs): 12pt side padding; 34.33pt tall alone,
+            // 36pt when the time is shown too; capsule.
+            return AnyView(Text(verbatim: text)
+                .padding(.horizontal, 12).padding(.vertical, 7)
+                .frame(minHeight: glassHeight)
+                .background(Color(SystemColor.tertiaryFill), in: Capsule()))
+        }
+        return AnyView(Text(verbatim: text)
             .padding(.horizontal, 11).padding(.vertical, 7)
-            .background(Color(SystemColor.tertiaryFill), in: RoundedRectangle(cornerRadius: design.isGlass ? 18 : 8))
+            .background(Color(SystemColor.tertiaryFill), in: RoundedRectangle(cornerRadius: 8)))
     }
 }
 
@@ -91,6 +101,7 @@ public struct DatePicker<Label: View>: View {
     @Environment(\.datePickerGraphical) private var datePickerGraphical
     @Environment(\.datePickerStyleBox) private var styleBox
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.designLanguage) private var design
 
     var date: Date { selection.wrappedValue }
 
@@ -115,13 +126,14 @@ public struct DatePicker<Label: View>: View {
     private func builtIn(_ kind: DatePickerKind) -> some View {
         let graphical = kind == .graphical
         return VStack(spacing: 8) {
-            HStack(spacing: 6) {
+            HStack(spacing: design.isGlass ? 4 : 6) {
+                let pillHeight: CGFloat? = components.contains(.hourAndMinute) ? 36 : nil
                 ControlLabel(label: label)
                 if kind == .field || kind == .stepperField {
                     _DateField(date: date, components: components, stepper: kind == .stepperField)
                 } else {
-                    if !graphical && components.contains(.date) { _DatePill(text: formatted(date, "MMM d, yyyy")) }
-                    if components.contains(.hourAndMinute) { _DatePill(text: formatted(date, "h:mm a")) }
+                    if !graphical && components.contains(.date) { _DatePill(text: formatted(date, "MMM d, yyyy"), glassHeight: pillHeight) }
+                    if components.contains(.hourAndMinute) { _DatePill(text: formatted(date, "h:mm a"), glassHeight: pillHeight) }
                 }
             }
             if graphical && components.contains(.date) { _GraphicalCalendar(date: date) }
@@ -193,14 +205,18 @@ extension DatePicker {
 
 struct ColorWell: View {
     let color: Color
+    @Environment(\.designLanguage) private var design
     var body: some View {
-        ZStack {
+        // measured: iOS 27.0 simulator (ControlsInputs): the well is 28pt on iOS 26/27.
+        let side: CGFloat = design.isGlass ? 28 : 30
+        let k = side / 30
+        return ZStack {
             Circle().fill(AngularGradient(colors: [.red, .yellow, .green, .cyan, .blue, .purple, .pink, .red], center: .center, startAngle: .degrees(0), endAngle: .degrees(360)))
-                .frame(width: 30, height: 30)
-            Circle().fill(Color(SystemColor.background)).frame(width: 24, height: 24)
-            Circle().fill(color).frame(width: 21, height: 21)
+                .frame(width: side, height: side)
+            Circle().fill(Color(SystemColor.background)).frame(width: 24 * k, height: 24 * k)
+            Circle().fill(color).frame(width: 21 * k, height: 21 * k)
         }
-        .frame(width: 30, height: 30)
+        .frame(width: side, height: side)
     }
 }
 
@@ -264,6 +280,9 @@ public struct DisclosureGroup<Label: View, Content: View>: View {
         self.label = label()
     }
 
+    @Environment(\.designLanguage) private var design
+    @Environment(\.renderPlatform) private var platform
+
     public var body: some View {
         if let custom = customStyle, !forceDefault {
             custom.make(AnyView(label), AnyView(content), Binding(
@@ -276,7 +295,27 @@ public struct DisclosureGroup<Label: View, Content: View>: View {
 
     private var defaultBody: some View {
         let expanded = binding?.wrappedValue ?? local
-        return VStack(alignment: .leading, spacing: 8) {
+        if design.isGlass && platform != .tvOS {
+            // measured: iOS 27.0 simulator (ControlsInputs): a 28.33pt row with the label in the
+            // tint and a primary-coloured chevron, the content right under it, centred.
+            return AnyView(VStack(spacing: 0) {
+                HStack {
+                    label.foregroundStyle(Color.accentColor)
+                    Spacer(minLength: 8)
+                    Chevron(direction: expanded ? .down : .right, width: 7, height: 12, weight: 2.2, color: AnyShapeStyle(Color.primary))
+                }
+                .padding(.vertical, 4)
+                .axInfo {
+                    $0.isElement = true
+                    $0.addTraits = [.button]
+                    $0.children = .combine
+                    $0.value = expanded ? "expanded" : "collapsed"
+                    $0.isTapTarget = true
+                }
+                if expanded { content.frame(maxWidth: .infinity) }
+            })
+        }
+        return AnyView(VStack(alignment: .leading, spacing: 8) {
             HStack {
                 label
                 Spacer(minLength: 8)
@@ -290,7 +329,7 @@ public struct DisclosureGroup<Label: View, Content: View>: View {
                 $0.isTapTarget = true
             }
             if expanded { content }
-        }
+        })
     }
 }
 
@@ -337,14 +376,24 @@ public struct GroupBox<Label: View, Content: View>: View {
     }
 
     private var defaultBody: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        if design.isGlass {
+            // measured: iOS 27.0 simulator (ControlsInputs): 16pt padding, the content 2pt under
+            // the label and centred, an 8pt corner.
+            return AnyView(VStack(alignment: .leading, spacing: 2) {
+                if !(Label.self is EmptyView.Type) { label.font(.headline) }
+                content.frame(maxWidth: .infinity)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(SystemColor.secondaryBackground), in: RoundedRectangle(cornerRadius: ControlGlassMetrics.groupBoxRadius)))
+        }
+        return AnyView(VStack(alignment: .leading, spacing: 8) {
             if !(Label.self is EmptyView.Type) { label.font(.headline) }
             content
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(SystemColor.secondaryBackground),
-                    in: RoundedRectangle(cornerRadius: design.isGlass ? ControlGlassMetrics.groupBoxRadius : 8))
+        .background(Color(SystemColor.secondaryBackground), in: RoundedRectangle(cornerRadius: 8)))
     }
 }
 
@@ -380,6 +429,19 @@ public struct ControlGroup<Content: View>: View, PrimitiveView {
     func resolve(_ ctx: ResolveContext, into out: inout [Node]) {
         if !forceDefault, let box = ctx.env.controlGroupStyleBox, let styled = _styledControlGroup(box, content: AnyView(content), label: labelView) {
             resolveView(styled, ctx.child("styled"), into: &out)
+            return
+        }
+        if ctx.env.designLanguage.isGlass, ctx.env.renderPlatform != .tvOS {
+            // measured: iOS 27.0 simulator (ControlsInputs): a 32pt capsule across the width,
+            // equal segments, 14pt primary-coloured labels, no separators.
+            let nodes = resolveNodes(content, ctx.child("group").with { $0.font = .system(size: 14); $0.foregroundStyle = AnyShapeStyle(Color.primary) })
+            let view = HStack(spacing: 0) {
+                ForEach(Array(nodes.enumerated()), id: \.offset) { pair in
+                    _NodeView(pair.element).frame(maxWidth: .infinity).frame(height: 32)
+                }
+            }
+            .background(Color(SystemColor.tertiaryFill), in: Capsule())
+            resolveView(view, ctx.child("view"), into: &out)
             return
         }
         let nodes = resolveNodes(content, ctx.child("group"))
