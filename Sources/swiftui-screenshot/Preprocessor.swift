@@ -6,6 +6,7 @@ import Foundation
 ///     @Previewable                     ->  (removed)
 ///     @main                            ->  (removed; the generated main.swift is the entry point)
 ///     #if os(iOS)                      ->  #if os(Linux)   (so iOS-only branches are the ones rendered)
+///     @Entry var x: T = v              ->  an explicit EnvironmentKey + computed property
 ///
 /// Rewrites stay on the same line, so compiler diagnostics still point at the right line.
 struct Preprocessor {
@@ -24,12 +25,13 @@ struct Preprocessor {
         var usedNames: Set<String> = ["main.swift"]
 
         for (index, source) in sources.enumerated() {
-            let (rewritten, names) = rewrite(source.contents)
+            var (rewritten, names) = rewrite(source.contents)
+            rewritten = Self.rewriteEntries(rewritten)
             entries += names
             for type in Self.matches(of: #"struct\s+(\w+)\s*:\s*[^{]*\bPreviewProvider\b"#, in: rewritten) {
                 entries.append("SwiftUI._PreviewEntry(\"\(type)\") { \(type).previews }")
             }
-            appTypes += Self.matches(of: #"struct\s+(\w+)\s*:\s*[^{]*\bApp\b"#, in: rewritten)
+            appTypes += Self.matches(of: #"struct\s+(\w+)\s*:\s*(?:[^{\n]*,\s*)?(?:SwiftUI\.)?App\b"#, in: rewritten)
             var name = (source.path as NSString).lastPathComponent
             if usedNames.contains(name) { name = "\(index)_\(name)" }
             usedNames.insert(name)
@@ -39,7 +41,8 @@ struct Preprocessor {
         if let viewExpression {
             entries = ["SwiftUI._PreviewEntry(\"view\") { \(viewExpression) }"]
         } else if entries.isEmpty, let app = appTypes.first {
-            entries = ["SwiftUI._PreviewEntry(app: \(app).self)"]
+            // No previews: launch the app instead (its first WindowGroup is rendered).
+            entries = ["SwiftUI._PreviewEntry(app: \(app)())"]
         }
 
         var main = "import SwiftUI\n\nMainActor.assumeIsolated {\n    SwiftUI._ScreenshotRunner.run([\n"
@@ -98,6 +101,120 @@ struct Preprocessor {
             for k in start..<min(i, n) { mask[k] = false }
         }
         return mask
+    }
+
+    /// `@Entry var foo: T = v` inside `extension EnvironmentValues` (or `FocusedValues`) becomes an
+    /// explicit key type plus a computed property, since macros are not available here.
+    static func rewriteEntries(_ source: String) -> String {
+        guard source.contains("@Entry") else { return source }
+        let bytes = Array(source.utf8)
+        let mask = codeMask(bytes)
+        let token = Array("@Entry".utf8)
+        var out: [UInt8] = []
+        var i = 0
+
+        func isIdentifier(_ b: UInt8) -> Bool {
+            b == UInt8(ascii: "_") || (b >= 48 && b <= 57) || (b >= 65 && b <= 90) || (b >= 97 && b <= 122)
+        }
+        func skipSpaces(_ k: Int) -> Int {
+            var k = k
+            while k < bytes.count, bytes[k] == UInt8(ascii: " ") || bytes[k] == UInt8(ascii: "\t") { k += 1 }
+            return k
+        }
+        func word(at k: Int) -> (String, Int) {
+            var e = k
+            while e < bytes.count, isIdentifier(bytes[e]) { e += 1 }
+            return (String(decoding: bytes[k..<e], as: UTF8.self), e)
+        }
+        /// End of a type annotation or initializer expression: end of line at bracket depth zero.
+        func declarationEnd(from start: Int, isType: Bool) -> Int {
+            var depth = 0, k = start
+            while k < bytes.count {
+                let c = bytes[k]
+                if mask[k] {
+                    if c == UInt8(ascii: "(") || c == UInt8(ascii: "[") || c == UInt8(ascii: "{") { depth += 1 }
+                    else if c == UInt8(ascii: ")") || c == UInt8(ascii: "]") || c == UInt8(ascii: "}") {
+                        if depth == 0 { return k }
+                        depth -= 1
+                    } else if isType, c == UInt8(ascii: "<") { depth += 1 }
+                    else if isType, c == UInt8(ascii: ">"), bytes[k - 1] != UInt8(ascii: "-") { depth -= 1 }
+                    else if depth == 0 {
+                        if c == UInt8(ascii: "\n") { return k }
+                        if isType, c == UInt8(ascii: "="), k + 1 < bytes.count, bytes[k + 1] != UInt8(ascii: "=") { return k }
+                    }
+                }
+                k += 1
+            }
+            return bytes.count
+        }
+        func text(_ range: Range<Int>) -> String {
+            String(decoding: bytes[range], as: UTF8.self).trimmingCharacters(in: .whitespaces)
+        }
+
+        var owner: String?
+        var scan = 0
+        while scan < bytes.count {
+            // Track the most recent `extension Name` so we know which key protocol applies.
+            if mask[scan], bytes[scan] == UInt8(ascii: "e"), scan + 10 < bytes.count,
+               String(decoding: bytes[scan..<(scan + 10)], as: UTF8.self) == "extension ",
+               scan == 0 || !isIdentifier(bytes[scan - 1]) {
+                owner = word(at: skipSpaces(scan + 10)).0
+            }
+            guard mask[scan], scan + token.count <= bytes.count, Array(bytes[scan..<(scan + token.count)]) == token,
+                  scan + token.count < bytes.count, !isIdentifier(bytes[scan + token.count]),
+                  owner == "EnvironmentValues" || owner == "FocusedValues" else { scan += 1; continue }
+
+            var k = skipSpaces(scan + token.count)
+            let modifiersStart = k
+            var modifiersEnd = k
+            let modifiers: Set<String> = ["public", "internal", "private", "fileprivate", "package", "open", "nonisolated", "static", "final"]
+            while true {
+                let (w, e) = word(at: k)
+                guard modifiers.contains(w) else { break }
+                var next = e
+                if next < bytes.count, bytes[next] == UInt8(ascii: "(") { while next < bytes.count, bytes[next] != UInt8(ascii: ")") { next += 1 }; next += 1 }
+                k = skipSpaces(next)
+                modifiersEnd = k
+            }
+            let (keyword, afterKeyword) = word(at: k)
+            guard keyword == "var" else { scan += 1; continue }
+            let (name, afterName) = word(at: skipSpaces(afterKeyword))
+            k = skipSpaces(afterName)
+            var type: String?, defaultValue: String?
+            if k < bytes.count, bytes[k] == UInt8(ascii: ":") {
+                let end = declarationEnd(from: k + 1, isType: true)
+                type = text((k + 1)..<end)
+                k = skipSpaces(end)
+            }
+            if k < bytes.count, bytes[k] == UInt8(ascii: "=") {
+                let end = declarationEnd(from: k + 1, isType: false)
+                defaultValue = text((k + 1)..<end)
+                k = end
+            }
+            let key = "__Entry_" + name
+            let mods = String(decoding: bytes[modifiersStart..<modifiersEnd], as: UTF8.self)
+            let accessor = "{ get { self[\(key).self] } set { self[\(key).self] = newValue } }"
+            var replacement: String?
+            if owner == "FocusedValues" {
+                if let type {
+                    let value = type.hasSuffix("?") ? String(type.dropLast()) : type
+                    replacement = "struct \(key): FocusedValueKey { typealias Value = \(value) }\n    \(mods)var \(name): \(type) \(accessor)"
+                }
+            } else {
+                if defaultValue == nil, let type, type.hasSuffix("?") { defaultValue = "nil" }
+                if let defaultValue {
+                    let annotation = type.map { ": " + $0 } ?? ""
+                    replacement = "struct \(key): EnvironmentKey { static let defaultValue\(annotation) = \(defaultValue) }\n    \(mods)var \(name): \(type ?? key + ".Value") \(accessor)"
+                }
+            }
+            guard let replacement else { scan += 1; continue }
+            out += bytes[i..<scan]
+            out += Array(replacement.utf8)
+            i = k
+            scan = k
+        }
+        out += bytes[i...]
+        return String(decoding: out, as: UTF8.self)
     }
 
     private static func isRawStringStart(_ bytes: [UInt8], _ index: Int) -> Bool {

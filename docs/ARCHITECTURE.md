@@ -89,7 +89,7 @@ node; nodes do not see the environment later.
 ```
 scripts/bootstrap.sh            # once: fetches Skia + fonts into Vendor/
 swift build
-scripts/dev-render.sh File.swift out/file.png [--layout fit] [--scheme dark] [--width 393]
+"$(swift build --show-bin-path)/swiftui-screenshot" render File.swift -o out/file.png [--layout fit] [--scheme dark] [--width 393]
 ```
 
 Look at the PNG. Compare against what the same code produces on iOS: spacing, sizes, and

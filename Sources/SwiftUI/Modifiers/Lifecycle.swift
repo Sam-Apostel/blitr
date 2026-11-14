@@ -11,7 +11,8 @@ struct LifecycleModifier: ViewModifier, PrimitiveModifier {
             let action = self.action
             runtime.pendingActions.append { action(runtime) }
         }
-        content.resolve(ctx, into: &out)
+        // Content resolves under this modifier's key so stacked lifecycle modifiers get distinct identities.
+        content.resolve(ctx.child(key), into: &out)
     }
 }
 
