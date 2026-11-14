@@ -389,19 +389,22 @@ public struct ProgressView<Label: View, CurrentValueLabel: View>: View {
         } else {
             switch styleBox.kind {
             case .linear: linear
-            case .circular: circular
+            case .circular: if platform == .tvOS { circular } else { circularIOS }
             case .automatic:
-                if fraction == nil { circular } else { linear }
+                if fraction != nil { linear } else if platform == .tvOS { circular } else { circularIOS }
             }
         }
     }
 
     private var linear: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        // measured: iOS 27.0 simulator (ControlsIndicators): label, bar and current value 4pt
+        // apart, the current value in caption. tvOS keeps its estimate.
+        let tv = platform == .tvOS
+        return VStack(alignment: .leading, spacing: tv ? 6 : 4) {
             if let label { label }
-            LinearBar(fraction: fraction ?? 0.3, height: platform == .tvOS ? 8 : 4)
+            LinearBar(fraction: fraction ?? 0.3, height: tv ? 8 : 4)
             if let currentValueLabel {
-                currentValueLabel.font(.footnote).foregroundStyle(.secondary)
+                currentValueLabel.font(tv ? .footnote : .caption).foregroundStyle(.secondary)
             }
         }
     }
@@ -419,6 +422,16 @@ public struct ProgressView<Label: View, CurrentValueLabel: View>: View {
                 Spinner(size: platform == .tvOS ? 60 : 20)
             }
             if let label { label.font(.footnote).foregroundStyle(.secondary) }
+        }
+    }
+
+    /// iOS: the label sits under the indicator in the secondary colour, at the inherited font.
+    /// measured: iOS 27.0 simulator (ControlsIndicators): a 20pt spinner, "Loading" 6.5pt below.
+    /// A determinate circular ProgressView is drawn as a spinner too.
+    private var circularIOS: some View {
+        VStack(spacing: 6.5) {
+            Spinner(size: 20)
+            if let label { label.foregroundStyle(.secondary) }
         }
     }
 }
@@ -499,6 +512,7 @@ public struct Gauge<Label: View, CurrentValueLabel: View, BoundsLabel: View, Mar
     @Environment(\.gaugeStyleKind) private var kind
     @Environment(\.gaugeCustomStyleBox) private var customStyle
     var forcedKind: GaugeStyleKind.Kind?
+    @Environment(\.accentColor) private var explicitTint
 
     init(fraction: Double, label: AnyView, current: AnyView?, minLabel: AnyView?, maxLabel: AnyView?, forcedKind: GaugeStyleKind.Kind? = nil) {
         self.forcedKind = forcedKind
@@ -535,9 +549,34 @@ public struct Gauge<Label: View, CurrentValueLabel: View, BoundsLabel: View, Mar
 
     @ViewBuilder private var builtInBody: some View {
         switch forcedKind ?? kind {
-        case .linearCapacity, .accessoryLinearCapacity, .accessoryLinear: linear
+        case .linearCapacity: capacity
+        case .accessoryLinearCapacity, .accessoryLinear: linear
         case .accessoryCircular: circular(open: true)
         case .accessoryCircularCapacity: circular(open: false)
+        }
+    }
+
+    /// The default (linearCapacity) gauge on iOS: label centred above a 16pt capsule bar with the
+    /// bounds labels beside it, the current value centred below. measured: iOS 27.0 simulator
+    /// (ControlsIndicators): bar 16pt, bounds labels 8pt from the bar, rows 10.67pt and 6.33pt
+    /// apart, tertiary-fill track.
+    private var capacity: some View {
+        VStack(spacing: 0) {
+            label
+            HStack(spacing: 8) {
+                if let minLabel { minLabel }
+                GeometryReader { proxy in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color(SystemColor.tertiaryFill))
+                        Capsule().fill(Color.accentColor)
+                            .frame(width: max(16, proxy.size.width * fraction))
+                    }
+                }
+                .frame(height: 16)
+                if let maxLabel { maxLabel }
+            }
+            .padding(.top, 10.67)
+            if let current { current.padding(.top, 6.33) }
         }
     }
 
@@ -560,18 +599,34 @@ public struct Gauge<Label: View, CurrentValueLabel: View, BoundsLabel: View, Mar
         }
     }
 
+    /// Accessory circular gauges. measured: iOS 27.0 simulator (ControlsIndicators): 58pt,
+    /// 6pt strokes in the primary colour (unless tinted); the open gauge is a full 270° arc with a
+    /// ring marking the value and the label under the gap, the capacity gauge a 35% track with
+    /// the filled part from the top; current value about 25pt (17.67pt cap height).
     private func circular(open: Bool) -> some View {
         let span = open ? 0.75 : 1.0
         let rotation: Double = open ? 135 : -90
+        let line: CGFloat = 6, side: CGFloat = 58
+        let color = explicitTint ?? Color.primary
+        let radius = (side - line) / 2
+        let angle = (rotation + 360 * span * fraction) * .pi / 180
         return ZStack {
-            Circle().trim(from: 0, to: span).rotation(.degrees(rotation))
-                .stroke(Color(SystemColor.secondaryFill), style: StrokeStyle(lineWidth: 5, lineCap: .round))
-            Circle().trim(from: 0, to: span * max(fraction, 0.001)).rotation(.degrees(rotation))
-                .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 5, lineCap: .round))
-            if let current { current.font(.system(size: 16, weight: .medium)) }
+            if open {
+                Circle().trim(from: 0, to: span).rotation(.degrees(rotation))
+                    .stroke(color, style: StrokeStyle(lineWidth: line, lineCap: .round))
+                Circle().fill(Color(SystemColor.background)).frame(width: line - 2, height: line - 2)
+                    .overlay(Circle().stroke(color, lineWidth: 2).frame(width: line + 2, height: line + 2))
+                    .offset(x: radius * cos(angle), y: radius * sin(angle))
+                label.font(.caption2).offset(y: radius - 2)
+            } else {
+                Circle().stroke(color.opacity(0.35), lineWidth: line)
+                Circle().trim(from: 0, to: max(fraction, 0.001)).rotation(.degrees(rotation))
+                    .stroke(color, style: StrokeStyle(lineWidth: line, lineCap: .round))
+            }
+            if let current { current.font(.system(size: 25)).lineLimit(1).minimumScaleFactor(0.5).padding(.horizontal, line + 2) }
         }
-        .padding(2.5)
-        .frame(width: 56, height: 56)
+        .padding(line / 2)
+        .frame(width: side, height: side)
     }
 }
 
