@@ -1,4 +1,4 @@
-// The WidgetKit types live in the SwiftUI module (Sources/SwiftUI/Widgets/Kits), like the UIKit
-// shim's: a separate library would carry its own copy of SwiftUI and its protocol conformances.
-// `import WidgetKit` just needs a module of that name. See docs/WIDGETS.md.
-@_exported import SwiftUI
+// `import WidgetKit`: widgets, timelines, Live Activity configurations, controls and widget previews
+// (see docs/WIDGETS.md). The engine side (the widget and Live Activity canvases) is in SwiftUI
+// (Sources/SwiftUI/Widgets), reached through its underscored public hooks.
+@_exported import Foundation

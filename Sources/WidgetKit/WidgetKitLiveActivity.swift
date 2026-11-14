@@ -1,4 +1,9 @@
 
+import ActivityKit
+import AppIntents
+import Foundation
+import SwiftUI
+
 // Live Activities: ActivityConfiguration, the Dynamic Island and their view modifiers.
 
 public struct ActivityViewContext<Attributes: ActivityAttributes> {

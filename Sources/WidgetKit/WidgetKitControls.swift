@@ -2,6 +2,11 @@
 // widget bundle that lists them builds, but they are not rendered (the system draws controls
 // from their label and tint; there is no canvas for them here).
 
+import ActivityKit
+import AppIntents
+import Foundation
+import SwiftUI
+
 @MainActor @preconcurrency
 public protocol ControlWidget {
     associatedtype Body: ControlWidgetConfiguration

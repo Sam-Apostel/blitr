@@ -3,7 +3,7 @@ import Foundation
 /// Rewrites SwiftUI sources so they can be compiled into a headless runner:
 ///
 ///     #Preview("Name", ...) { body }  ->  @MainActor let __preview_N = SwiftUI._PreviewEntry("Name") { body }
-///     #Preview(as: .systemSmall) { W() } timeline: { ... }  ->  ... = SwiftUI._WidgetPreview(as: .systemSmall) { W() } timeline: { ... }
+///     #Preview(as: .systemSmall) { W() } timeline: { ... }  ->  ... = WidgetKit._WidgetPreview(as: .systemSmall) { W() } timeline: { ... }
 ///                                     (widget and Live Activity previews keep their arguments; see docs/WIDGETS.md)
 ///     @Previewable                     ->  (removed)
 ///     @main                            ->  (removed; the generated main.swift is the entry point)
@@ -57,15 +57,16 @@ struct Preprocessor {
             entries = ["SwiftUI._PreviewEntry(app: \(app)())"]
         } else if entries.isEmpty, !bundleTypes.isEmpty || !widgetTypes.isEmpty {
             // A widget extension without previews: render its widgets from their providers.
-            entries = bundleTypes.first.map { ["SwiftUI._WidgetPreview(bundle: \($0)())"] }
-                ?? widgetTypes.map { "SwiftUI._WidgetPreview(widget: \($0)())" }
+            entries = bundleTypes.first.map { ["WidgetKit._WidgetPreview(bundle: \($0)())"] }
+                ?? widgetTypes.map { "WidgetKit._WidgetPreview(widget: \($0)())" }
             hasWidgetPreviews = true
         }
 
         var main = "import SwiftUI\n\nMainActor.assumeIsolated {\n    SwiftUI._ScreenshotRunner.run([\n"
         if hasWidgetPreviews {
             // Widget previews expand to one image per family, timeline entry or content state.
-            main = "import SwiftUI\n\nMainActor.assumeIsolated {\n    SwiftUI._ScreenshotRunner.run(([\n"
+            // `_WidgetPreview` is WidgetKit's, which declares the widget API.
+            main = "import SwiftUI\nimport WidgetKit\n\nMainActor.assumeIsolated {\n    SwiftUI._ScreenshotRunner.run(([\n"
         }
         for entry in entries { main += "        \(entry),\n" }
         main += hasWidgetPreviews ? "    ] as [any SwiftUI._PreviewEntryGroup]).flatMap { $0._previewEntries })\n}\n" : "    ])\n}\n"
@@ -358,7 +359,7 @@ struct Preprocessor {
                             counter += 1
                             names.append(identifier)
                             hasWidgetPreviews = true
-                            out += Array("@MainActor let \(identifier) = SwiftUI._WidgetPreview(\(arguments))".utf8)
+                            out += Array("@MainActor let \(identifier) = WidgetKit._WidgetPreview(\(arguments))".utf8)
                             i = close + 1
                             continue
                         }

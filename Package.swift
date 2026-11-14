@@ -46,9 +46,9 @@ let package = Package(
         .target(name: "SwiftUI", dependencies: ["CSkia", "CHarfBuzz", "Combine", "SwiftUIScreenshotFoundation"], swiftSettings: moduleSettings),
         // The shim frameworks: each its own module, linked into libSwiftUI (see the SwiftUI product).
         .target(name: "UIKit", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
-        .target(name: "AppIntents", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
-        .target(name: "ActivityKit", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
-        .target(name: "WidgetKit", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
+        .target(name: "AppIntents", dependencies: ["SwiftUI", "UIKit"], swiftSettings: moduleSettings),
+        .target(name: "ActivityKit", dependencies: ["SwiftUIScreenshotFoundation"], swiftSettings: moduleSettings),
+        .target(name: "WidgetKit", dependencies: ["SwiftUI", "AppIntents", "ActivityKit"], swiftSettings: moduleSettings),
         .target(name: "CoreLocation", swiftSettings: moduleSettings),
         .target(name: "MapKit", dependencies: ["SwiftUI", "UIKit", "CoreLocation"], swiftSettings: moduleSettings),
         .executableTarget(name: "swiftui-screenshot", swiftSettings: [.swiftLanguageMode(.v5)]),

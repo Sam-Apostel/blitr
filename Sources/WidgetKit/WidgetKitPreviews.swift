@@ -1,8 +1,13 @@
 
+import ActivityKit
+import AppIntents
+import Foundation
+import SwiftUI
+
 // Widget previews. The preprocessor rewrites
 //     #Preview("name", as: .systemSmall) { MyWidget() } timeline: { ... }
 //     #Preview("name", as: .dynamicIsland(.compact), using: attributes) { MyLiveActivity() } contentStates: { ... }
-// to `SwiftUI._WidgetPreview(...)` with the same arguments, and a file with a widget or a
+// to `WidgetKit._WidgetPreview(...)` with the same arguments, and a file with a widget or a
 // widget bundle but no preview to `_WidgetPreview(widget:)` / `_WidgetPreview(bundle:)`.
 // Each expands to one image per timeline entry, content state, or supported family.
 

@@ -1,6 +1,11 @@
 // A shim of Apple's WidgetKit: widgets, bundles, configurations and their modifiers.
 // Rendering goes through `SwiftUI._WidgetCanvas` / `_LiveActivityCanvas`; see docs/WIDGETS.md.
 
+import ActivityKit
+import AppIntents
+import Foundation
+import SwiftUI
+
 // MARK: - Families
 
 public enum WidgetFamily: Int, CaseIterable, Codable, CustomStringConvertible, Hashable, Sendable {

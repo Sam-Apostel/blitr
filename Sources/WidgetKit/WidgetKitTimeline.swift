@@ -1,4 +1,9 @@
 
+import ActivityKit
+import AppIntents
+import Foundation
+import SwiftUI
+
 // MARK: - Entries and timelines
 
 public protocol TimelineEntry {

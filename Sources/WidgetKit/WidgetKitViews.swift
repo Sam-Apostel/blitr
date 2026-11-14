@@ -1,4 +1,9 @@
 
+import ActivityKit
+import AppIntents
+import Foundation
+import SwiftUI
+
 // The SwiftUI API that WidgetKit adds: environment values, view modifiers, AccessoryWidgetBackground.
 
 extension EnvironmentValues {
