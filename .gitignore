@@ -1,0 +1,7 @@
+.build/
+Vendor/
+*.swp
+.DS_Store
+/out/
+/dist/
+.claude/worktrees/

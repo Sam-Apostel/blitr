@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  render:
+    name: Build and render examples
+    runs-on: ubuntu-24.04
+    container: swift:6.4.2-noble
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system packages
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends libharfbuzz-dev curl unzip binutils ca-certificates
+
+      - name: Fetch pinned Skia and fonts
+        run: scripts/bootstrap.sh
+
+      - name: Build
+        run: swift build
+
+      - name: Render every example and the acceptance corpus
+        run: |
+          bin="$(swift build --show-bin-path)"
+          "$bin/swiftui-screenshot" doctor
+          # Every file must compile against the module and render; a failure here is a regression.
+          find Examples Tests/Corpus -name '*.swift' | sort | while read -r file; do
+            echo "::group::$file"
+            "$bin/swiftui-screenshot" render "$file" --all --out-dir "out/$(dirname "$file")" --scheme both
+            echo "::endgroup::"
+          done
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: out/**/*.png
+          if-no-files-found: error

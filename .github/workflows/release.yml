@@ -1,0 +1,95 @@
+name: Release
+
+# Pushing a tag such as v0.1.0 builds relocatable tarballs for x86_64 and arm64, smoke-tests them
+# from a clean directory, and attaches them (with .sha256 files and install.sh) to a GitHub release.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  dist:
+    name: Build ${{ matrix.arch }} tarball
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    container: swift:6.4.2-noble
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install system packages
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends libharfbuzz-dev curl unzip binutils ca-certificates patchelf
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Fetch pinned Skia and fonts
+        run: scripts/bootstrap.sh
+
+      - name: Build the tarball
+        run: scripts/make-dist.sh "$GITHUB_REF_NAME"
+
+      - name: Smoke test from the unpacked tarball
+        run: |
+          set -euo pipefail
+          tarball="$(ls "$PWD"/dist/swiftui-screenshot-*-linux-${{ matrix.arch }}.tar.gz)"
+          cp Examples/Hello.swift /tmp/Hello.swift
+          # A clean directory with no checkout, no Vendor/ and no build tree in reach.
+          mkdir -p /tmp/smoke/unpacked /tmp/smoke/work
+          tar -xzf "$tarball" -C /tmp/smoke/unpacked
+          mv /tmp/smoke/unpacked/swiftui-screenshot /tmp/smoke/moved
+          mv .build .build.hidden
+          cd /tmp/smoke/work
+          /tmp/smoke/moved/bin/swiftui-screenshot version
+          /tmp/smoke/moved/bin/swiftui-screenshot doctor
+          /tmp/smoke/moved/bin/swiftui-screenshot render /tmp/Hello.swift -o hello.png
+          test -s hello.png
+          head -c 8 hello.png | od -An -c | grep -q 'P *N *G'
+          cd "$GITHUB_WORKSPACE" && mv .build.hidden .build
+
+      - name: Checksum
+        run: |
+          cd dist
+          for f in swiftui-screenshot-*.tar.gz; do sha256sum "$f" > "$f.sha256"; done
+          ls -l
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.arch }}
+          path: |
+            dist/*.tar.gz
+            dist/*.tar.gz.sha256
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    needs: dist
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          path: assets
+          merge-multiple: true
+
+      - name: Create the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            assets/*.tar.gz
+            assets/*.tar.gz.sha256
+            install.sh
+          generate_release_notes: true
+          fail_on_unmatched_files: true
