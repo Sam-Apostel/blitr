@@ -27,7 +27,7 @@
 //
 //   S --preview Loading -o out/loading.png --animated out/loading.gif --duration 2 --hold 0
 //
-//   S --preview Pulse -o out/pulse.png --animated out/pulse.png --duration 3 --hold 0      # APNG
+//   S --preview Pulse -o out/pulse.png --animated out/pulse.apng --duration 3 --hold 0     # APNG
 //
 // Add `--animated-scale 0.5`, `--fps 60`, `--scale 1` or another extension (.png for APNG, .webp, .mp4) to
 // taste. `--frames-all` with `--frames <dir>` writes every in-between frame as a PNG.

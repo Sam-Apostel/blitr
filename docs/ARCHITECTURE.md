@@ -45,6 +45,8 @@ values written during layout (inside a `GeometryReader`) reach `onPreferenceChan
 | `Sources/SwiftUI/Glass` | iOS design language (`--ios 18/26/27`), `glassEffect` and glass painting |
 | `Sources/SwiftUI/Accessibility` | accessibility tree, tap targets and issues (`--accessibility-*`) |
 | `Sources/SwiftUI/Focus` | tvOS focus engine: focus records on nodes, movement, `@FocusState`, remote presses, focus map (docs/FOCUS.md); the tvOS focused look (`TVFocusLook.swift`) |
+| `Sources/SwiftUI/Interaction` | scripted steps (`--steps`), element selectors, frame / filmstrip / animated outputs and their encoders (docs/INTERACTION.md) |
+| `Sources/SwiftUI/Animation` | `Animation`, `Transaction`, transitions, springs and curves, and the tweener that interpolates two node trees during a capture |
 | `Sources/SwiftUI/Controls/TV*`, `Chrome/TV` | tvOS control styles and chrome: buttons, toggles, pickers, fields, tab bar, sidebar, lists, navigation, alerts (docs/TVOS.md) |
 | `Sources/SwiftUI/Widgets` | widget and Live Activity canvases, the engine side of WidgetKit (docs/WIDGETS.md) |
 | `Sources/SwiftUI/Render` | `Renderer`, runner entry point, device profiles and chrome, image comparison for `compare` |

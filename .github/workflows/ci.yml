@@ -44,6 +44,9 @@ jobs:
       - name: Framework shims (known-answer checks)
         run: Tests/Frameworks/run.sh out/Frameworks
 
+      - name: Interaction capture (frame counts, determinism)
+        run: Tests/Interaction/run.sh out/Interaction
+
       - name: Upload screenshots
         uses: actions/upload-artifact@v4
         with:
