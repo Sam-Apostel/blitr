@@ -26,12 +26,16 @@ struct NodeKey: Hashable {
 @MainActor
 final class Tweener {
     static var active: Tweener?
+    /// The color behind everything (a pushed screen is opaque with it while it slides in).
+    static var canvasBackground = RGBA.white
 
     let before: Node
     let after: Node
     let transaction: Transaction
     /// Seconds since the change.
     var time: Double = 0
+    /// A fixed fraction for every animated node (PhaseAnimator segments) instead of evaluating curves at `time`.
+    var fixedProgress: Double?
 
     private var keys: [ObjectIdentifier: NodeKey] = [:]
     private var match: [ObjectIdentifier: Node] = [:]
@@ -52,6 +56,8 @@ final class Tweener {
     private var drawnRemoved: Set<ObjectIdentifier> = []
     private var plainDepth = 0
     private var composing = false
+    private var inRootPass = false
+    private var heroList: [(Node, Node)] = []
     private var retained: [Node] = []
 
     /// Longest animation of anything that changed.
@@ -173,6 +179,7 @@ final class Tweener {
             let id = ObjectIdentifier(node)
             if match[id] == nil, let m = node.capture?.matched.first, let source = removed[m.key] {
                 heroes[id] = source
+                heroList.append((node, source))
                 heroSources.insert(ObjectIdentifier(source))
                 removed[m.key] = nil
                 return
@@ -317,6 +324,7 @@ final class Tweener {
 
     private func progress(_ a: Animation?) -> Double {
         guard let a else { return 1 }
+        if let fixedProgress { return fixedProgress }
         return a.progress(at: time)
     }
 
@@ -343,11 +351,17 @@ final class Tweener {
 
     func draw(_ node: Node, _ p: Painter) -> Bool {
         let id = ObjectIdentifier(node)
-        if let source = heroes[id] {
-            drawHero(node, source, p)
+        // Matched-geometry pairs fly above everything else: they are drawn after the tree.
+        if heroes[id] != nil { return true }
+        if plainDepth > 0 { return heroSources.contains(id) }
+        if node === after, !composing, !inRootPass {
+            inRootPass = true
+            drawnRemoved = []
+            _ = draw(node, p)
+            for (hero, source) in heroList { drawHero(hero, source, p) }
+            inRootPass = false
             return true
         }
-        if plainDepth > 0 { return heroSources.contains(id) }
         if node === after, !composing, !presentationChanges().isEmpty {
             composing = true
             drawComposition(p)
@@ -355,6 +369,10 @@ final class Tweener {
             return true
         }
         guard inAfter.contains(id) else { return false }
+        if let nav = parentAfter[id] as? NavigationStackNode, nav.content === node, let pop = navigationChanges[ObjectIdentifier(nav)], match[id] == nil {
+            drawNavigationChange(nav, incoming: node, pop: pop, p)
+            return true
+        }
         if let parent = parentAfter[id] { drawRemovedSiblings(before: node, parent: parent, p) }
         if let b = match[id] {
             drawMatched(node, b, p)
@@ -467,21 +485,32 @@ final class Tweener {
         }
     }
 
-    private func systemTransition(insertedOrRemoved node: Node, parent: Node?, insertion: Bool) -> ((Double, CGSize) -> TransitionEffect)? {
-        guard let nav = parent as? NavigationStackNode, nav.content === node else { return nil }
-        let navID = ObjectIdentifier(insertion ? nav : (reverse[ObjectIdentifier(nav)] ?? nav))
-        let pop = navigationChanges[navID] ?? false
+    /// A navigation push or pop: the two screens slide as opaque pages, the lower one dimmed.
+    private func drawNavigationChange(_ nav: NavigationStackNode, incoming: Node, pop: Bool, _ p: Painter) {
+        let v = min(1, max(0, progress(animation(of: nav))))
+        let hidden = CGFloat(1 - v)
         let width = nav.frame.width
-        return { v, _ in
-            var e = TransitionEffect()
-            let hidden = 1 - v
-            switch (insertion, pop) {
-            case (true, false): e.offset.width = width * hidden
-            case (false, false): e.offset.width = -width * SystemTransitions.navigationParallax * hidden
-            case (true, true): e.offset.width = -width * SystemTransitions.navigationParallax * hidden
-            case (false, true): e.offset.width = width * hidden
-            }
-            return e
+        let outgoing = (match[ObjectIdentifier(nav)] as? NavigationStackNode)?.content
+        func page(_ node: Node, offset: CGFloat, dim: Double) {
+            p.save()
+            p.translate(node.frame.minX + offset, node.frame.minY)
+            let column = CGRect(x: -node.frame.minX, y: -node.frame.minY - 2000, width: width, height: nav.frame.height + 4000)
+            p.fill(Path(column), with: .color(Tweener.canvasBackground), in: column)
+            plainDepth += 1
+            node.drawContent(p)
+            plainDepth -= 1
+            if dim > 0.001 { p.fill(Path(column), with: .color(RGBA(0, 0, 0, dim)), in: column) }
+            p.restore()
+        }
+        if let outgoing { drawnRemoved.insert(ObjectIdentifier(outgoing)) }
+        let parallax = width * SystemTransitions.navigationParallax
+        if pop {
+            // The screen underneath comes back from the left; the top one leaves to the right.
+            page(incoming, offset: -parallax * hidden, dim: SystemTransitions.navigationDim * Double(hidden))
+            if let outgoing, v < 0.9995 { page(outgoing, offset: width * CGFloat(v), dim: 0) }
+        } else {
+            if let outgoing, v < 0.9995 { page(outgoing, offset: -parallax * CGFloat(v), dim: SystemTransitions.navigationDim * v) }
+            page(incoming, offset: width * hidden, dim: 0)
         }
     }
 
@@ -490,9 +519,7 @@ final class Tweener {
         let a = transitionAnimation(node, insertion: true) ?? animation(of: node)
         let v = progress(a)
         let effect: TransitionEffect
-        if let system = systemTransition(insertedOrRemoved: node, parent: parent, insertion: true) {
-            effect = system(v, node.frame.size)
-        } else if parent is TabViewNode {
+        if parent is TabViewNode {
             effect = TransitionEffect()
         } else {
             let model = transitionModel(node) ?? .opacity
@@ -517,12 +544,7 @@ final class Tweener {
         guard v > 0.0005 else { return }
         let parent = parentBefore[id]
         let effect: TransitionEffect
-        var dim = 0.0
-        if let system = systemTransition(insertedOrRemoved: node, parent: parent, insertion: false) {
-            effect = system(v, node.frame.size)
-            let pop = parent.flatMap { navigationChanges[ObjectIdentifier(reverse[ObjectIdentifier($0)] ?? $0)] } ?? false
-            if !pop { dim = SystemTransitions.navigationDim * (1 - v) }
-        } else if parent is TabViewNode {
+        if parent is TabViewNode {
             return
         } else {
             let model = transitionModel(node) ?? .opacity
@@ -532,13 +554,7 @@ final class Tweener {
         p.save()
         p.translate(node.frame.minX, node.frame.minY)
         plainDepth += 1
-        effect.apply(p, size: node.frame.size) {
-            node.drawContent(p)
-            if dim > 0 {
-                let r = CGRect(origin: .zero, size: node.frame.size)
-                p.fill(Path(r), with: .color(RGBA(0, 0, 0, dim)), in: r)
-            }
-        }
+        effect.apply(p, size: node.frame.size) { node.drawContent(p) }
         plainDepth -= 1
         p.restore()
     }
@@ -569,9 +585,10 @@ final class Tweener {
     private func drawHero(_ node: Node, _ source: Node, _ p: Painter) {
         let t = progress(animation(of: node))
         let clamped = min(1, max(0, t))
-        let parentOrigin = CGPoint(x: node.absoluteOrigin.x - node.frame.minX, y: node.absoluteOrigin.y - node.frame.minY)
-        let frame = CGRect(x: mix(source.absoluteOrigin.x, node.absoluteOrigin.x, t) - parentOrigin.x,
-                           y: mix(source.absoluteOrigin.y, node.absoluteOrigin.y, t) - parentOrigin.y,
+        // Absolute positions, expressed in the space the root is drawn in.
+        let base = CGPoint(x: after.absoluteOrigin.x - after.frame.minX, y: after.absoluteOrigin.y - after.frame.minY)
+        let frame = CGRect(x: mix(source.absoluteOrigin.x, node.absoluteOrigin.x, t) - base.x,
+                           y: mix(source.absoluteOrigin.y, node.absoluteOrigin.y, t) - base.y,
                            width: max(0.01, mix(source.frame.width, node.frame.width, t)),
                            height: max(0.01, mix(source.frame.height, node.frame.height, t)))
         func drawScaled(_ n: Node, opacity: Double) {

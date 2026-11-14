@@ -41,7 +41,7 @@ struct InteractionCLIOptions {
           --gif-palette <p>      global (default) | local: one palette per frame
           --gif-dither           Ordered dithering in GIFs
           --full-content <file.png>  One tall PNG of the first scroll view's whole content, bars drawn once
-          --date <ISO8601>       Fix "now" for TimelineView, Text(date, style:) and the status bar clock
+          --date <ISO8601>       Fix "now" for TimelineView and Text(date, style:) (a capture without it uses a fixed date)
     """
 
     var isActive: Bool { !passthrough.isEmpty || framesDirectory != nil || filmstripPath != nil || animatedPath != nil || fullContentPath != nil }

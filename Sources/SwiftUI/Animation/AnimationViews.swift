@@ -1,27 +1,49 @@
 // PhaseAnimator, KeyframeAnimator, symbol effects, content transitions and haptics.
-// Static frames show the first phase / the initial value, and nothing else.
+//
+// A still render shows the first phase / the initial value. During an interaction capture the capture
+// clock drives them (TimeDriven.swift): phases interpolate through the tweener, keyframe tracks are
+// evaluated, indefinite symbol effects move.
 
 // MARK: - PhaseAnimator
 
-public struct PhaseAnimator<Phase: Equatable, Content: View>: View {
-    let first: Phase?
+public struct PhaseAnimator<Phase: Equatable, Content: View>: View, PrimitiveView {
+    public typealias Body = Never
+    let phases: [Phase]
+    let trigger: AnimationValue?
     let content: (Phase) -> Content
+    let animation: (Phase) -> Animation?
 
     public init<Phases: Sequence>(_ phases: Phases, @ViewBuilder content: @escaping (Phase) -> Content,
                                   animation: @escaping (Phase) -> Animation? = { _ in .default }) where Phases.Element == Phase {
-        var iterator = phases.makeIterator()
-        first = iterator.next()
+        self.phases = Array(phases)
+        self.trigger = nil
         self.content = content
+        self.animation = animation
     }
     public init<Phases: Sequence, Trigger: Equatable>(_ phases: Phases, trigger: Trigger,
                                                       @ViewBuilder content: @escaping (Phase) -> Content,
                                                       animation: @escaping (Phase) -> Animation? = { _ in .default }) where Phases.Element == Phase {
-        var iterator = phases.makeIterator()
-        first = iterator.next()
+        self.phases = Array(phases)
+        self.trigger = AnimationValue(trigger)
         self.content = content
+        self.animation = animation
     }
-    public var body: some View {
-        if let first { content(first) }
+    func resolve(_ ctx: ResolveContext, into out: inout [Node]) {
+        PhaseTimeline(phases: phases, trigger: trigger, animation: animation).resolve(ctx, into: &out) { phase, ctx, out in
+            resolveView(content(phase), ctx, into: &out)
+        }
+    }
+}
+
+struct PhaseAnimatorModifier<Phase: Equatable, Result: View>: ViewModifier, PrimitiveModifier {
+    let phases: [Phase]
+    let trigger: AnimationValue?
+    let content: (ModifierContent, Phase) -> Result
+    let animation: (Phase) -> Animation?
+    func resolve(content inner: ModifierContent, _ ctx: ResolveContext, into out: inout [Node]) {
+        PhaseTimeline(phases: phases, trigger: trigger, animation: animation).resolve(ctx, into: &out) { phase, ctx, out in
+            resolveView(content(inner, phase), ctx, into: &out)
+        }
     }
 }
 
@@ -31,18 +53,18 @@ extension View {
         @ViewBuilder content: @escaping (PlaceholderContentView<Self>, Phase) -> Result,
         animation: @escaping (Phase) -> Animation? = { _ in .default }
     ) -> some View {
-        var iterator = phases.makeIterator()
-        if let first = iterator.next() { return AnyView(content(PlaceholderContentView(self), first)) }
-        return AnyView(self)
+        modifier(PhaseAnimatorModifier(phases: Array(phases), trigger: nil, content: { inner, phase in
+            content(PlaceholderContentView(_ViewModifier_Content<EmptyModifier>(content: inner)), phase)
+        }, animation: animation))
     }
     public func phaseAnimator<Phase: Equatable, Result: View>(
         _ phases: some Sequence<Phase>, trigger: some Equatable,
         @ViewBuilder content: @escaping (PlaceholderContentView<Self>, Phase) -> Result,
         animation: @escaping (Phase) -> Animation? = { _ in .default }
     ) -> some View {
-        var iterator = phases.makeIterator()
-        if let first = iterator.next() { return AnyView(content(PlaceholderContentView(self), first)) }
-        return AnyView(self)
+        modifier(PhaseAnimatorModifier(phases: Array(phases), trigger: AnimationValue(trigger), content: { inner, phase in
+            content(PlaceholderContentView(_ViewModifier_Content<EmptyModifier>(content: inner)), phase)
+        }, animation: animation))
     }
 }
 
@@ -63,32 +85,44 @@ extension Never: KeyframeTrackContent {}
 public struct KeyframeTrackContentBuilder<Value: Animatable> {
     public static func buildExpression<K: KeyframeTrackContent>(_ keyframe: K) -> K where K.Value == Value { keyframe }
     public static func buildPartialBlock<K: KeyframeTrackContent>(first: K) -> _KeyframeGroup<Value> where K.Value == Value {
-        _KeyframeGroup()
+        _KeyframeGroup(segments: KeyframeSegment<Value>.collect(first))
     }
     public static func buildPartialBlock<K: KeyframeTrackContent>(accumulated: _KeyframeGroup<Value>, next: K) -> _KeyframeGroup<Value> where K.Value == Value {
-        accumulated
+        _KeyframeGroup(segments: accumulated.segments + KeyframeSegment<Value>.collect(next))
     }
 }
 
 public struct _KeyframeGroup<Value: Animatable>: KeyframeTrackContent {
     public typealias Body = Never
+    var segments: [KeyframeSegment<Value>] = []
 }
 
 public struct MoveKeyframe<Value: Animatable>: KeyframeTrackContent {
     public typealias Body = Never
-    public init(_ to: Value) {}
+    let segment: KeyframeSegment<Value>
+    public init(_ to: Value) { segment = KeyframeSegment(to: to, duration: 0, kind: .move) }
 }
 public struct LinearKeyframe<Value: Animatable>: KeyframeTrackContent {
     public typealias Body = Never
-    public init(_ to: Value, duration: TimeInterval, timingCurve: UnitCurve = .linear) {}
+    let segment: KeyframeSegment<Value>
+    public init(_ to: Value, duration: TimeInterval, timingCurve: UnitCurve = .linear) {
+        segment = KeyframeSegment(to: to, duration: duration, kind: .linear(timingCurve))
+    }
 }
 public struct CubicKeyframe<Value: Animatable>: KeyframeTrackContent {
     public typealias Body = Never
-    public init(_ to: Value, duration: TimeInterval, startVelocity: Value? = nil, endVelocity: Value? = nil) {}
+    let segment: KeyframeSegment<Value>
+    public init(_ to: Value, duration: TimeInterval, startVelocity: Value? = nil, endVelocity: Value? = nil) {
+        segment = KeyframeSegment(to: to, duration: duration, kind: .cubic(start: startVelocity, end: endVelocity))
+    }
 }
 public struct SpringKeyframe<Value: Animatable>: KeyframeTrackContent {
     public typealias Body = Never
-    public init(_ to: Value, duration: TimeInterval? = nil, spring: Spring = Spring(), startVelocity: Value? = nil) {}
+    let segment: KeyframeSegment<Value>
+    public init(_ to: Value, duration: TimeInterval? = nil, spring: Spring = Spring(), startVelocity: Value? = nil) {
+        let solver = SpringSolver(mass: spring.mass, stiffness: spring.stiffness, damping: spring.damping, initialVelocity: 0)
+        segment = KeyframeSegment(to: to, duration: duration ?? solver.settlingTime(epsilon: 0.01), kind: .spring(spring))
+    }
 }
 
 public protocol Keyframes<Value> {
@@ -105,50 +139,73 @@ extension Never: Keyframes {}
 public struct KeyframesBuilder<Value> {
     public static func buildExpression<K: Keyframes>(_ keyframes: K) -> K where K.Value == Value { keyframes }
     public static func buildPartialBlock<K: Keyframes>(first: K) -> _KeyframesGroup<Value> where K.Value == Value {
-        _KeyframesGroup()
+        _KeyframesGroup(tracks: KeyframeTrackBox<Value>.collect(first))
     }
     public static func buildPartialBlock<K: Keyframes>(accumulated: _KeyframesGroup<Value>, next: K) -> _KeyframesGroup<Value> where K.Value == Value {
-        accumulated
+        _KeyframesGroup(tracks: accumulated.tracks + KeyframeTrackBox<Value>.collect(next))
     }
 }
 
 public struct _KeyframesGroup<Value>: Keyframes {
     public typealias Body = Never
+    var tracks: [KeyframeTrackBox<Value>] = []
 }
 
 public struct KeyframeTrack<Root, TrackValue: Animatable, Content: KeyframeTrackContent>: Keyframes where Content.Value == TrackValue {
     public typealias Value = Root
     public typealias Body = Never
+    let box: KeyframeTrackBox<Root>
     public init(_ keyPath: WritableKeyPath<Root, TrackValue>,
-                @KeyframeTrackContentBuilder<TrackValue> content: () -> Content) {}
-    public init(@KeyframeTrackContentBuilder<TrackValue> content: () -> Content) where Root == TrackValue {}
+                @KeyframeTrackContentBuilder<TrackValue> content: () -> Content) {
+        box = KeyframeTrackBox(keyPath: keyPath, segments: KeyframeSegment<TrackValue>.collect(content()))
+    }
+    public init(@KeyframeTrackContentBuilder<TrackValue> content: () -> Content) where Root == TrackValue {
+        box = KeyframeTrackBox(keyPath: \Root.self, segments: KeyframeSegment<TrackValue>.collect(content()))
+    }
 }
 
 public struct KeyframeTimeline<Value> {
     public var initialValue: Value
+    let tracks: [KeyframeTrackBox<Value>]
     public init<K: Keyframes>(initialValue: Value, @KeyframesBuilder<Value> content: () -> K) where K.Value == Value {
         self.initialValue = initialValue
+        tracks = KeyframeTrackBox<Value>.collect(content())
     }
-    public var duration: TimeInterval { 0 }
-    public func value(time: Double) -> Value { initialValue }
+    public var duration: TimeInterval { tracks.map(\.duration).max() ?? 0 }
+    public func value(time: Double) -> Value {
+        var value = initialValue
+        for track in tracks { track.apply(&value, initialValue, time) }
+        return value
+    }
 }
 
 public struct KeyframeAnimator<Value, KeyframePath: Keyframes, Content: View>: View where KeyframePath.Value == Value {
     let initialValue: Value
+    let repeating: Bool
+    let trigger: AnimationValue?
     let content: (Value) -> Content
+    let keyframes: (Value) -> KeyframePath
     public init(initialValue: Value, repeating: Bool = true,
                 @ViewBuilder content: @escaping (Value) -> Content,
                 @KeyframesBuilder<Value> keyframes: @escaping (Value) -> KeyframePath) {
         self.initialValue = initialValue
+        self.repeating = repeating
+        self.trigger = nil
         self.content = content
+        self.keyframes = keyframes
     }
     public init<Trigger: Equatable>(initialValue: Value, trigger: Trigger,
                                     @ViewBuilder content: @escaping (Value) -> Content,
                                     @KeyframesBuilder<Value> keyframes: @escaping (Value) -> KeyframePath) {
         self.initialValue = initialValue
+        self.repeating = false
+        self.trigger = AnimationValue(trigger)
         self.content = content
+        self.keyframes = keyframes
     }
-    public var body: some View { content(initialValue) }
+    public var body: some View {
+        _KeyframeClockView(initialValue: initialValue, repeating: repeating, trigger: trigger, keyframes: keyframes, content: content)
+    }
 }
 
 extension View {
@@ -157,14 +214,18 @@ extension View {
         @ViewBuilder content: @escaping (PlaceholderContentView<Self>, Value) -> Result,
         @KeyframesBuilder<Value> keyframes: @escaping (Value) -> some Keyframes<Value>
     ) -> some View {
-        content(PlaceholderContentView(self), initialValue)
+        let base = self
+        return _KeyframeClockView(initialValue: initialValue, repeating: repeating, trigger: nil, keyframes: keyframes,
+                                  content: { content(PlaceholderContentView(base), $0) })
     }
     public func keyframeAnimator<Value, Result: View>(
         initialValue: Value, trigger: some Equatable,
         @ViewBuilder content: @escaping (PlaceholderContentView<Self>, Value) -> Result,
         @KeyframesBuilder<Value> keyframes: @escaping (Value) -> some Keyframes<Value>
     ) -> some View {
-        content(PlaceholderContentView(self), initialValue)
+        let base = self
+        return _KeyframeClockView(initialValue: initialValue, repeating: false, trigger: AnimationValue(trigger), keyframes: keyframes,
+                                  content: { content(PlaceholderContentView(base), $0) })
     }
 }
 
@@ -272,7 +333,9 @@ extension View {
     public func symbolEffect<T: DiscreteSymbolEffect & SymbolEffect, V: Equatable>(
         _ effect: T, options: SymbolEffectOptions = .default, value: V) -> some View { self }
     public func symbolEffect<T: IndefiniteSymbolEffect & SymbolEffect>(
-        _ effect: T, options: SymbolEffectOptions = .default, isActive: Bool = true) -> some View { self }
+        _ effect: T, options: SymbolEffectOptions = .default, isActive: Bool = true) -> some View {
+        modifier(SymbolEffectClockModifier(kind: isActive ? SymbolEffectMotion(effect) : nil, speed: options.speedFactor))
+    }
     public func symbolEffect<T: TransitionSymbolEffect & SymbolEffect>(
         _ effect: T, options: SymbolEffectOptions = .default, isActive: Bool = true) -> some View { self }
     public func symbolEffectsRemoved(_ isEnabled: Bool = true) -> some View { self }
@@ -294,8 +357,12 @@ public struct ContentTransition: Equatable, Sendable {
 }
 
 extension View {
-    public func contentTransition(_ transition: ContentTransition) -> some View { self }
-    public func contentTransition(_ transition: ContentTransition, isEnabled: Bool) -> some View { self }
+    public func contentTransition(_ transition: ContentTransition) -> some View {
+        captureRecord { info, _ in info.contentTransition = transition }
+    }
+    public func contentTransition(_ transition: ContentTransition, isEnabled: Bool) -> some View {
+        captureRecord { info, _ in if isEnabled { info.contentTransition = transition } }
+    }
 }
 
 // MARK: - Haptics

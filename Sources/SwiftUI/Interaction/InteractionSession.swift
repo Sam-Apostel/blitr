@@ -42,6 +42,7 @@ struct RenderHost {
     let scale: CGFloat
     let colorScheme: () -> ColorScheme
     let environment: () -> EnvironmentValues
+    let background: RGBA
 }
 
 @MainActor
@@ -100,6 +101,8 @@ final class InteractionSession {
         InteractionRegistry.isActive = true
         CaptureClock.isActive = true
         CaptureClock.time = 0
+        ClockTriggers.reset()
+        if !InteractionFlags.dateWasSet { Runtime.referenceDate = CaptureClock.defaultDate }
         current = session
         return session
     }
@@ -274,6 +277,7 @@ final class InteractionSession {
     func run(_ host: RenderHost) throws {
         self.host = host
         initialSize = host.canvasSize()
+        Tweener.canvasBackground = host.background.a > 0 ? host.background : SystemColor.background.resolve(host.colorScheme())
         if let directory = request.framesDirectory {
             do { try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true) }
             catch { throw RenderError("--frames: cannot create \(directory): \(error.localizedDescription)") }

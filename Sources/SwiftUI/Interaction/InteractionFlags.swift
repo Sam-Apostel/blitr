@@ -2,6 +2,9 @@
 
 @MainActor
 enum InteractionFlags {
+    /// `--date` was given (otherwise a capture uses `CaptureClock.defaultDate`).
+    static var dateWasSet = false
+
     /// Handles `flag` if it is a capture flag; `value` consumes its argument. False for other flags.
     static func parse(_ flag: String, value: () -> String) throws -> Bool {
         func number(_ range: ClosedRange<Double>) throws -> Double {
@@ -43,6 +46,7 @@ enum InteractionFlags {
                 throw RenderError("--date takes an ISO 8601 date such as 2025-06-01T09:41:00Z, not \"\(raw)\"")
             }
             Runtime.referenceDate = date
+            dateWasSet = true
         default:
             return false
         }

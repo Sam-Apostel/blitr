@@ -193,7 +193,6 @@ extension Animation {
         if repeats != 0, local >= total { return 1 }
         let cycle = Int(local / one)
         let within = local - Double(cycle) * one
-        if repeats == 0, local >= total { return autoreverses ? 0 : 1 }
         return autoreverses && cycle % 2 == 1 ? 1 - base(within) : base(within)
     }
 

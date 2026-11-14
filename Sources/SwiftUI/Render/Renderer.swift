@@ -169,7 +169,8 @@ enum Renderer {
         }
         drawFrame()
         try session?.run(RenderHost(runtime: runtime, settle: settle, root: { root }, draw: drawFrame, surface: surface,
-                                    canvasSize: { canvasSize }, scale: scale, colorScheme: { env.colorScheme }, environment: { env }))
+                                    canvasSize: { canvasSize }, scale: scale, colorScheme: { env.colorScheme }, environment: { env },
+                                    background: background))
 
         guard let image = sk_surface_new_image_snapshot(surface) else { throw RenderError("Could not snapshot the surface") }
         defer { sk_image_unref(image) }

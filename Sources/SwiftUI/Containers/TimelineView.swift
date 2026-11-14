@@ -65,7 +65,7 @@ public struct TimelineView<Schedule: TimelineSchedule, Content: View>: View {
 
     public var body: some View {
         // The first scheduled entry at or after the render reference time (explicit schedules may start earlier or later).
-        let now = Runtime.referenceDate
+        let now = Runtime.now
         let date = schedule.entries(from: now, mode: .normal).first(where: { _ in true }) ?? now
         return content(TimelineViewContext(date: date, cadence: .live, isDimmedForLowFrequency: false))
     }

@@ -264,6 +264,7 @@ struct Spinner: View {
             }
         }
         .frame(width: 20, height: 20)
+        .modifier(ClockSpinModifier())
         .scaleEffect(size / 20)
         .frame(width: size, height: size)
     }

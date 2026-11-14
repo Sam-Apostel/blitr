@@ -182,16 +182,27 @@ extension AnimatablePair: AnimatablePairProtocol {
 // MARK: - The capture clock
 
 /// Time since the start of the capture, read by time-driven views (spinners, TimelineView(.animation),
-/// PhaseAnimator, KeyframeAnimator, symbol effects). Zero and inactive in a still render.
-@MainActor
+/// PhaseAnimator, KeyframeAnimator, symbol effects, timer text). Zero and inactive in a still render.
+/// It only advances by the capture's frame interval: no wall clock is involved.
 enum CaptureClock {
-    static var isActive = false
-    static var time: Double = 0
+    nonisolated(unsafe) static var isActive = false
+    nonisolated(unsafe) static var time: Double = 0
     /// Set when a view read the clock during the last resolve: the capture re-resolves every frame.
-    static var wasRead = false
+    nonisolated(unsafe) static var wasRead = false
 
     static func read() -> Double {
+        guard isActive else { return 0 }
         wasRead = true
         return time
+    }
+
+    /// "Now" of a capture when `--date` is not given: fixed, so the same input gives the same bytes.
+    static let defaultDate = Date(timeIntervalSince1970: 1_749_462_060)  // 2025-06-09T09:41:00Z
+}
+
+extension Runtime {
+    /// "Now" for views: the render's reference date, plus the capture clock during a capture.
+    nonisolated static var now: Date {
+        CaptureClock.isActive ? referenceDate.addingTimeInterval(CaptureClock.read()) : referenceDate
     }
 }

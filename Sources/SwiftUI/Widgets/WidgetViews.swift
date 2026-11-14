@@ -19,7 +19,7 @@ extension _PreviewEntry: _PreviewEntryGroup {
 extension Text {
     /// A timer counting down to (or up from) the interval's bounds, as of the render's fixed "now".
     public init(timerInterval: ClosedRange<Date>, pauseTime: Date? = nil, countsDown: Bool = true, showsHours: Bool = true) {
-        var now = Runtime.referenceDate
+        var now = Runtime.now
         if let pauseTime, pauseTime < now { now = pauseTime }
         let clamped = min(max(now, timerInterval.lowerBound), timerInterval.upperBound)
         let seconds = Int((countsDown ? timerInterval.upperBound.timeIntervalSince(clamped) : clamped.timeIntervalSince(timerInterval.lowerBound)).rounded())
@@ -46,7 +46,7 @@ extension ProgressView {
     static func timerFraction(_ interval: ClosedRange<Date>, countsDown: Bool) -> Double {
         let total = interval.upperBound.timeIntervalSince(interval.lowerBound)
         guard total > 0 else { return countsDown ? 0 : 1 }
-        let elapsed = min(max(Runtime.referenceDate.timeIntervalSince(interval.lowerBound), 0), total) / total
+        let elapsed = min(max(Runtime.now.timeIntervalSince(interval.lowerBound), 0), total) / total
         return countsDown ? 1 - elapsed : elapsed
     }
 

@@ -67,13 +67,13 @@ public struct Text: Equatable, Sendable {
         case .time: return date.formatted(date: .omitted, time: .shortened)
         case .date: return date.formatted(date: .long, time: .omitted)
         case .relative, .offset:
-            let seconds = Int(abs(date.timeIntervalSince(Runtime.referenceDate)))
+            let seconds = Int(abs(date.timeIntervalSince(Runtime.now)))
             if seconds < 60 { return "\(seconds) sec" }
             if seconds < 3600 { return "\(seconds / 60) min" }
             if seconds < 86400 { return "\(seconds / 3600) hr" }
             return "\(seconds / 86400) days"
         case .timer:
-            let seconds = Int(abs(date.timeIntervalSince(Runtime.referenceDate)))
+            let seconds = Int(abs(date.timeIntervalSince(Runtime.now)))
             return seconds >= 3600
                 ? String(format: "%d:%02d:%02d", seconds / 3600, seconds / 60 % 60, seconds % 60)
                 : String(format: "%d:%02d", seconds / 60, seconds % 60)
