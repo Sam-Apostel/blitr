@@ -112,6 +112,21 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
                     if ctx.env.menuIndicatorVisibility != .hidden { UpDownChevron(color: AnyShapeStyle(Color.accentColor), size: CGSize(width: 8.67, height: 12.67)) }
                 }
                 .padding(.horizontal, 12).padding(.vertical, 7))
+            } else if ctx.env.isInListRow, ctx.env.renderPlatform != .tvOS {
+                // In a list row the value sits at the trailing edge, as in Settings-style forms.
+                // measured: iOS 27.0 simulator (01_Settings): "System" and its chevron end at the row's trailing inset.
+                let glass = ctx.env.designLanguage.isGlass
+                view = AnyView(HStack(spacing: 8) {
+                    if !labelNodes.isEmpty { labelView }
+                    Spacer(minLength: 8)
+                    HStack(spacing: glass ? 8 : 5) {
+                        if let selected { _NodeView(selected) }
+                        if ctx.env.menuIndicatorVisibility != .hidden {
+                            if glass { UpDownChevron(color: AnyShapeStyle(Color.accentColor), size: CGSize(width: 8.67, height: 12.67)) }
+                            else { UpDownChevron(color: AnyShapeStyle(Color.accentColor)) }
+                        }
+                    }
+                })
             } else {
                 view = AnyView(HStack(spacing: 8) {
                     if !labelNodes.isEmpty { labelView }
