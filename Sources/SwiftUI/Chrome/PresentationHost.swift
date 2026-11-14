@@ -47,6 +47,13 @@ enum SheetMetrics {
         /// Light: darkens the glass to about 73%. Dark: adds a constant (plus-lighter), 34 -> 103 and 91 -> 157.
         var grabberLight = RGBA(0, 0, 0, 0.27)              // measured: iOS 27.0 simulator
         var grabberDark = RGBA(0.26, 0.26, 0.26, 1)         // measured: iOS 27.0 simulator
+        /// iOS 26 keeps a short, 5pt grabber: 34.33x5pt, 4.67pt below the card's top, darkening the light glass to
+        /// 76% (236 -> 179) and lifting the dark one by 71 levels. measured: iOS 26.5 simulator (10_Agenda,
+        /// x 179.3...213.7pt, y 408.3...413.3pt, card at 403.7pt)
+        static let grabberSize26 = CGSize(width: 34.33, height: 5)
+        static let grabberTop26: CGFloat = 4.67
+        static let grabberLight26 = RGBA(0, 0, 0, 0.24)
+        static let grabberDark26 = RGBA(0.28, 0.28, 0.28, 1)
         /// Lists and forms in a floating sheet: no background of their own, and cards that only veil the glass.
         /// measured: iOS 27.0 simulator (form over the sheet's glass: 230 -> 215.5 light, 32 -> 47 dark)
         var listCardLight = RGBA(0, 0, 0, 0.063)
@@ -74,7 +81,16 @@ enum SheetMetrics {
             return a
         }
     }
-    static func forDesign(_ design: DesignLanguage) -> Glass { Glass() }
+    static func forDesign(_ design: DesignLanguage) -> Glass {
+        var g = Glass()
+        if design == .liquidGlass26 {
+            g.grabberSize = Glass.grabberSize26
+            g.grabberTop = Glass.grabberTop26
+            g.grabberLight = Glass.grabberLight26
+            g.grabberDark = Glass.grabberDark26
+        }
+        return g
+    }
 }
 
 enum AlertMetrics {

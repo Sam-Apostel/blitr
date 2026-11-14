@@ -33,7 +33,7 @@ struct _DatePill: View {
         if design.isGlass {
             // measured: iOS 27.0 simulator (ControlsInputs): 12pt side padding; 34.33pt tall alone,
             // 36pt when the time is shown too; capsule.
-            let fill = design == .liquidGlass27 && inSheet ? ControlGlassMetrics.sheetPillFill : SystemColor.tertiaryFill
+            let fill = inSheet ? ControlGlassMetrics.sheetPillFill(design) : SystemColor.tertiaryFill
             return AnyView(Text(verbatim: text)
                 .padding(.horizontal, 12).padding(.vertical, 7)
                 .frame(minHeight: glassHeight)

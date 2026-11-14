@@ -102,7 +102,7 @@ struct SwitchControl: View {
         if design.isGlass {
             // iOS 26/27: 63x28 capsule track with a 37x24 pill knob.
             let m = ControlGlassMetrics.self
-            let offTrack = design == .liquidGlass27 && inSheet ? m.sheetToggleOffTrack : m.toggleOffTrack
+            let offTrack = inSheet ? m.sheetToggleOffTrack(design) : m.toggleOffTrack
             return AnyView(ZStack(alignment: isOn ? .trailing : .leading) {
                 Capsule().fill(isOn ? onColor : Color(offTrack))
                 Capsule().fill(Color.white)
