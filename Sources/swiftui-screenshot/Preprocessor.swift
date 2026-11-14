@@ -291,7 +291,7 @@ struct Preprocessor {
     ]
 
     /// Modules of the SDK whose Apple counterparts have submodules (`import CoreImage.CIFilterBuiltins`).
-    static let submoduleParents: Set<String> = ["CoreImage", "UIKit", "AppKit", "CoreGraphics", "QuartzCore", "ImageIO", "CoreText"]
+    static let submoduleParents: Set<String> = ["os", "CoreImage", "UIKit", "AppKit", "CoreGraphics", "QuartzCore", "ImageIO", "CoreText"]
     /// Attributes that need the Objective-C runtime, which Swift on Linux does not have; they are dropped.
     static let objCAttributes = ["@objcMembers", "@objc", "@nonobjc", "@IBAction", "@IBOutlet", "@IBInspectable", "@IBDesignable", "@IBSegueAction"]
 
