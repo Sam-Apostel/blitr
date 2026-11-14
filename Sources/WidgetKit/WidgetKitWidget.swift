@@ -281,3 +281,15 @@ public struct WidgetInfo: Sendable {
     public let kind: String
     public let family: WidgetFamily
 }
+
+/// `.previewContext(WidgetPreviewContext(family:))` on a PreviewProvider's widget view. The family is chosen
+/// with `--widget-family` (or a `#Preview(as:)`); here it is preview metadata.
+public struct WidgetPreviewContext: PreviewContext {
+    public let family: WidgetFamily
+    public init(family: WidgetFamily) { self.family = family }
+}
+
+extension View {
+    /// A PreviewProvider's Live Activity preview: preview metadata here (use `#Preview(_:as:using:)` to render one).
+    public func previewContext<Attributes: ActivityAttributes>(_ attributes: Attributes, viewKind: ActivityPreviewViewKind) -> some View { self }
+}

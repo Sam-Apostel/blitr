@@ -29,6 +29,8 @@ echo "== 1. corpus"
 "$HERE/fetch-corpus.sh" "$WORK/corpus"
 
 echo "== 2. declaration index of our SwiftUI module (module interface + symbol graph)"
+# libSwiftUI links the Foundation shim's library, so that product is built first.
+(cd "$REPO" && swift build --scratch-path "$WORK/ibuild" --product SwiftUIScreenshotFoundation)
 (cd "$REPO" && swift build --scratch-path "$WORK/ibuild" --product SwiftUI \
    -Xswiftc -emit-module-interface -Xswiftc -no-verify-emitted-module-interface)
 BIN=$(cd "$REPO" && swift build --show-bin-path)
