@@ -107,6 +107,7 @@ struct SwitchControl: View {
                     .frame(width: m.toggleKnob.width, height: m.toggleKnob.height).padding(m.toggleKnobInset)
             }
             .frame(width: m.toggleTrack.width, height: m.toggleTrack.height)
+            .frame(width: m.toggleLayoutWidth, alignment: .leading)
             .opacity(isEnabled ? 1 : 0.5))
         }
         return AnyView(flatBody(onColor))
@@ -141,9 +142,23 @@ struct _ButtonToggle: View {
     let label: AnyView
     let isOn: Bool
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.designLanguage) private var design
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.renderPlatform) private var platform
     var body: some View {
         if platform == .tvOS { return AnyView(_ButtonToggleOnTV(label: label, isOn: isOn)) }
+        if design.isGlass {
+            // measured: iOS 27.0 simulator (ControlsIndicators): on, a bordered capsule with the
+            // tint at 18% / 25% behind a tint-coloured label (D1EAFF on white); off, plain bordered.
+            let fill = isOn
+                ? Color.accentColor.opacity(colorScheme == .dark ? ButtonColors.tintedFillDark : ButtonColors.tintedFillLight)
+                : Color(SystemColor.secondaryFill)
+            return AnyView(label
+                .foregroundStyle(Color.accentColor)
+                .padding(.horizontal, 12).padding(.vertical, 7)
+                .background(fill, in: Capsule())
+                .opacity(isEnabled ? 1 : 0.4))
+        }
         return AnyView(label
             .foregroundStyle(isOn ? Color.white : Color.accentColor)
             .padding(.horizontal, 12).padding(.vertical, 7)

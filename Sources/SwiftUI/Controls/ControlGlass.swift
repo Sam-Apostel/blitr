@@ -10,6 +10,8 @@ enum ControlGlassMetrics {
     static let toggleKnob = CGSize(width: 37, height: 24)
     static let toggleKnobInset: CGFloat = 2
     static let toggleOffTrack = DynamicColor(0xC5C5C7, 0x464649)
+    /// The switch takes 61pt in layout; its track overhangs 2pt to the right (measured).
+    static let toggleLayoutWidth: CGFloat = 61
 
     // Slider: 6pt track, pill thumb. measured: iOS 27.0 simulator (ControlsIndicators): 31pt
     // tall, 37x24 thumb kept inside the bounds, track E6E6E6 / 191919, labels 8pt from the
