@@ -11,10 +11,14 @@ enum ControlGlassMetrics {
     static let toggleKnobInset: CGFloat = 2
     static let toggleOffTrack = DynamicColor(0xC5C5C7, 0x464649)
 
-    // Slider: 6pt track, pill thumb.
-    static let sliderTrackHeight: CGFloat = 6                    // est.
-    static let sliderThumb = CGSize(width: 38, height: 24)       // est.
-    static let sliderHeight: CGFloat = 28
+    // Slider: 6pt track, pill thumb. measured: iOS 27.0 simulator (ControlsIndicators): 31pt
+    // tall, 37x24 thumb kept inside the bounds, track E6E6E6 / 191919, labels 8pt from the
+    // track, a faint thumb shadow in light mode only.
+    static let sliderTrackHeight: CGFloat = 6
+    static let sliderThumb = CGSize(width: 37, height: 24)
+    static let sliderHeight: CGFloat = 31
+    static let sliderTrack = DynamicColor(0xE6E6E6, 0x191919)
+    static let sliderLabelSpacing: CGFloat = 8
     static let sliderTickSize: CGFloat = 3                       // est.
     static let sliderMaxTicks = 25
 

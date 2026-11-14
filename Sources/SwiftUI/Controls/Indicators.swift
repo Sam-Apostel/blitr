@@ -15,6 +15,7 @@ public struct Slider<Label: View, ValueLabel: View>: View {
     var neutralFraction: Double?
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.designLanguage) private var design
+    @Environment(\.colorScheme) private var colorScheme
 
     init<V: BinaryFloatingPoint>(value: Binding<V>, bounds: ClosedRange<V>, minLabel: AnyView?, maxLabel: AnyView?,
                                  step: V.Stride? = nil, neutralValue: V? = nil) where V.Stride: BinaryFloatingPoint {
@@ -30,7 +31,7 @@ public struct Slider<Label: View, ValueLabel: View>: View {
     }
 
     public var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: design.isGlass ? ControlGlassMetrics.sliderLabelSpacing : 12) {
             if let minLabel { minLabel }
             track
             if let maxLabel { maxLabel }
@@ -68,7 +69,7 @@ public struct Slider<Label: View, ValueLabel: View>: View {
             let from = neutral.map { $0 * usable + thumbW / 2 } ?? 0
             let to = x + thumbW / 2
             ZStack(alignment: .topLeading) {
-                Capsule().fill(Color(SystemColor.secondaryFill)).frame(width: w, height: m.sliderTrackHeight)
+                Capsule().fill(Color(m.sliderTrack)).frame(width: w, height: m.sliderTrackHeight)
                     .offset(y: (m.sliderHeight - m.sliderTrackHeight) / 2)
                 Capsule().fill(Color.accentColor).frame(width: max(m.sliderTrackHeight, abs(to - from)), height: m.sliderTrackHeight)
                     .offset(x: min(from, to), y: (m.sliderHeight - m.sliderTrackHeight) / 2)
@@ -79,7 +80,8 @@ public struct Slider<Label: View, ValueLabel: View>: View {
                                     y: m.sliderHeight / 2 + m.sliderTrackHeight / 2 + 3)
                     }
                 }
-                Capsule().fill(Color.white).frame(width: thumbW, height: m.sliderThumb.height).knobShadow()
+                Capsule().fill(Color.white).frame(width: thumbW, height: m.sliderThumb.height)
+                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0 : 0.08), radius: 3, x: 0, y: 1)
                     .offset(x: x, y: (m.sliderHeight - m.sliderThumb.height) / 2)
             }
             .frame(width: w, height: m.sliderHeight, alignment: .topLeading)
