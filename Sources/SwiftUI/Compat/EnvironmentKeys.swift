@@ -79,6 +79,15 @@ extension UserInterfaceSizeClass {
     }
 }
 
+/// The device profile's size class, unless the canvas was resized with --width/--height (then the canvas decides).
+func _currentSizeClass(horizontal: Bool) -> UserInterfaceSizeClass {
+    let config = _currentConfiguration()
+    if config.width != nil || config.height != nil {
+        return UserInterfaceSizeClass.forCanvas { horizontal ? ($0.width >= 700 ? .regular : .compact) : ($0.height >= 500 ? .regular : .compact) }
+    }
+    return horizontal ? config.device.horizontalSizeClass : config.device.verticalSizeClass
+}
+
 /// The canvas size of the render in progress (the default device when none is).
 func _currentCanvasSize() -> CGSize {
     let config = _currentConfiguration()
@@ -164,11 +173,11 @@ extension EnvironmentValues {
         set { self[ContrastKey.self] = newValue }
     }
     public var horizontalSizeClass: UserInterfaceSizeClass? {
-        get { self[HorizontalSizeClassKey.self].map(\.value) ?? UserInterfaceSizeClass.forCanvas { $0.width >= 700 ? .regular : .compact } }
+        get { self[HorizontalSizeClassKey.self].map(\.value) ?? _currentSizeClass(horizontal: true) }
         set { self[HorizontalSizeClassKey.self] = SizeClassOverride(value: newValue) }
     }
     public var verticalSizeClass: UserInterfaceSizeClass? {
-        get { self[VerticalSizeClassKey.self].map(\.value) ?? UserInterfaceSizeClass.forCanvas { $0.height >= 500 ? .regular : .compact } }
+        get { self[VerticalSizeClassKey.self].map(\.value) ?? _currentSizeClass(horizontal: false) }
         set { self[VerticalSizeClassKey.self] = SizeClassOverride(value: newValue) }
     }
     public var locale: Locale {

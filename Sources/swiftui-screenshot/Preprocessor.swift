@@ -219,6 +219,23 @@ struct Preprocessor {
         return String(decoding: out, as: UTF8.self)
     }
 
+    /// Turns `.landscapeLeft, .fixedLayout(width: 300, height: 200)` into `, orientation: "landscapeLeft", layout: "fixed", width: 300, height: 200`.
+    static func traitArguments(_ text: String) -> String {
+        var result = ""
+        func has(_ pattern: String) -> Bool { text.range(of: pattern, options: .regularExpression) != nil }
+        if has(#"\.landscapeLeft\b"#) { result += ", orientation: \"landscapeLeft\"" }
+        else if has(#"\.landscapeRight\b"#) { result += ", orientation: \"landscapeRight\"" }
+        else if has(#"\.portrait(UpsideDown)?\b"#) { result += ", orientation: \"portrait\"" }
+        if has(#"\.sizeThatFitsLayout\b"#) {
+            result += ", layout: \"fit\""
+        } else if let regex = try? NSRegularExpression(pattern: #"\.fixedLayout\s*\(\s*width:\s*([0-9.]+)\s*,\s*height:\s*([0-9.]+)\s*\)"#),
+                  let match = regex.firstMatch(in: text, range: NSRange(location: 0, length: (text as NSString).length)) {
+            let ns = text as NSString
+            result += ", layout: \"fixed\", width: \(ns.substring(with: match.range(at: 1))), height: \(ns.substring(with: match.range(at: 2)))"
+        }
+        return result
+    }
+
     private static func isRawStringStart(_ bytes: [UInt8], _ index: Int) -> Bool {
         var k = index
         while k < bytes.count, bytes[k] == UInt8(ascii: "#") { k += 1 }
@@ -288,6 +305,7 @@ struct Preprocessor {
             if hasToken("#Preview", at: i) {
                 var j = i + "#Preview".utf8.count
                 var name = "nil"
+                var traits = ""
                 var k = j
                 while k < bytes.count, bytes[k] == UInt8(ascii: " ") || bytes[k] == UInt8(ascii: "\t") { k += 1 }
                 if k < bytes.count, bytes[k] == UInt8(ascii: "(") {
@@ -307,12 +325,17 @@ struct Preprocessor {
                         while b < close, !(bytes[b] == UInt8(ascii: "\"") && bytes[b - 1] != UInt8(ascii: "\\")) { b += 1 }
                         name = String(decoding: bytes[a...b], as: UTF8.self)
                     }
+                    // `traits:` become per-preview defaults on the entry.
+                    if close > k {
+                        let arguments = String(decoding: bytes[(k + 1)..<close], as: UTF8.self)
+                        if let range = arguments.range(of: "traits:") { traits = Self.traitArguments(String(arguments[range.upperBound...])) }
+                    }
                     j = close + 1
                 }
                 let identifier = "__preview_\(counter)"
                 counter += 1
                 names.append(identifier)
-                out += Array("@MainActor let \(identifier) = SwiftUI._PreviewEntry(\(name))".utf8)
+                out += Array("@MainActor let \(identifier) = SwiftUI._PreviewEntry(\(name)\(traits))".utf8)
                 i = j
                 continue
             }
