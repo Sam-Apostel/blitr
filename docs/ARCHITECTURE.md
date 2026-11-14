@@ -44,7 +44,8 @@ values written during layout (inside a `GeometryReader`) reach `onPreferenceChan
 | `Sources/SwiftUI/Compat` | `ObservableObject`-era wrappers, `App`/`Scene`, UIKit types |
 | `Sources/SwiftUI/Glass` | iOS design language (`--ios 18/26/27`), `glassEffect` and glass painting |
 | `Sources/SwiftUI/Accessibility` | accessibility tree, tap targets and issues (`--accessibility-*`) |
-| `Sources/SwiftUI/Focus` | tvOS focus engine: focus records on nodes, movement, `@FocusState`, remote presses, focus map (docs/FOCUS.md) |
+| `Sources/SwiftUI/Focus` | tvOS focus engine: focus records on nodes, movement, `@FocusState`, remote presses, focus map (docs/FOCUS.md); the tvOS focused look (`TVFocusLook.swift`) |
+| `Sources/SwiftUI/Controls/TV*`, `Chrome/TV` | tvOS control styles and chrome: buttons, toggles, pickers, fields, tab bar, sidebar, lists, navigation, alerts (docs/TVOS.md) |
 | `Sources/SwiftUI/Widgets` | widget and Live Activity canvases; `Kits/` holds the WidgetKit, ActivityKit and AppIntents API (docs/WIDGETS.md) |
 | `Sources/SwiftUI/Render` | `Renderer`, runner entry point, device profiles and chrome, image comparison for `compare` |
 | `Sources/SwiftUI/Inert` | APIs with no effect on a static frame: gestures, animation; accessibility modifiers record into the tree |
@@ -106,7 +107,8 @@ node; nodes do not see the environment later.
 - **Inert APIs**: animation, gestures and similar have no visual effect in a static frame. They exist for
   source compatibility and return `self`. Accessibility modifiers never change the picture either, but they
   record into `AccessibilityInfo` for the accessibility outputs.
-- **Design language**: system chrome branches on `env.platformVersion` / `DesignLanguage` (flat, glass 26, glass 27).
+- **Design language**: system chrome branches on `env.platformVersion` / `DesignLanguage` (flat, glass 26, glass 27),
+  and on `env.renderPlatform` for tvOS (`TVMetrics`, iOS code paths untouched).
 - The module is built with library evolution so `CSkia`/`CHarfBuzz` stay private
   (`internal import`). Do not expose their types in public API.
 - Text is LTR only. `View` is `@MainActor`; engine types are `@MainActor` too.
