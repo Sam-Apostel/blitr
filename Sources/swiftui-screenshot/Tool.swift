@@ -89,7 +89,7 @@ func note(_ message: String) {
 // MARK: - Installation layout
 
 struct Installation {
-    /// Directory containing SwiftUI.swiftmodule and libSwiftUI.so.
+    /// Directory containing SwiftUI.swiftmodule and the engine library (libSwiftUIScreenshotEngine.so).
     var sdk: String
     var fontDirectories: [String]
     /// Apple's own fonts, if the user installed them. Used ahead of the open substitutes unless `--open-fonts`.
@@ -133,8 +133,8 @@ struct Installation {
         return Installation(sdk: (sdk as NSString).standardizingPath, fontDirectories: fonts, appleFontDirectory: appleFonts, swiftc: swiftc)
     }
 
-    /// The modules of the SDK: every `Name.swiftmodule` next to the SwiftUI module (SwiftUI, Combine and the
-    /// shim frameworks, which are linked into libSwiftUI; CoreText and the Foundation shim have their own library).
+    /// The modules of the SDK: every `Name.swiftmodule` next to the SwiftUI module (SwiftUI, Combine, the
+    /// shim frameworks and the Foundation shim, all linked into the engine library).
     var modules: [String] {
         ((try? FileManager.default.contentsOfDirectory(atPath: sdk)) ?? []).filter { $0.hasSuffix(".swiftmodule") }
             .map { ($0 as NSString).deletingPathExtension }.sorted()
@@ -164,10 +164,10 @@ struct Installation {
             .map { "-\($0[.size] ?? 0)-\(($0[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0)" } ?? ""
     }
 
-    /// Libraries every compile against the SDK links. The shim frameworks need no flag of their own: their code
-    /// is in libSwiftUI. CoreText and the Foundation shim are autolinked by their modules.
+    /// Libraries every compile against the SDK links. The shim frameworks and the Foundation shim need no flag
+    /// of their own: their code is in the engine library, which the SwiftUI module also autolinks.
     var linkFlags: [String] {
-        ["-I", sdk, "-L", sdk, "-lSwiftUI", "-Xlinker", "-rpath", "-Xlinker", sdk]
+        ["-I", sdk, "-L", sdk, "-lSwiftUIScreenshotEngine", "-Xlinker", "-rpath", "-Xlinker", sdk]
     }
 }
 

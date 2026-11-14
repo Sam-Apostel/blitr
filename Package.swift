@@ -4,11 +4,21 @@ import PackageDescription
 // Native Skia is fetched by scripts/bootstrap.sh into Vendor/ (not committed).
 let skiaLib = Context.packageDirectory + "/Vendor/skia/lib"
 
-// Modules that user code imports are built with library evolution so their private
-// C dependencies do not leak into the user's compile.
-let moduleSettings: [SwiftSetting] = [.swiftLanguageMode(.v5), .unsafeFlags(["-enable-library-evolution"])]
+// The engine library: the SwiftUI module and every shim module, in one dynamic library whose file name cannot
+// be mistaken for Apple's SwiftUI (libSwiftUIScreenshotEngine.so / .dylib). The module stays `SwiftUI`.
+let engineLibrary = "SwiftUIScreenshotEngine"
 
-// Modules linked into libSwiftUI next to the SwiftUI module itself (Combine is a dependency of SwiftUI).
+// Modules that user code imports are built with library evolution so their private
+// C dependencies do not leak into the user's compile. Their code is all in the engine library, so none of
+// them may autolink it (it would link against itself); importers autolink it through `linkEngine`.
+let moduleSettings: [SwiftSetting] = [.swiftLanguageMode(.v5), .unsafeFlags([
+    "-enable-library-evolution", "-Xfrontend", "-disable-autolink-library", "-Xfrontend", engineLibrary,
+])]
+// The modules an importer links the engine for: SwiftUI, and the Foundation shim (imported on its own into
+// Foundation-only modules in project mode).
+let linkEngine: [SwiftSetting] = [.unsafeFlags(["-module-link-name", engineLibrary])]
+
+// Modules linked into the engine library next to the SwiftUI module itself (Combine is a dependency of SwiftUI).
 let shimModules = ["Combine", "UniformTypeIdentifiers", "CoreGraphics", "ImageIO", "CoreImage", "CoreText", "ObjectiveC", "QuartzCore", "UIKit", "CoreLocation", "MapKit", "AppIntents", "ActivityKit", "WidgetKit", "CryptoKit", "Security", "Network", "CoreSpotlight", "UserNotifications", "EventKit", "WatchConnectivity", "Contacts", "PhotosUI", "AuthenticationServices", "PassKit", "PDFKit", "Vision", "VisionKit", "EventKitUI", "ContactsUI", "Translation", "QuickLook", "AppKit", "StoreKit", "AVFoundation", "AVKit", "SafariServices", "MessageUI", "CoreMotion", "CoreHaptics", "TipKit", "os", "OSLog", "WatchKit"]
 
 let package = Package(
@@ -19,8 +29,9 @@ let package = Package(
         // are separate modules, so their names are only visible where they are imported, but their code is
         // linked into this one library: a dynamic library of their own would carry a second copy of SwiftUI
         // (SwiftPM links a target's dependencies into every dynamic product), and two copies in a process
-        // break protocol conformance lookups at run time. Importers link `-lSwiftUI` (docs/ARCHITECTURE.md).
-        .library(name: "SwiftUI", type: .dynamic, targets: ["SwiftUI"] + shimModules),
+        // break protocol conformance lookups at run time. Importers link `-lSwiftUIScreenshotEngine`
+        // (docs/ARCHITECTURE.md).
+        .library(name: engineLibrary, type: .dynamic, targets: ["SwiftUI"] + shimModules),
         // Foundation's localization API (String(localized:), LocalizedStringResource), which Linux Foundation
         // lacks; SwiftUI re-exports it and project mode imports it into Foundation-only packages.
         // The command-line tool: compiles user sources against the modules above and renders them.
@@ -37,8 +48,8 @@ let package = Package(
         ),
         .systemLibrary(name: "CHarfBuzz", pkgConfig: "harfbuzz", providers: [.apt(["libharfbuzz-dev"])]),
         .target(name: "Combine", swiftSettings: moduleSettings),
-        // No library of its own: its code is in libSwiftUI, so a process has one copy of its types.
-        .target(name: "SwiftUIScreenshotFoundation", swiftSettings: moduleSettings),
+        // No library of its own: its code is in the engine library, so a process has one copy of its types.
+        .target(name: "SwiftUIScreenshotFoundation", swiftSettings: moduleSettings + linkEngine),
         // Core Graphics sits below SwiftUI (Apple's SwiftUI re-exports it); ImageIO and CoreText build on it.
         .target(name: "CoreGraphics", dependencies: ["CSkia"], swiftSettings: moduleSettings),
         .target(name: "ImageIO", dependencies: ["CoreGraphics", "CSkia"], swiftSettings: moduleSettings),
@@ -47,8 +58,8 @@ let package = Package(
         .target(name: "ObjectiveC", swiftSettings: moduleSettings),
         .target(name: "UniformTypeIdentifiers", swiftSettings: moduleSettings),
         .target(name: "QuartzCore", dependencies: ["CoreGraphics", "ObjectiveC"], swiftSettings: moduleSettings),
-        .target(name: "SwiftUI", dependencies: ["CSkia", "CHarfBuzz", "Combine", "CoreGraphics", "UniformTypeIdentifiers", "SwiftUIScreenshotFoundation"], swiftSettings: moduleSettings),
-        // The shim frameworks: each its own module, linked into libSwiftUI (see the SwiftUI product).
+        .target(name: "SwiftUI", dependencies: ["CSkia", "CHarfBuzz", "Combine", "CoreGraphics", "UniformTypeIdentifiers", "SwiftUIScreenshotFoundation"], swiftSettings: moduleSettings + linkEngine),
+        // The shim frameworks: each its own module, linked into the engine library (see the products).
         .target(name: "UIKit", dependencies: ["SwiftUI", "QuartzCore", "ImageIO", "CoreImage", "Security", "CSkia"], swiftSettings: moduleSettings),
         .target(name: "AppIntents", dependencies: ["SwiftUI", "UIKit"], swiftSettings: moduleSettings),
         .target(name: "ActivityKit", dependencies: ["SwiftUIScreenshotFoundation"], swiftSettings: moduleSettings),

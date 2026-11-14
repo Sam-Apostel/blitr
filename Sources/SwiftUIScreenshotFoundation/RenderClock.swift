@@ -15,8 +15,8 @@ import Foundation
 
 /// The virtual clock a render drives. Engine-facing; `@MainActor`-free so any task may sleep on it.
 public final class _RenderClock: @unchecked Sendable {
-    /// This module's code is in two libraries (its own, and libSwiftUI, which SwiftPM links it into), so
-    /// each would have its own `static let`. The one instance is found by symbol instead: every copy
+    /// This module's code is in two libraries (its own, and libSwiftUIScreenshotEngine, which SwiftPM links it
+    /// into), so each would have its own `static let`. The one instance is found by symbol instead: every copy
     /// asks the dynamic linker, which answers with the first library's.
     public static let shared: _RenderClock = {
         typealias Getter = @convention(c) () -> UnsafeMutableRawPointer

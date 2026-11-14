@@ -1,7 +1,7 @@
 // `import CoreGraphics`: bitmap images (CGImage, CGDataProvider, CGColorSpace), colors, paths and a
 // bitmap drawing context (CGContext), drawn with Skia. SwiftUI depends on this module and re-exports
 // it, as Apple's SwiftUI makes Core Graphics visible: `Image(decorative: cgImage, scale:)` and
-// `ImageRenderer.cgImage` take and give these types. Linked into libSwiftUI (docs/ARCHITECTURE.md).
+// `ImageRenderer.cgImage` take and give these types. Linked into libSwiftUIScreenshotEngine (docs/ARCHITECTURE.md).
 @_exported import Foundation
 
 // CoreFoundation names that Core Graphics, ImageIO, CoreText and Security signatures mention. On Linux

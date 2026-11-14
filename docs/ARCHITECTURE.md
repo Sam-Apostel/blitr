@@ -120,13 +120,16 @@ Apple frameworks that app code imports next to SwiftUI (`UIKit`, `MapKit`, `Core
 names are only visible where they are imported, as on Apple platforms: an app may declare its own
 `Activity` or `Map` in a file that imports only SwiftUI (`Examples/NameCollisions.swift`).
 
-Their code is linked into **libSwiftUI.so**, not into libraries of their own: the `SwiftUI` product in
-`Package.swift` lists them (`shimModules`). SwiftPM links a target's dependencies into every dynamic
-product, so a `.dynamic` product per shim would carry a second copy of SwiftUI, and with two copies in a
-process conformance lookups fail at run time ("Text does not conform to View"). One library means every
-compile links `-lSwiftUI` only (`Installation.linkFlags`) and a runner maps exactly one SwiftUI.
-`SwiftUIScreenshotFoundation` does not use SwiftUI and keeps a library of its own (autolinked
-with `-module-link-name`).
+Their code is linked into the engine library, **libSwiftUIScreenshotEngine** (`.so`; `.dylib` on macOS), not
+into libraries of their own: the `SwiftUIScreenshotEngine` product in `Package.swift` lists them
+(`shimModules`). SwiftPM links a target's dependencies into every dynamic product, so a `.dynamic` product
+per shim would carry a second copy of SwiftUI, and with two copies in a process conformance lookups fail at
+run time ("Text does not conform to View"). One library means every compile links
+`-lSwiftUIScreenshotEngine` only (`Installation.linkFlags`) and a runner maps exactly one SwiftUI. The
+library's file name cannot be mistaken for Apple's SwiftUI framework; the module is still `SwiftUI`. The
+SwiftUI module and `SwiftUIScreenshotFoundation` (which does not use SwiftUI, and whose code is in the
+engine library too) autolink it (`-module-link-name`); the modules inside the library are built with
+`-disable-autolink-library` for it, so the library never links against itself.
 
 To add a shim for framework `Foo`:
 

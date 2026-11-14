@@ -83,7 +83,7 @@ iPad only.
 
 - The API is in its own modules, `Sources/WidgetKit`, `Sources/ActivityKit` and `Sources/AppIntents`,
   so `Activity`, `Timeline` and the rest are only visible where those frameworks are imported. Their
-  code is linked into libSwiftUI (see ARCHITECTURE.md, "Shim modules"). `Button(intent:)` and
+  code is linked into libSwiftUIScreenshotEngine (see ARCHITECTURE.md, "Shim modules"). `Button(intent:)` and
   `Toggle(isOn:intent:)` are in AppIntents (Apple's SwiftUI/AppIntents cross-import overlay).
 - The engine side is in `Sources/SwiftUI/Widgets`: `_WidgetCanvas`, `_LiveActivityCanvas`, metrics,
   and the accented / vibrant color filters. `widgetAccentable` relies on `Painter.suppressesDrawing`.

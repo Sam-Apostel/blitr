@@ -5,7 +5,7 @@
 #
 #   swiftui-screenshot/
 #     bin/swiftui-screenshot
-#     lib/swiftui-screenshot/   SwiftUI and shim modules, their shared libraries, libSkiaSharp, fonts/
+#     lib/swiftui-screenshot/   SwiftUI and shim modules, the engine library, libSkiaSharp, fonts/
 #     share/swiftui-screenshot/ fetch-apple-fonts.sh, THIRD-PARTY-NOTICES, VERSION
 #
 # Usage: scripts/make-dist.sh [VERSION]     (default: git describe --tags --always)
@@ -47,14 +47,14 @@ mkdir -p "$stage/bin" "$lib/fonts" "$share"
 cp "$bin/swiftui-screenshot" "$stage/bin/"
 
 # Modules (the .swiftmodule directories carry the .swiftdoc next to the binary module) and libraries.
-# The shim frameworks (UIKit, MapKit, WidgetKit, ...) and Combine are modules whose code is in libSwiftUI;
-# so is the Foundation shim (docs/ARCHITECTURE.md, "Shim modules"). The module list is
+# The shim frameworks (UIKit, MapKit, WidgetKit, ...) and Combine are modules whose code is in the engine
+# library; so is the Foundation shim (docs/ARCHITECTURE.md, "Shim modules"). The module list is
 # Package.swift's `shimModules`, so a new shim is one entry there.
 shims="$(sed -n 's/^let shimModules = \[\(.*\)\]/\1/p' Package.swift | tr -d '",')"
 for m in SwiftUI SwiftUIScreenshotFoundation $shims; do
   cp -r "$bin/$m.swiftmodule" "$lib/"
 done
-cp "$bin/libSwiftUI.so" "$lib/"
+cp "$bin/libSwiftUIScreenshotEngine.so" "$lib/"
 
 # Skia, plus the symlink named after its SONAME (the loader looks that name up).
 cp -L Vendor/skia/lib/libSkiaSharp.so "$lib/"
@@ -64,8 +64,8 @@ if [ -n "$soname" ] && [ "$soname" != libSkiaSharp.so ]; then ln -s libSkiaSharp
 # Open fonts and their licences.
 find Vendor/fonts -maxdepth 1 -type f \( -name '*.ttf' -o -name '*.otf' -o -name '*LICENSE*' \) -exec cp {} "$lib/fonts/" \;
 
-# Relocatability. The build links libSwiftUI.so with absolute rpaths (toolchain and Vendor/skia/lib)
-# next to $ORIGIN; keep only $ORIGIN so libSkiaSharp is found beside it, wherever the tree lives.
+# Relocatability. The build links libSwiftUIScreenshotEngine.so with absolute rpaths (toolchain and
+# Vendor/skia/lib) next to $ORIGIN; keep only $ORIGIN so libSkiaSharp is found beside it, wherever the tree lives.
 for so in "$lib"/*.so; do
   patchelf --set-rpath '$ORIGIN' "$so"
 done

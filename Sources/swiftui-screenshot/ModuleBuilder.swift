@@ -180,8 +180,8 @@ struct ModuleBuilder {
     var foundationShimDirectory: String? {
         let fm = FileManager.default
         let module = installation.sdk + "/\(ModuleBuilder.foundationShim).swiftmodule"
-        // The shim's code lives in libSwiftUI (one copy of its types per process); only its module is exposed.
-        let library = installation.sdk + "/libSwiftUI.so"
+        // The shim's code lives in the engine library (one copy of its types per process); only its module is exposed.
+        let library = installation.sdk + "/libSwiftUIScreenshotEngine.so"
         guard fm.fileExists(atPath: module), fm.fileExists(atPath: library) else { return nil }
         let directory = ModuleBuilder.cacheRoot + "/foundation-shim-" + hash([installation.sdk, ModuleBuilder.stamp(library)])
         if !fm.fileExists(atPath: directory + "/\(ModuleBuilder.foundationShim).swiftmodule") {
@@ -192,15 +192,16 @@ struct ModuleBuilder {
     }
 
     /// Search paths and libraries for a module. Every module imports the Foundation shim implicitly.
-    /// Compiles against the SDK link libSwiftUI, which also holds Combine and the shim frameworks (UIKit,
-    /// MapKit, WidgetKit, ...), so a process has one copy of SwiftUI whatever it imports. The Foundation shim's
-    /// code is in libSwiftUI too; modules compiled without the SDK link it but see only the shim's module.
+    /// Compiles against the SDK link the engine library (libSwiftUIScreenshotEngine), which also holds Combine
+    /// and the shim frameworks (UIKit, MapKit, WidgetKit, ...), so a process has one copy of SwiftUI whatever it
+    /// imports. The Foundation shim's code is in it too; modules compiled without the SDK link it but see only
+    /// the shim's module.
     func linkArguments(_ dependencies: [BuiltModule], sdk: Bool) -> [String] {
         var arguments: [String] = []
         if sdk {
             arguments += installation.linkFlags
         } else if let shim = foundationShimDirectory {
-            arguments += ["-I", shim, "-L", installation.sdk, "-lSwiftUI", "-Xlinker", "-rpath", "-Xlinker", installation.sdk]
+            arguments += ["-I", shim, "-L", installation.sdk, "-lSwiftUIScreenshotEngine", "-Xlinker", "-rpath", "-Xlinker", installation.sdk]
         }
         if sdk {
             // Extra module directories (SWIFTUI_SCREENSHOT_MODULES, colon-separated): stand-ins for frameworks
