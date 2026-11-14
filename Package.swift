@@ -50,7 +50,7 @@ let package = Package(
         .target(name: "QuartzCore", dependencies: ["CoreGraphics", "ObjectiveC"], swiftSettings: moduleSettings),
         .target(name: "SwiftUI", dependencies: ["CSkia", "CHarfBuzz", "Combine", "CoreGraphics", "UniformTypeIdentifiers", "SwiftUIScreenshotFoundation"], swiftSettings: moduleSettings),
         // The shim frameworks: each its own module, linked into libSwiftUI (see the SwiftUI product).
-        .target(name: "UIKit", dependencies: ["SwiftUI", "QuartzCore", "ImageIO", "CoreImage", "CSkia"], swiftSettings: moduleSettings),
+        .target(name: "UIKit", dependencies: ["SwiftUI", "QuartzCore", "ImageIO", "CoreImage", "Security", "CSkia"], swiftSettings: moduleSettings),
         .target(name: "AppIntents", dependencies: ["SwiftUI", "UIKit"], swiftSettings: moduleSettings),
         .target(name: "ActivityKit", dependencies: ["SwiftUIScreenshotFoundation"], swiftSettings: moduleSettings),
         .target(name: "WidgetKit", dependencies: ["SwiftUI", "AppIntents", "ActivityKit"], swiftSettings: moduleSettings),
@@ -65,7 +65,7 @@ let package = Package(
         .target(name: "WatchConnectivity", swiftSettings: moduleSettings),
         .target(name: "Contacts", swiftSettings: moduleSettings),
         .target(name: "PhotosUI", dependencies: ["SwiftUI", "UIKit", "UniformTypeIdentifiers"], swiftSettings: moduleSettings),
-        .target(name: "AuthenticationServices", dependencies: ["SwiftUI", "UIKit"], swiftSettings: moduleSettings),
+        .target(name: "AuthenticationServices", dependencies: ["SwiftUI", "UIKit", "Security"], swiftSettings: moduleSettings),
         .target(name: "PassKit", dependencies: ["SwiftUI", "UIKit"], swiftSettings: moduleSettings),
         .target(name: "PDFKit", dependencies: ["UIKit"], swiftSettings: moduleSettings),
         .target(name: "Vision", dependencies: ["CoreImage"], swiftSettings: moduleSettings),

@@ -4,6 +4,7 @@
 import Foundation
 import SwiftUI
 
+
 open class UIViewController: UIResponder, UITraitEnvironment {
     public enum ModalPresentationStyle: Int, Sendable {
         case fullScreen = 0, pageSheet, formSheet, currentContext, custom, overFullScreen, overCurrentContext, popover, none = -1, automatic = -2
@@ -174,6 +175,7 @@ open class UINavigationController: UIViewController {
     public let navigationBar = UINavigationBar()
     public let toolbar = UIToolbar()
     open var interactivePopGestureRecognizer: UIGestureRecognizer? { popGesture }
+    open var interactiveContentPopGestureRecognizer: UIGestureRecognizer? { popGesture }
     private let popGesture = UIScreenEdgePanGestureRecognizer()
 
     public init(rootViewController: UIViewController) {
@@ -361,6 +363,7 @@ public protocol UIDocumentPickerDelegate: NSObjectProtocol {}
 
 /// Appearance customisation (`UINavigationBar.appearance()` and the rest) is accepted and not applied: the
 /// system bars are drawn by SwiftUI. Using a proxy warns once.
+@MainActor
 enum _AppearanceProxies {
     nonisolated(unsafe) static var proxies: [ObjectIdentifier: AnyObject] = [:]
     static let factories: [ObjectIdentifier: () -> AnyObject] = [
@@ -503,6 +506,7 @@ open class UISearchBar: UIView {
     open var searchBarStyle = 0
 }
 
+@MainActor
 open class UIBarItem: NSObject {
     open var title: String?
     open var image: UIImage?
@@ -561,4 +565,25 @@ open class UINavigationItem: NSObject {
     open var standardAppearance: UINavigationBarAppearance?
     open var scrollEdgeAppearance: UINavigationBarAppearance?
     public init(title: String) { self.title = title; super.init() }
+}
+
+// MARK: - App extensions
+
+/// The items an app extension was given (none: nothing is shared into a render).
+open class NSExtensionItem: NSObject, @unchecked Sendable {
+    open var attributedTitle: NSAttributedString?
+    open var attributedContentText: NSAttributedString?
+    open var attachments: [NSItemProvider]?
+    open var userInfo: [AnyHashable: Any]?
+    public override init() { super.init() }
+}
+open class NSExtensionContext: NSObject, @unchecked Sendable {
+    open var inputItems: [Any] { [] }
+    public override init() { super.init() }
+    open func completeRequest(returningItems items: [Any]?, completionHandler: ((Bool) -> Void)? = nil) { completionHandler?(true) }
+    open func cancelRequest(withError error: Error) {}
+    open func open(_ URL: URL, completionHandler: ((Bool) -> Void)? = nil) { completionHandler?(false) }
+}
+extension UIViewController {
+    public var extensionContext: NSExtensionContext? { nil }
 }

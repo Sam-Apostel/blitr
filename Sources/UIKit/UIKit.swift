@@ -8,3 +8,9 @@
 // `ImageRenderer.uiImage`) is declared here, next to those types, because this module builds on SwiftUI.
 @_exported import Foundation
 @_exported import QuartzCore
+@_exported import Security
+// Foundation types that this package declares in SwiftUI, visible wherever UIKit is imported (they are
+// Foundation's on Apple platforms).
+@_exported import class SwiftUI.NSItemProvider
+@_exported import class SwiftUI.NSUserActivity
+@_exported import struct UniformTypeIdentifiers.UTType

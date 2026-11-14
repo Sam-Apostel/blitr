@@ -5,6 +5,7 @@
 import Foundation
 import SwiftUI
 
+@MainActor
 open class NSLayoutConstraint: NSObject {
     public enum Attribute: Int, Sendable {
         case notAnAttribute = 0, left, right, top, bottom, leading, trailing, width, height, centerX, centerY, lastBaseline, firstBaseline
@@ -60,6 +61,7 @@ open class NSLayoutConstraint: NSObject {
     public class func constraints(withVisualFormat format: String, options: FormatOptions = [], metrics: [String: Any]?, views: [String: Any]) -> [NSLayoutConstraint] { [] }
 }
 
+@MainActor
 open class NSLayoutAnchor<AnchorType: AnyObject>: NSObject {
     weak var item: AnyObject?
     let attribute: NSLayoutConstraint.Attribute
@@ -127,7 +129,7 @@ open class NSLayoutDimension: NSLayoutAnchor<NSLayoutDimension> {
 }
 
 /// The anchors a view and a layout guide share.
-public protocol _UILayoutAnchored: AnyObject {}
+@MainActor public protocol _UILayoutAnchored: AnyObject {}
 extension _UILayoutAnchored {
     public var leadingAnchor: NSLayoutXAxisAnchor { NSLayoutXAxisAnchor(item: self, attribute: .leading) }
     public var trailingAnchor: NSLayoutXAxisAnchor { NSLayoutXAxisAnchor(item: self, attribute: .trailing) }
@@ -141,6 +143,7 @@ extension _UILayoutAnchored {
     public var heightAnchor: NSLayoutDimension { NSLayoutDimension(item: self, attribute: .height) }
 }
 
+@MainActor
 open class UILayoutGuide: NSObject, _UILayoutAnchored {
     public var identifier = ""
     public internal(set) weak var owningView: UIView?

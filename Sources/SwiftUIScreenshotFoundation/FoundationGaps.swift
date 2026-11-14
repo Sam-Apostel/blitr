@@ -8,7 +8,7 @@ import FoundationNetworking
 #endif
 
 extension URLCache {
-    public convenience init(memoryCapacity: Int, diskCapacity: Int, directory: URL?) {
+    public convenience init(memoryCapacity: Int, diskCapacity: Int, directory: URL? = nil) {
         self.init(memoryCapacity: memoryCapacity, diskCapacity: diskCapacity, diskPath: directory?.path)
     }
 }
@@ -283,3 +283,13 @@ open class NSUbiquitousKeyValueStore: NSObject, @unchecked Sendable {
     open func set(_ value: Bool, forKey key: String) { set(value as Any, forKey: key) }
     @discardableResult open func synchronize() -> Bool { true }
 }
+
+#if canImport(FoundationNetworking)
+extension URLSessionConfiguration {
+    /// Background sessions do not relaunch anything here; the setting is accepted and ignored.
+    public var sessionSendsLaunchEvents: Bool {
+        get { false }
+        set {}
+    }
+}
+#endif

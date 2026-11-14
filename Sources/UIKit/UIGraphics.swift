@@ -157,3 +157,65 @@ open class UIGraphicsImageRenderer: UIGraphicsRenderer {
         image(actions: actions).jpegData(compressionQuality: compressionQuality) ?? Data()
     }
 }
+
+// MARK: - PDF renderer
+
+open class UIGraphicsPDFRendererFormat: UIGraphicsRendererFormat {
+    public var documentInfo: [String: Any] = [:]
+    public required init() { super.init() }
+}
+open class UIGraphicsPDFRendererContext: UIGraphicsRendererContext {
+    var pages: [CGRect] = []
+    let defaultBounds: CGRect
+    var pageContext: CGContext
+    init(bounds: CGRect, format: UIGraphicsPDFRendererFormat) {
+        defaultBounds = bounds
+        pageContext = CGContext.uikit(size: bounds.size, scale: 1, opaque: false)!
+        super.init(cgContext: pageContext, format: format)
+    }
+    public var pdfContextBounds: CGRect { pages.last ?? defaultBounds }
+    /// Pages are recorded with their size; what is drawn on them is not kept (the PDF's pages are blank).
+    public func beginPage() { pages.append(defaultBounds) }
+    public func beginPage(withBounds bounds: CGRect, pageInfo: [String: Any]) { pages.append(bounds) }
+    public func setURL(_ url: URL, for rect: CGRect) {}
+    public func addDestination(withName name: String, at point: CGPoint) {}
+}
+open class UIGraphicsPDFRenderer: UIGraphicsRenderer {
+    public typealias DrawingActions = (UIGraphicsPDFRendererContext) -> Void
+    public let format: UIGraphicsPDFRendererFormat
+    public init(bounds: CGRect, format: UIGraphicsPDFRendererFormat) { self.format = format; super.init(bounds: bounds) }
+    public convenience override init(bounds: CGRect) { self.init(bounds: bounds, format: UIGraphicsPDFRendererFormat()) }
+
+    /// A PDF with one blank page per `beginPage` (drawing is performed, so its side effects happen, but not recorded).
+    public func pdfData(actions: DrawingActions) -> Data {
+        ShimDiagnostics.warn("UIGraphicsPDFRenderer: PDF pages are written blank; their drawing is not recorded")
+        let context = UIGraphicsPDFRendererContext(bounds: bounds, format: format)
+        UIGraphicsPushContext(context.cgContext)
+        actions(context)
+        UIGraphicsPopContext()
+        return UIGraphicsPDFRenderer.blankPDF(pages: context.pages.isEmpty ? [bounds] : context.pages)
+    }
+    public func writePDF(to url: URL, withActions actions: DrawingActions) throws { try pdfData(actions: actions).write(to: url) }
+
+    static func blankPDF(pages: [CGRect]) -> Data {
+        var objects: [String] = ["<< /Type /Catalog /Pages 2 0 R >>", ""]
+        var kids: [String] = []
+        for (i, page) in pages.enumerated() {
+            let number = 3 + i
+            kids.append("\(number) 0 R")
+            objects.append("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 \(Int(page.width)) \(Int(page.height))] >>")
+        }
+        objects[1] = "<< /Type /Pages /Kids [\(kids.joined(separator: " "))] /Count \(pages.count) >>"
+        var out = "%PDF-1.4\n"
+        var offsets: [Int] = []
+        for (i, body) in objects.enumerated() {
+            offsets.append(out.utf8.count)
+            out += "\(i + 1) 0 obj\n\(body)\nendobj\n"
+        }
+        let xref = out.utf8.count
+        out += "xref\n0 \(objects.count + 1)\n0000000000 65535 f \n"
+        for o in offsets { out += String(format: "%010d 00000 n \n", o) }
+        out += "trailer\n<< /Size \(objects.count + 1) /Root 1 0 R >>\nstartxref\n\(xref)\n%%EOF\n"
+        return Data(out.utf8)
+    }
+}

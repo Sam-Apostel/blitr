@@ -42,6 +42,7 @@ open class UIPress: NSObject {
 }
 open class UIPressesEvent: UIEvent {}
 
+@MainActor
 open class UIResponder: NSObject {
     public static let keyboardWillShowNotification = Notification.Name("UIKeyboardWillShowNotification")
     public static let keyboardDidShowNotification = Notification.Name("UIKeyboardDidShowNotification")

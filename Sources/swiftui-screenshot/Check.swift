@@ -352,6 +352,10 @@ enum CheckCommand {
                 if whole.range(of: #"import[ \t]+(struct|class|enum|protocol|typealias|func|var|let)[ \t]"#, options: .regularExpression) != nil {
                     name = String(name.split(separator: ".").first ?? "")
                 }
+                // The preprocessor imports submodules of the SDK's shims as the module (`CoreImage.CIFilterBuiltins`).
+                if let head = name.split(separator: ".").first, name.contains("."), Preprocessor.submoduleParents.contains(String(head)) {
+                    name = String(head)
+                }
                 names.insert(name)
             }
         }

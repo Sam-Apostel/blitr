@@ -5,6 +5,7 @@
 import Foundation
 import SwiftUI
 
+
 open class UIView: UIResponder, _UILayoutAnchored, UITraitEnvironment, UICoordinateSpace {
     public enum ContentMode: Int, Sendable {
         case scaleToFill, scaleAspectFit, scaleAspectFill, redraw, center, top, bottom, left, right, topLeft, topRight, bottomLeft, bottomRight
@@ -347,6 +348,7 @@ open class UIWindow: UIView {
 
 public protocol UIGestureRecognizerDelegate: NSObjectProtocol {}
 
+@MainActor
 open class UIGestureRecognizer: NSObject {
     public enum State: Int, Sendable {
         case possible, began, changed, ended, cancelled, failed

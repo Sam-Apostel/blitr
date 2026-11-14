@@ -3,6 +3,7 @@
 // Authorization requests never complete: there is nobody to sign in.
 @_exported import SwiftUI
 import UIKit
+@_exported import Security
 
 public typealias ASPresentationAnchor = UIWindow
 
