@@ -25,23 +25,38 @@ package struct DynamicColor: Hashable, Sendable {
         self.light = RGBA(hex: light, alpha: alpha)
         self.dark = RGBA(hex: dark, alpha: darkAlpha ?? alpha)
     }
+    /// The iOS 26+ (Liquid Glass) values where the palette changed; nil keeps `light`/`dark`.
+    var glassLight: RGBA? = nil, glassDark: RGBA? = nil
+    init(_ light: UInt32, _ dark: UInt32, glass glassLight: UInt32, _ glassDark: UInt32) {
+        self.init(light, dark)
+        self.glassLight = RGBA(hex: glassLight)
+        self.glassDark = RGBA(hex: glassDark)
+    }
     func resolve(_ scheme: ColorScheme) -> RGBA { scheme == .dark ? dark : light }
+    /// Picks the iOS 26+ palette when the environment draws that design on iOS.
+    func resolve(in env: EnvironmentValues) -> RGBA {
+        if env.designLanguage.isGlass, env.renderPlatform != .tvOS,
+           let glass = env.colorScheme == .dark ? glassDark : glassLight { return glass }
+        return resolve(env.colorScheme)
+    }
 }
 
-/// The UIKit semantic palette (values from the iOS system colors).
+/// The UIKit semantic palette (values from the iOS system colors). The `glass:` values are the
+/// iOS 26+ palette; measured: iOS 27.0 simulator for blue (0088FF / 0091FF), red (FF383C /
+/// FF4245) and orange (FF8D28 / FF9230) from button fills; the rest from Apple's iOS 26 color table.
 package enum SystemColor {
-    package static let red = DynamicColor(0xFF3B30, 0xFF453A)
-    package static let orange = DynamicColor(0xFF9500, 0xFF9F0A)
-    package static let yellow = DynamicColor(0xFFCC00, 0xFFD60A)
-    package static let green = DynamicColor(0x34C759, 0x30D158)
-    package static let mint = DynamicColor(0x00C7BE, 0x63E6E2)
-    package static let teal = DynamicColor(0x30B0C7, 0x40C8E0)
-    package static let cyan = DynamicColor(0x32ADE6, 0x64D2FF)
-    package static let blue = DynamicColor(0x007AFF, 0x0A84FF)
-    package static let indigo = DynamicColor(0x5856D6, 0x5E5CE6)
-    package static let purple = DynamicColor(0xAF52DE, 0xBF5AF2)
-    package static let pink = DynamicColor(0xFF2D55, 0xFF375F)
-    package static let brown = DynamicColor(0xA2845E, 0xAC8E68)
+    package static let red = DynamicColor(0xFF3B30, 0xFF453A, glass: 0xFF383C, 0xFF4245)
+    package static let orange = DynamicColor(0xFF9500, 0xFF9F0A, glass: 0xFF8D28, 0xFF9230)
+    package static let yellow = DynamicColor(0xFFCC00, 0xFFD60A, glass: 0xFFCC00, 0xFFD600)
+    package static let green = DynamicColor(0x34C759, 0x30D158, glass: 0x34C759, 0x30D158)
+    package static let mint = DynamicColor(0x00C7BE, 0x63E6E2, glass: 0x00C8B3, 0x00DAC3)
+    package static let teal = DynamicColor(0x30B0C7, 0x40C8E0, glass: 0x00C3D0, 0x00D2E0)
+    package static let cyan = DynamicColor(0x32ADE6, 0x64D2FF, glass: 0x00C0E8, 0x3CD3FE)
+    package static let blue = DynamicColor(0x007AFF, 0x0A84FF, glass: 0x0088FF, 0x0091FF)
+    package static let indigo = DynamicColor(0x5856D6, 0x5E5CE6, glass: 0x6155F5, 0x6D7CFF)
+    package static let purple = DynamicColor(0xAF52DE, 0xBF5AF2, glass: 0xCB30E0, 0xDB34F2)
+    package static let pink = DynamicColor(0xFF2D55, 0xFF375F, glass: 0xFF2D55, 0xFF375F)
+    package static let brown = DynamicColor(0xA2845E, 0xAC8E68, glass: 0xAC7F5E, 0xB78A66)
     package static let gray = DynamicColor(0x8E8E93, 0x8E8E93)
     package static let gray2 = DynamicColor(0xAEAEB2, 0x636366)
     package static let gray3 = DynamicColor(0xC7C7CC, 0x48484A)
@@ -147,7 +162,7 @@ public struct Color: Hashable, Sendable {
     private static func resolve(_ storage: Storage, _ env: EnvironmentValues) -> RGBA {
         switch storage {
         case .rgba(let c): return c
-        case .dynamic(let d): return d.resolve(env.colorScheme)
+        case .dynamic(let d): return d.resolve(in: env)
         case .opacity(let base, let o): return resolve(base, env).opacity(o)
         case .mix(let a, let b, let t): return resolve(a, env).mix(resolve(b, env), t)
         case .accent: return (env.accentColor ?? Color.blue).rgba(in: env)
