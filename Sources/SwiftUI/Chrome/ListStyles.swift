@@ -67,7 +67,7 @@ public struct ListItemTint: Sendable {
 
 enum ListStyleKey: EnvironmentKey { static let defaultValue: ListStyleKind? = nil }
 enum ListContentStyleKey: EnvironmentKey { static let defaultValue: ListStyleKind? = nil }
-enum DefaultMinListRowHeightKey: EnvironmentKey { static let defaultValue: CGFloat = ListMetrics.minRowHeight }
+enum DefaultMinListRowHeightKey: EnvironmentKey { static let defaultValue: CGFloat? = nil }
 enum DefaultMinListHeaderHeightKey: EnvironmentKey { static let defaultValue: CGFloat? = nil }
 enum HeaderProminenceKey: EnvironmentKey { static let defaultValue = Prominence.standard }
 enum ListRowSpacingKey: EnvironmentKey { static let defaultValue: CGFloat? = nil }
@@ -86,9 +86,11 @@ extension EnvironmentValues {
         set { self[ListContentStyleKey.self] = newValue }
     }
     public var defaultMinListRowHeight: CGFloat {
-        get { self[DefaultMinListRowHeightKey.self] }
+        get { self[DefaultMinListRowHeightKey.self] ?? ListMetrics.forDesign(designLanguage).minRowHeight }
         set { self[DefaultMinListRowHeightKey.self] = newValue }
     }
+    /// The minimum row height set with `.environment(\.defaultMinListRowHeight, ...)`, if any.
+    var explicitMinListRowHeight: CGFloat? { self[DefaultMinListRowHeightKey.self] }
     public var defaultMinListHeaderHeight: CGFloat? {
         get { self[DefaultMinListHeaderHeightKey.self] }
         set { self[DefaultMinListHeaderHeightKey.self] = newValue }
@@ -116,6 +118,12 @@ extension EnvironmentValues {
 
 enum ListRowInsetsTraitKey: TraitKey { typealias Value = EdgeInsets }
 enum ListRowBackgroundTraitKey: TraitKey { typealias Value = Node }
+enum ListRowPartialInsetsTraitKey: TraitKey { typealias Value = PartialRowInsets }
+
+/// Per-edge row insets from `.listRowInsets(_:_:)`; nil edges keep the default.
+struct PartialRowInsets {
+    var top: CGFloat?, leading: CGFloat?, bottom: CGFloat?, trailing: CGFloat?
+}
 enum ListRowSeparatorTraitKey: TraitKey { typealias Value = SeparatorSetting }
 enum ListRowSeparatorTintTraitKey: TraitKey { typealias Value = TintSetting }
 enum ListSectionSeparatorTraitKey: TraitKey { typealias Value = SeparatorSetting }
@@ -152,6 +160,21 @@ extension View {
     public func listRowInsets(_ insets: EdgeInsets?) -> some View {
         modifier(PrimitiveTraitModifier { node in node.traits[ListRowInsetsTraitKey.self] = insets })
     }
+    /// Sets the inset of the given edges only; the other edges keep the style's default.
+    public func listRowInsets(_ edges: Edge.Set = .all, _ length: CGFloat?) -> some View {
+        modifier(PrimitiveTraitModifier { node in
+            var partial = node.traits[ListRowPartialInsetsTraitKey.self] ?? PartialRowInsets()
+            if edges.contains(.top) { partial.top = length }
+            if edges.contains(.leading) { partial.leading = length }
+            if edges.contains(.bottom) { partial.bottom = length }
+            if edges.contains(.trailing) { partial.trailing = length }
+            node.traits[ListRowPartialInsetsTraitKey.self] = partial
+        })
+    }
+    /// Section margins have no effect on a static frame at the default geometry.
+    public func listSectionMargins(_ edges: Edge.Set = .all, _ length: CGFloat?) -> some View { self }
+    public func sectionIndexLabel(_ label: Text?) -> some View { self }
+    public func listSectionIndexVisibility(_ visibility: Visibility) -> some View { self }
     public func listRowBackground<V: View>(_ view: V?) -> some View { modifier(ListRowBackgroundModifier(background: view)) }
     public func listRowSeparator(_ visibility: Visibility, edges: VerticalEdge.Set = .all) -> some View {
         trait(ListRowSeparatorTraitKey.self, SeparatorSetting(visibility: visibility, edges: edges))

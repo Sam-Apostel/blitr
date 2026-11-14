@@ -84,9 +84,25 @@ struct SwitchControl: View {
     let isOn: Bool
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.accentColor) private var accent
+    @Environment(\.designLanguage) private var design
 
     var body: some View {
         let onColor = accent ?? Color(SystemColor.green)
+        if design.isGlass {
+            // iOS 26: 64x28 capsule track with a 39x24 pill knob.
+            let m = ControlGlassMetrics.self
+            return AnyView(ZStack(alignment: isOn ? .trailing : .leading) {
+                Capsule().fill(isOn ? onColor : Color(SystemColor.secondaryFill))
+                Capsule().fill(Color.white)
+                    .frame(width: m.toggleKnob.width, height: m.toggleKnob.height).knobShadow().padding(m.toggleKnobInset)
+            }
+            .frame(width: m.toggleTrack.width, height: m.toggleTrack.height)
+            .opacity(isEnabled ? 1 : 0.5))
+        }
+        return AnyView(flatBody(onColor))
+    }
+
+    private func flatBody(_ onColor: Color) -> some View {
         ZStack(alignment: isOn ? .trailing : .leading) {
             Capsule().fill(isOn ? onColor : Color(SystemColor.secondaryFill))
             Circle().fill(Color.white).frame(width: 27, height: 27).knobShadow().padding(2)

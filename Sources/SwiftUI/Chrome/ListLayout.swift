@@ -17,15 +17,20 @@ final class ListRowNode: Node {
     /// Leading x of the separator below this row, in the row's coordinates (set after layout).
     var separatorLeading: CGFloat = 0
 
-    init(content: Node, background: Node?, badge: Node?, hasChevron: Bool, insets: EdgeInsets?, minHeight: CGFloat,
+    /// Per-edge overrides from `.listRowInsets(_:_:)`, applied over the default insets.
+    let partialInsets: PartialRowInsets?
+
+    init(content: Node, background: Node?, badge: Node?, hasChevron: Bool, insets: EdgeInsets?, partialInsets: PartialRowInsets? = nil,
+         design: ListDesignMetrics, minHeight: CGFloat,
          chevronPaint: _Paint, separator: SeparatorSetting?, separatorTint: TintSetting?) {
         self.content = content
         self.background = background
         self.badge = badge
         self.hasChevron = hasChevron
         self.usesDefaultInsets = insets == nil
-        self.insets = insets ?? EdgeInsets(top: ListMetrics.rowInsetTop, leading: ListMetrics.rowInsetHorizontal,
-                                           bottom: ListMetrics.rowInsetBottom, trailing: ListMetrics.rowInsetHorizontal)
+        self.partialInsets = partialInsets
+        self.insets = insets ?? EdgeInsets(top: design.rowInsetVertical, leading: design.rowInsetHorizontal,
+                                           bottom: design.rowInsetVertical, trailing: design.rowInsetHorizontal)
         self.minHeight = minHeight
         self.chevronPaint = chevronPaint
         self.separator = separator
@@ -36,6 +41,15 @@ final class ListRowNode: Node {
         if let badge { kids.append(badge) }
         super.init(children: kids)
         traits = content.traits
+        applyPartialInsets()
+    }
+
+    func applyPartialInsets() {
+        guard let p = partialInsets else { return }
+        if let v = p.top { insets.top = v }
+        if let v = p.leading { insets.leading = v }
+        if let v = p.bottom { insets.bottom = v }
+        if let v = p.trailing { insets.trailing = v }
     }
 
     private var chevronReserve: CGFloat { hasChevron ? ListMetrics.chevronBox + ListMetrics.chevronGap : 0 }
@@ -107,6 +121,9 @@ final class ListNode: Node {
     let separatorColor: RGBA
     let rowSpacing: CGFloat?
     let listSectionSpacing: ListSectionSpacing
+    let design: ListDesignMetrics
+    /// The glass looks apply to inset grouped lists only (plain and grouped keep their geometry).
+    let usesGlassGeometry: Bool
 
     // Results of layout, in this node's coordinates.
     private var cards: [(rect: CGRect, radius: CGFloat, rows: Range<Int>, section: Int)] = []
@@ -121,7 +138,10 @@ final class ListNode: Node {
         separatorColor = SystemColor.separator.resolve(env.colorScheme)
         rowSpacing = env.listRowSpacing
         listSectionSpacing = env.listSectionSpacing
-        let minHeight = env.defaultMinListRowHeight
+        usesGlassGeometry = env.designLanguage.isGlass && style == .insetGrouped
+        let design = ListMetrics.forDesign(usesGlassGeometry ? env.designLanguage : .flat)
+        self.design = design
+        let minHeight = env.explicitMinListRowHeight ?? design.minRowHeight
         let chevronPaint = _Paint.color(SystemColor.tertiaryLabel.resolve(env.colorScheme))
         var badgeEnv = env
         badgeEnv.font = .system(size: ListMetrics.badgeFontSize)
@@ -134,7 +154,8 @@ final class ListNode: Node {
             return ListRowNode(content: node, background: trait(ListRowBackgroundTraitKey.self),
                                badge: trait(BadgeTraitKey.self).map { $0.makeNode(badgeEnv) },
                                hasChevron: ListNode.hasDisclosure(node),
-                               insets: trait(ListRowInsetsTraitKey.self), minHeight: minHeight,
+                               insets: trait(ListRowInsetsTraitKey.self), partialInsets: trait(ListRowPartialInsetsTraitKey.self),
+                               design: design, minHeight: minHeight,
                                chevronPaint: chevronPaint, separator: trait(ListRowSeparatorTraitKey.self),
                                separatorTint: trait(ListRowSeparatorTintTraitKey.self))
         }
@@ -182,12 +203,13 @@ final class ListNode: Node {
         let margin = ChromeMetrics.layoutMargin(forWidth: size.width)
         let cardX: CGFloat = (style == .insetGrouped || style == .inset) ? ChromeMetrics.insetListMargin(forWidth: size.width) : 0
         let cardW = max(0, size.width - cardX * 2)
-        let radius: CGFloat = style == .insetGrouped ? ListMetrics.cardCornerRadius : 0
+        let radius: CGFloat = style == .insetGrouped ? design.cardCornerRadius : 0
         let plainInset = margin + ListMetrics.plainRowExtraInset
         for section in sections {
             for row in section.rows where row.usesDefaultInsets && style == .plain {
                 row.insets.leading = plainInset
                 row.insets.trailing = plainInset
+                row.applyPartialInsets()
             }
         }
         // Rows, headers and footers have no safe area of their own (no bleeding out of a row).
@@ -223,7 +245,7 @@ final class ListNode: Node {
                     let h = header.sizeThatFits(ProposedViewSize(width: width, height: nil))
                     header.place(at: CGPoint(x: cardX + ListMetrics.headerInset, y: y), size: h, inner)
                     let baseline = header.explicitAlignment(VerticalAlignment.lastTextBaseline.key, size: h) ?? h.height
-                    y += baseline + ListMetrics.headerBaselineToCard
+                    y += baseline + design.headerBaselineToCard
                 } else {
                     let width = size.width - plainInset * 2
                     let h = header.sizeThatFits(ProposedViewSize(width: width, height: nil))
@@ -258,7 +280,7 @@ final class ListNode: Node {
                     if isLast && section.separator?.hides(.bottom) == true { continue }
                     if row.separator?.hides(.bottom) == true || next?.separator?.hides(.top) == true { continue }
                     let leading = row.frame.minX + row.separatorLeading
-                    let trailing = cardX + cardW
+                    let trailing = cardX + cardW - design.separatorTrailingInset
                     let tint = (row.separatorTint?.edges.contains(.bottom) == true ? row.separatorTint?.color : nil)
                         ?? (isLast ? section.separatorTint?.color : nil) ?? separatorColor
                     separators.append((CGRect(x: leading, y: row.frame.maxY - thickness, width: max(0, trailing - leading), height: thickness), tint))
