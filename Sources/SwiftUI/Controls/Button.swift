@@ -179,14 +179,15 @@ struct ButtonMetrics {
     init(_ size: ControlSize, design: DesignLanguage = .flat) {
         minHeight = nil
         if design.isGlass {
-            // iOS 26: capsule buttons with fixed heights; the horizontal padding grows with the rounder ends.
-            // All estimates (est.), shared by iOS 26 and 27.
+            // iOS 26/27: capsule buttons, regular-weight labels. measured: iOS 27.0 simulator
+            // (ControlsButtons): regular 34.33pt tall with a 17pt label (12/7 padding), small and
+            // mini both 28pt with a 15pt label (10/5), large 50.33pt (20/15). extraLarge is an estimate.
             switch size {
-            case .mini: (h, v, radius, font, weight, minHeight) = (10, 3, 12, .system(size: 12), nil, 24)
-            case .small: (h, v, radius, font, weight, minHeight) = (12, 4, 14, .system(size: 15), nil, 28)
-            case .regular: (h, v, radius, font, weight, minHeight) = (16, 7, 18, nil, nil, 36)
-            case .large: (h, v, radius, font, weight, minHeight) = (24, 14, 26, nil, .semibold, 52)
-            case .extraLarge: (h, v, radius, font, weight, minHeight) = (28, 16, 30, .system(size: 20), .semibold, 60)
+            case .mini: (h, v, radius, font, weight, minHeight) = (10, 5, 14, .system(size: 15), nil, 28)
+            case .small: (h, v, radius, font, weight, minHeight) = (10, 5, 14, .system(size: 15), nil, 28)
+            case .regular: (h, v, radius, font, weight, minHeight) = (12, 7, 17, nil, nil, nil)
+            case .large: (h, v, radius, font, weight, minHeight) = (20, 15, 25, nil, nil, nil)
+            case .extraLarge: (h, v, radius, font, weight, minHeight) = (24, 18, 30, .system(size: 20), nil, nil)
             }
             return
         }
@@ -198,6 +199,15 @@ struct ButtonMetrics {
         case .extraLarge: (h, v, radius, font, weight) = (24, 16, 14, .system(size: 20), .semibold)
         }
     }
+}
+
+/// Bordered button colours on iOS 26/27. measured: iOS 27.0 simulator (ControlsButtons):
+/// a green-tinted fill is DAF5E1 on white and 0C3416 on black; a disabled label is C2C2C5 on
+/// the light gray fill and 525257 on the dark one.
+enum ButtonColors {
+    static let tintedFillLight = 0.18
+    static let tintedFillDark = 0.25
+    static let disabledOnFill = DynamicColor(0x3C3C43, 0xEBEBF5, alpha: 0.225)
 }
 
 // MARK: - Glass styles and sizing (iOS 26)
@@ -255,6 +265,7 @@ struct _ButtonVisual: View {
     @Environment(\.foregroundStyle) private var explicitForeground
     @Environment(\.font) private var userFont
     @Environment(\.renderPlatform) private var platform
+    @Environment(\.colorScheme) private var colorScheme
 
     private var destructive: Bool { role == .destructive }
 
@@ -289,14 +300,27 @@ struct _ButtonVisual: View {
             return AnyView(content.foregroundStyle(Color.accentColor))
         case .bordered:
             // Before iOS 26 the glass styles look like their bordered counterparts.
-            let fill = tinted ? Color.accentColor.opacity(0.15) : Color(SystemColor.tertiaryFill)
-            let foreground: Color = isEnabled ? Color.accentColor : disabledColor
+            var fill = tinted ? Color.accentColor.opacity(0.15) : Color(SystemColor.tertiaryFill)
+            var foreground: Color = isEnabled ? Color.accentColor : disabledColor
+            if design.isGlass {
+                // measured: iOS 27.0 simulator. Gray secondary fill (also for destructive and
+                // disabled buttons), a tint at 18% (light) / 25% (dark) when one is set.
+                fill = explicitAccent != nil && isEnabled
+                    ? Color.accentColor.opacity(colorScheme == .dark ? ButtonColors.tintedFillDark : ButtonColors.tintedFillLight)
+                    : Color(SystemColor.secondaryFill)
+                if !isEnabled { foreground = Color(ButtonColors.disabledOnFill) }
+            }
             return AnyView(
                 padded(content.foregroundStyle(foreground), m)
                     .background(fill, in: shape(m)))
         case .prominent:
-            let fill: Color = isEnabled ? Color.accentColor : Color(SystemColor.tertiaryFill)
-            let foreground: Color = isEnabled ? .white : disabledColor
+            var fill: Color = isEnabled ? Color.accentColor : Color(SystemColor.tertiaryFill)
+            var foreground: Color = isEnabled ? .white : disabledColor
+            if design.isGlass, !isEnabled {
+                // measured: iOS 27.0 simulator: disabled looks like a disabled bordered button.
+                fill = Color(SystemColor.secondaryFill)
+                foreground = Color(ButtonColors.disabledOnFill)
+            }
             return AnyView(
                 padded(content.foregroundStyle(foreground), m)
                     .background(fill, in: shape(m)))
