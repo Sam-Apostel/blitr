@@ -50,7 +50,8 @@ values written during layout (inside a `GeometryReader`) reach `onPreferenceChan
 | `Sources/SwiftUI/Render` | `Renderer`, runner entry point, device profiles and chrome, image comparison for `compare` |
 | `Sources/SwiftUI/Inert` | APIs with no effect on a static frame: gestures, animation; accessibility modifiers record into the tree |
 | `Sources/UIKit`, `MapKit`, `CoreLocation`, `WidgetKit`, `ActivityKit`, `AppIntents` | shim framework modules (see "Shim modules"; docs/MAPS.md, docs/WIDGETS.md) |
-| `Sources/Combine`, `CoreText`, `SwiftUIScreenshotFoundation` | Combine; CoreText font registration; Foundation's localization API |
+| `Sources/Combine`, `SwiftUIScreenshotFoundation` | Combine; Foundation API missing on Linux (localization, formatters, ...) |
+| `Sources/CoreGraphics`, `ImageIO`, `CoreImage`, `CoreText`, `UniformTypeIdentifiers` and the other framework modules | Apple frameworks beyond SwiftUI (docs/FRAMEWORKS.md); CoreGraphics and UniformTypeIdentifiers sit below SwiftUI |
 | `Sources/swiftui-screenshot` | the command-line tool and source preprocessor |
 | `Tests/Corpus` | realistic screens rendered in CI as acceptance tests |
 
@@ -102,7 +103,7 @@ Their code is linked into **libSwiftUI.so**, not into libraries of their own: th
 product, so a `.dynamic` product per shim would carry a second copy of SwiftUI, and with two copies in a
 process conformance lookups fail at run time ("Text does not conform to View"). One library means every
 compile links `-lSwiftUI` only (`Installation.linkFlags`) and a runner maps exactly one SwiftUI.
-CoreText and `SwiftUIScreenshotFoundation` do not use SwiftUI and keep libraries of their own (autolinked
+`SwiftUIScreenshotFoundation` does not use SwiftUI and keeps a library of its own (autolinked
 with `-module-link-name`).
 
 To add a shim for framework `Foo`:

@@ -111,8 +111,8 @@ the target's `@main App`, whose file becomes a root. `--whole-target` turns the 
   directory (symlinks, `.process` flattened, `.copy` kept). App targets' resources are staged next to the
   runner, so `Bundle.main.url(forResource:withExtension:)` finds them.
 - **Fonts** among a module's resources are handed to the renderer, so `Font.custom("Name", size:)` finds
-  them. `import CoreText` resolves to a stand-in whose `CTFontManagerRegisterFontsForURL` and friends
-  succeed without doing anything.
+  them. `CTFontManagerRegisterFontsForURL` and friends (CoreText) register the file too, so a font is
+  also found by its PostScript or family name (docs/FRAMEWORKS.md).
 - **Strings**: `.xcstrings` catalogs and `<lang>.lproj/*.strings` of every module are flattened into one
   table for `--locale` (falling back to the source language), which `Text("key")`, `LocalizedStringKey`
   (with `%@`/`%lld`/`%lf`/`%1$@` placeholders for interpolations, Markdown kept), `String(localized:)` and
