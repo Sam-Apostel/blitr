@@ -32,7 +32,7 @@ struct UnsupportedReport {
     var errorCount: Int { diagnostics.filter { $0.severity == "error" }.count }
     var isEmpty: Bool { errorCount == 0 }
 
-    static let pattern = try! NSRegularExpression(pattern: #"^(/[^:\n]+):(\d+):(\d+): (error|warning|note): (.*)$"#, options: [.anchorsMatchLines])
+    static let pattern = try! NSRegularExpression(pattern: #"^([^:\n ][^:\n]*\.swift):(\d+):(\d+): (error|warning|note): (.*)$"#, options: [.anchorsMatchLines])
 
     static func parse(_ text: String) -> [Diagnostic] {
         let ns = text as NSString
