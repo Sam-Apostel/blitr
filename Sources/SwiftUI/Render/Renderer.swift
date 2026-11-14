@@ -124,7 +124,11 @@ enum Renderer {
         painter.scale(scale, scale)
         root.draw(painter)
         if config.layout == .device, config.showsDeviceChrome, safeRect != container {
-            DeviceChrome.draw(painter, device: config.device, size: canvasSize, scheme: root.preferences[StatusBarSchemeKey.self] ?? config.colorScheme)
+            // The status bar can be restyled by content (a dark toolbar, a pushed-back presenter);
+            // the home indicator sits over the bottom of the screen and follows the interface style.
+            DeviceChrome.draw(painter, device: config.device, size: canvasSize,
+                              statusBarScheme: root.preferences[StatusBarSchemeKey.self] ?? config.colorScheme,
+                              homeIndicatorScheme: config.colorScheme)
         }
 
         guard let image = sk_surface_new_image_snapshot(surface) else { throw RenderError("Could not snapshot the surface") }
@@ -157,11 +161,12 @@ enum StatusBarSchemeKey: PreferenceKey {
 /// The parts of the screen iOS draws itself: status bar and home indicator.
 @MainActor
 enum DeviceChrome {
-    static func draw(_ p: Painter, device: DeviceProfile, size: CGSize, scheme: ColorScheme) {
+    static func draw(_ p: Painter, device: DeviceProfile, size: CGSize, statusBarScheme scheme: ColorScheme, homeIndicatorScheme: ColorScheme) {
         let color = _Paint.color(scheme == .dark ? .white : .black)
         if device.safeArea.bottom > 0 {
             let bar = CGRect(x: (size.width - 139) / 2, y: size.height - 8 - 5, width: 139, height: 5)
-            p.fill(Path(roundedRect: bar, cornerRadius: 2.5, style: .circular), with: color, in: bar)
+            p.fill(Path(roundedRect: bar, cornerRadius: 2.5, style: .circular),
+                   with: .color(homeIndicatorScheme == .dark ? .white : .black), in: bar)
         }
         guard device.safeArea.top > 0 else { return }
         let island = device.safeArea.top >= 50

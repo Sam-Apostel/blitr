@@ -120,8 +120,6 @@ enum ListRowSeparatorTraitKey: TraitKey { typealias Value = SeparatorSetting }
 enum ListRowSeparatorTintTraitKey: TraitKey { typealias Value = TintSetting }
 enum ListSectionSeparatorTraitKey: TraitKey { typealias Value = SeparatorSetting }
 enum ListSectionSeparatorTintTraitKey: TraitKey { typealias Value = TintSetting }
-/// A badge on a row (`.badge(3)`). A TabView may read the same trait on its tab items.
-enum BadgeTraitKey: TraitKey { typealias Value = Text }
 
 struct SeparatorSetting {
     var visibility: Visibility
@@ -142,17 +140,6 @@ struct ListRowBackgroundModifier<Background: View>: ViewModifier, PrimitiveModif
                 let bgCtx = ctx.child("listRowBackground\(i)").with { $0.stackAxis = nil; $0.isInListRow = false }
                 node.traits[ListRowBackgroundTraitKey.self] = resolveSingle(background, bgCtx)
             }
-            out.append(node)
-        }
-    }
-}
-
-/// `.badge(...)`: resolves at the row's environment so the text uses its colors.
-struct BadgeModifier: ViewModifier, PrimitiveModifier {
-    let text: Text?
-    func resolve(content: ModifierContent, _ ctx: ResolveContext, into out: inout [Node]) {
-        for node in content.nodes(ctx) {
-            if let text { node.traits[BadgeTraitKey.self] = text }
             out.append(node)
         }
     }
@@ -188,13 +175,6 @@ extension View {
     public func listItemTint(_ tint: ListItemTint?) -> some View { self }
     public func listItemTint(_ tint: Color?) -> some View { self }
     public func headerProminence(_ prominence: Prominence) -> some View { env { $0.headerProminence = prominence } }
-    public func scrollContentBackground(_ visibility: Visibility) -> some View { env { $0.scrollContentBackground = visibility } }
-
-    public func badge(_ count: Int) -> some View { modifier(BadgeModifier(text: count == 0 ? nil : Text(verbatim: "\(count)"))) }
-    public func badge(_ label: Text?) -> some View { modifier(BadgeModifier(text: label)) }
-    public func badge(_ key: LocalizedStringKey?) -> some View { modifier(BadgeModifier(text: key.map { Text($0) })) }
-    @_disfavoredOverload
-    public func badge<S: StringProtocol>(_ label: S?) -> some View { modifier(BadgeModifier(text: label.map { Text(String($0)) })) }
     public func badgeProminence(_ prominence: BadgeProminence) -> some View { self }
 
     public func moveDisabled(_ isDisabled: Bool) -> some View { self }
