@@ -96,6 +96,7 @@ open class UITraitCollection: NSObject, @unchecked Sendable {
         case .pad: userInterfaceIdiom = .pad
         case .tv: userInterfaceIdiom = .tv
         case .phone: userInterfaceIdiom = .phone
+        case .watch: userInterfaceIdiom = .unspecified
         }
         preferredContentSizeCategory = UIContentSizeCategory(EnvironmentValues().dynamicTypeSize)
         super.init()

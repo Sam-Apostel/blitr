@@ -57,6 +57,7 @@ enum Renderer {
         env.renderPlatform = config.platform
         RenderedPlatform.current = config.osVersion
         RenderedPlatform.platform = config.platform
+        RenderedPlatform.watchTextIsExtraLarge = config.device.idiom != .watch || config.device.portraitSize.width >= 200
         // An app's accent color comes from the "AccentColor" asset when there is one.
         if let accent = AssetCatalog.shared.color(named: "AccentColor", scheme: config.colorScheme) {
             env.accentColor = Color(accent)

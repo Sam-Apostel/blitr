@@ -150,7 +150,9 @@ public enum _ScreenshotRunner {
         }
         // The platform and the device have to agree: a TV platform defaults to an Apple TV, and vice versa.
         if config.platform == .tvOS, !deviceWasSet, let tv = DeviceProfile.lookup("apple-tv-4k") { config.device = tv }
+        if config.platform == .watchOS, !deviceWasSet, let watch = DeviceProfile.lookup("apple-watch-series-10-46mm") { config.device = watch }
         if config.device.idiom == .tv { config.platform = .tvOS }
+        if config.device.idiom == .watch { config.platform = .watchOS }
 
         if listOnly {
             for (i, p) in previews.enumerated() { print("\(i)\t\(p.name ?? "")") }

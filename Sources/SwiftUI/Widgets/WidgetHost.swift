@@ -148,6 +148,19 @@ enum WidgetMetrics {
         let screen = device.portraitSize
         switch device.idiom {
         case .tv: return nil
+        case .watch:
+            // Complications and the Smart Stack: accessory families only. Sizes are estimates for the
+            // 46mm screen scaled to the others by width (Apple publishes no table for these screens).
+            let k = screen.width / 208
+            switch family {
+            case .systemSmall, .systemMedium, .systemLarge, .systemExtraLarge: return nil
+            case .accessoryCircular:
+                return Resolved(size: CGSize(width: (52 * k).rounded(), height: (52 * k).rounded()), cornerRadius: 0, margins: EdgeInsets(), fromTable: false)
+            case .accessoryRectangular:
+                return Resolved(size: CGSize(width: (186 * k).rounded(), height: (84 * k).rounded()), cornerRadius: cornerRadius(family), margins: EdgeInsets(), fromTable: false)
+            case .accessoryInline:
+                return Resolved(size: CGSize(width: (186 * k).rounded(), height: 26), cornerRadius: 0, margins: EdgeInsets(), fromTable: false)
+            }
         case .phone:
             let (row, exact) = nearest(phoneTable, screen)
             let index: Int

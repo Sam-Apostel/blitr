@@ -4,7 +4,7 @@
 // Values are in points. Where a number is an estimate rather than a measured value, the comment
 // says so; the geometry that decides layout (point size, scale, safe-area insets) is what matters most.
 
-package enum DeviceIdiom: Sendable { case phone, pad, tv }
+package enum DeviceIdiom: Sendable { case phone, pad, tv, watch }
 
 package enum DeviceOrientation: Sendable {
     case portrait, landscapeLeft, landscapeRight
@@ -53,18 +53,19 @@ package struct DeviceProfile {
     /// Safe-area insets in the current orientation.
     package var safeArea: EdgeInsets { orientation.isLandscape ? landscapeSafeArea : portraitSafeArea }
 
-    /// iPhones in landscape hide the status bar; iPads keep it.
-    var showsStatusBar: Bool { idiom == .pad || (idiom == .phone && !orientation.isLandscape) }
+    /// iPhones in landscape hide the status bar; iPads keep it. A watch shows the time in its top corner.
+    var showsStatusBar: Bool { idiom == .pad || idiom == .watch || (idiom == .phone && !orientation.isLandscape) }
 
     /// Width size class of a full-screen app. iPads are regular. iPhones are compact in portrait, and
     /// in landscape regular when the portrait width is 414pt or more (the Plus/Max/Air sizes, and the 11).
     package var horizontalSizeClass: UserInterfaceSizeClass {
+        if idiom == .watch { return .compact }
         if idiom != .phone { return .regular }
         return orientation.isLandscape && portraitSize.width >= 414 ? .regular : .compact
     }
-    /// iPhones are compact in landscape; everything else is regular.
+    /// iPhones are compact in landscape, watches always; everything else is regular.
     package var verticalSizeClass: UserInterfaceSizeClass {
-        idiom == .phone && orientation.isLandscape ? .compact : .regular
+        idiom == .watch || (idiom == .phone && orientation.isLandscape) ? .compact : .regular
     }
 
     // MARK: Lookup
@@ -106,6 +107,15 @@ package struct DeviceProfile {
         // iPads show the status bar (24pt) in both orientations and reserve 20pt for the home indicator.
         DeviceProfile(id: id, name: name, idiom: .pad, portraitSize: CGSize(width: width, height: height), scale: 2,
                       portraitSafeArea: edges(24, 0, 20, 0), landscapeSafeArea: edges(24, 0, 20, 0),
+                      cornerRadius: radius, housing: .none, aliases: aliases)
+    }
+
+    /// An Apple Watch: watchOS apps are portrait only, and the same insets apply in both orientations.
+    /// The top inset is the band the time sits in; the bottom one keeps content off the rounded corners.
+    private static func watch(_ id: String, _ name: String, _ width: CGFloat, _ height: CGFloat, top: CGFloat, bottom: CGFloat,
+                              radius: CGFloat, aliases: [String]) -> DeviceProfile {
+        DeviceProfile(id: id, name: name, idiom: .watch, portraitSize: CGSize(width: width, height: height), scale: 2,
+                      portraitSafeArea: edges(top, 0, bottom, 0), landscapeSafeArea: edges(top, 0, bottom, 0),
                       cornerRadius: radius, housing: .none, aliases: aliases)
     }
 
@@ -168,6 +178,15 @@ package struct DeviceProfile {
         phone("iphone-air", "iPhone Air", 420, 912, top: 68, radius: 62, housing: .dynamicIsland(size: CGSize(width: 125, height: 37), top: 20),
               aliases: ["iphone-17-air"]),
 
+        // Apple Watch. Screen sizes are Apple's (416x496, 374x446 and 410x502 pixels at 2x). The safe-area
+        // insets and the display corner radii are estimates scaled from the 41/45mm generation.
+        watch("apple-watch-series-10-46mm", "Apple Watch Series 10 (46mm)", 208, 248, top: 37, bottom: 10, radius: 52,
+              aliases: ["apple-watch", "watch", "apple-watch-46mm", "apple-watch-series-11-46mm"]),
+        watch("apple-watch-series-10-42mm", "Apple Watch Series 10 (42mm)", 187, 223, top: 33, bottom: 9, radius: 46,
+              aliases: ["apple-watch-42mm", "apple-watch-series-11-42mm"]),
+        watch("apple-watch-ultra-2", "Apple Watch Ultra 2 (49mm)", 205, 251, top: 37, bottom: 10, radius: 48,
+              aliases: ["apple-watch-ultra", "apple-watch-ultra-49mm"]),
+
         // iPads. Corner radii are approximations (18pt for the 11/13-inch, 21.5 for the mini).
         pad("ipad", "iPad (11th generation)", 820, 1180, radius: 18, aliases: ["ipad-10", "ipad-a16", "iPad (10th generation)"]),
         pad("ipad-mini", "iPad mini (A17 Pro)", 744, 1133, radius: 21.5),
@@ -181,10 +200,11 @@ package struct DeviceProfile {
     static func listing() -> String {
         func n(_ v: CGFloat) -> String { v == v.rounded() ? "\(Int(v))" : "\(v)" }
         var lines: [String] = []
+        let idWidth = table.map(\.id.count).max()! + 2, nameWidth = table.map(\.name.count).max()! + 2
         for d in table {
             let a = d.portraitSafeArea, l = d.landscapeSafeArea
-            let id = d.id.padding(toLength: 18, withPad: " ", startingAt: 0)
-            let nm = d.name.padding(toLength: 28, withPad: " ", startingAt: 0)
+            let id = d.id.padding(toLength: idWidth, withPad: " ", startingAt: 0)
+            let nm = d.name.padding(toLength: nameWidth, withPad: " ", startingAt: 0)
             let sz = "\(n(d.portraitSize.width))x\(n(d.portraitSize.height)) @\(n(d.scale))x".padding(toLength: 16, withPad: " ", startingAt: 0)
             lines.append("\(id)\(nm)\(sz)\(d.housing.label.padding(toLength: 15, withPad: " ", startingAt: 0))"
                          + "safe \(n(a.top))/\(n(a.leading))/\(n(a.bottom))/\(n(a.trailing)) land \(n(l.top))/\(n(l.leading))/\(n(l.bottom))/\(n(l.trailing))")

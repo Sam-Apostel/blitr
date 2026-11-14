@@ -8,7 +8,7 @@ enum DeviceChrome {
                      showsHousing: Bool = false) {
         let color = _Paint.color(scheme == .dark ? .white : .black)
         // Apple TV has an overscan margin but no home indicator or status bar.
-        if device.safeArea.bottom > 0, device.idiom != .tv, showsHomeIndicator(device: device, osVersion: osVersion) {
+        if device.safeArea.bottom > 0, device.idiom != .tv, device.idiom != .watch, showsHomeIndicator(device: device, osVersion: osVersion) {
             // iPhone: 139x5, 8pt above the bottom edge. iPad: longer; 219pt is an estimate.
             let width: CGFloat = device.idiom == .pad ? 219 : 139
             let bar = CGRect(x: (size.width - width) / 2, y: size.height - 8 - 5, width: width, height: 5)
@@ -18,6 +18,7 @@ enum DeviceChrome {
         if device.safeArea.top > 0, device.showsStatusBar {
             switch (device.idiom, device.housing) {
             case (.pad, _): drawPadStatusBar(p, size: size, scheme: scheme, color: color)
+            case (.watch, _): drawWatchTime(p, device: device, size: size, scheme: scheme)
             case (_, .homeButton): drawHomeButtonStatusBar(p, device: device, size: size, scheme: scheme, color: color)
             case (_, .notch(let notch)): drawPhoneStatusBar(p, device: device, size: size, scheme: scheme, color: color, notchWidth: notch.width)
             default: drawPhoneStatusBar(p, device: device, size: size, scheme: scheme, color: color, notchWidth: nil)
@@ -50,6 +51,14 @@ enum DeviceChrome {
         let ctx = PlaceContext(origin: .zero, container: CGRect(origin: .zero, size: canvas), safeRect: CGRect(origin: .zero, size: canvas), scale: p.scale)
         text.place(at: CGPoint(x: originX, y: centerY - s.height / 2), size: s, ctx)
         text.draw(p)
+    }
+
+    /// Apple Watch: the time in the top trailing corner, clear of the rounded display corner, as watchOS
+    /// draws it over an app (10:09, the watch simulator's time). Sizes are estimates scaled by screen width.
+    private static func drawWatchTime(_ p: Painter, device: DeviceProfile, size: CGSize, scheme: ColorScheme) {
+        let k = size.width / 208
+        drawText(p, "10:09", size: (17 * k).rounded(), weight: .semibold, x: size.width - 22 * k, centerY: device.safeArea.top * 0.55,
+                 anchor: .trailing, canvas: size, scheme: scheme)
     }
 
     /// Notch and Dynamic Island phones: time in the left ear, indicators in the right one.
