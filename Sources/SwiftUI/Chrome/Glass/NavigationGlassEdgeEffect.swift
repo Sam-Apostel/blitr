@@ -3,16 +3,6 @@ internal import CSkia
 // The scroll edge effect of Liquid Glass bars, and the questions a glass bar asks about its
 // surroundings (is content under me, is a tab bar below me).
 
-enum TabBarHostsContentKey: EnvironmentKey { static let defaultValue = false }
-extension EnvironmentValues {
-    /// True for content shown above a tab bar. A TabView can set this so a navigation stack inside it
-    /// does not also put a search field at the bottom; the stack also detects a bar below it from the safe area.
-    var tabBarHostsContent: Bool {
-        get { self[TabBarHostsContentKey.self] }
-        set { self[TabBarHostsContentKey.self] = newValue }
-    }
-}
-
 enum NavigationGlass {
     /// Whether something (a tab bar) already occupies the bottom of the screen below a stack:
     /// its safe area ends well above the device's own bottom inset.
