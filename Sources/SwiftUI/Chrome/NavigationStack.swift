@@ -543,7 +543,7 @@ final class NavigationStackNode: Node {
         search = chrome.search.map { SearchFieldNode(configuration: $0, env: barEnv) }
         searchPrefersBottom = glass != nil && _currentConfiguration().device.idiom == .phone
             && [.automatic, .toolbar].contains(chrome.search?.placement ?? .navigationBarDrawer)
-        tabBarHostsContent = env.tabBarHostsContent
+        tabBarHostsContent = env.hasEnclosingTabBar
 
         // Bottom toolbar: the items' own Spacers distribute them; without any, spread them out.
         if glass != nil {
