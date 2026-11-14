@@ -27,7 +27,11 @@ enum SheetMetrics {
     /// Liquid Glass sheets (iOS 26+). Values marked (est.) are estimates kept here for calibration.
     struct Glass {
         /// Below the large detent the sheet floats: inset from the screen's sides and bottom.
-        var floatingInset: CGFloat = 8              // (est.)
+        var floatingInset: CGFloat = 8              // measured: iOS 27.0 simulator
+        /// The medium detent's card top sits this far above the middle of the screen. measured: iOS 27.0 simulator (403.7pt)
+        /// (The simulator also lays the floating sheet's content out at screen width and scales it by
+        /// (width - 2 x inset) / width, 0.959 on iPhone 16; not modelled.)
+        var mediumDetentRaise: CGFloat = 22.33
         /// Floating corners are concentric with the display corners, but never tighter than this.
         var floatingMinCornerRadius: CGFloat = 34   // (est.)
         /// Large detent (attached, opaque) and iPad form sheet.
@@ -296,7 +300,7 @@ final class SheetLayerNode: PresentationLayerNode {
         let top: CGFloat
         switch detent.kind {
         case .large: top = largeTop
-        case .medium: top = size.height / 2
+        case .medium: top = size.height / 2 - (env.designLanguage.isGlass ? SheetMetrics.forDesign(env.designLanguage).mediumDetentRaise : 0)
         case .fraction(let f): top = size.height - f * (size.height - largeTop)
         case .height(let h): top = size.height - deviceInsets.bottom - h
         case .custom:
