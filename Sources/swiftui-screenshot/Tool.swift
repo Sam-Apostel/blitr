@@ -246,7 +246,7 @@ func build(_ options: Options, _ installation: Installation) -> Build {
             if index < sources.count { originalPath[path] = sources[index].path }
         }
         var arguments = ["-swift-version", "5", "-Onone", "-module-name", "App", "-no-color-diagnostics",
-                         "-I", installation.sdk, "-L", installation.sdk, "-lSwiftUI",
+                         "-I", installation.sdk, "-L", installation.sdk, "-lSwiftUI", "-lCombine", "-lUIKit",
                          "-Xlinker", "-rpath", "-Xlinker", installation.sdk]
         arguments += written + ["-o", runner]
         if options.verbose { note(([installation.swiftc] + arguments).joined(separator: " ")) }

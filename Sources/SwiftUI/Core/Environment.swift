@@ -12,7 +12,11 @@ public struct EnvironmentValues: CustomStringConvertible {
     public init() {}
 
     public subscript<K: EnvironmentKey>(key: K.Type) -> K.Value {
-        get { (storage[ObjectIdentifier(key)] as? K.Value) ?? K.defaultValue }
+        get {
+            // Not `as? K.Value ?? default`: for an optional Value a missing entry would cast to `.some(nil)`.
+            guard let stored = storage[ObjectIdentifier(key)] else { return K.defaultValue }
+            return stored as! K.Value
+        }
         set { storage[ObjectIdentifier(key)] = newValue }
     }
 

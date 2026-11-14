@@ -4,13 +4,20 @@ import PackageDescription
 // Native Skia is fetched by scripts/bootstrap.sh into Vendor/ (not committed).
 let skiaLib = Context.packageDirectory + "/Vendor/skia/lib"
 
+// Modules that user code imports are built with library evolution so their private
+// C dependencies do not leak into the user's compile.
+let moduleSettings: [SwiftSetting] = [.swiftLanguageMode(.v5), .unsafeFlags(["-enable-library-evolution"])]
+
 let package = Package(
     name: "swift-ui-screenshot",
     products: [
         // A Linux reimplementation of the SwiftUI API surface, named `SwiftUI`
         // so unmodified app code (`import SwiftUI`) compiles against it.
         .library(name: "SwiftUI", type: .dynamic, targets: ["SwiftUI"]),
-        // The command-line tool: compiles user sources against the module above and renders them.
+        // Shims so `import Combine` / `import UIKit` resolve (SwiftUI re-exports Combine).
+        .library(name: "Combine", type: .dynamic, targets: ["Combine"]),
+        .library(name: "UIKit", type: .dynamic, targets: ["UIKit"]),
+        // The command-line tool: compiles user sources against the modules above and renders them.
         .executable(name: "swiftui-screenshot", targets: ["swiftui-screenshot"]),
     ],
     targets: [
@@ -23,11 +30,9 @@ let package = Package(
             ]
         ),
         .systemLibrary(name: "CHarfBuzz", pkgConfig: "harfbuzz", providers: [.apt(["libharfbuzz-dev"])]),
-        .target(
-            name: "SwiftUI",
-            dependencies: ["CSkia", "CHarfBuzz"],
-            swiftSettings: [.swiftLanguageMode(.v5), .unsafeFlags(["-enable-library-evolution"])]
-        ),
+        .target(name: "Combine", swiftSettings: moduleSettings),
+        .target(name: "SwiftUI", dependencies: ["CSkia", "CHarfBuzz", "Combine"], swiftSettings: moduleSettings),
+        .target(name: "UIKit", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
         .executableTarget(name: "swiftui-screenshot", swiftSettings: [.swiftLanguageMode(.v5)]),
     ]
 )
