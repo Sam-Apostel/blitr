@@ -40,6 +40,9 @@ let package = Package(
         .target(name: "AppIntents", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
         .target(name: "ActivityKit", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
         .target(name: "WidgetKit", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
+        // `import CoreLocation` / `import MapKit`: re-export SwiftUI, where the API lives (Sources/SwiftUI/Maps).
+        .target(name: "CoreLocation", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
+        .target(name: "MapKit", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
         .executableTarget(name: "swiftui-screenshot", swiftSettings: [.swiftLanguageMode(.v5)]),
     ]
 )

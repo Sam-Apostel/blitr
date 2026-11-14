@@ -51,8 +51,8 @@ for m in SwiftUI Combine UIKit; do
   cp -r "$bin/$m.swiftmodule" "$lib/"
   cp "$bin/lib$m.so" "$lib/"
 done
-# Widget extension imports: their API is in libSwiftUI, so only the module interfaces are needed.
-for m in WidgetKit ActivityKit AppIntents; do
+# Shims that only re-export SwiftUI: their API is in libSwiftUI, so only the module interfaces are needed.
+for m in WidgetKit ActivityKit AppIntents CoreLocation MapKit; do
   cp -r "$bin/$m.swiftmodule" "$lib/"
 done
 
