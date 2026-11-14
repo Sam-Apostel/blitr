@@ -455,14 +455,6 @@ enum GaugeStyleKind {
     enum Kind { case linearCapacity, accessoryLinear, accessoryLinearCapacity, accessoryCircular, accessoryCircularCapacity }
 }
 
-public protocol GaugeStyle {}
-public struct DefaultGaugeStyle: GaugeStyle { public init() {} }
-public struct LinearCapacityGaugeStyle: GaugeStyle { public init() {} }
-public struct AccessoryLinearGaugeStyle: GaugeStyle { public init() {} }
-public struct AccessoryLinearCapacityGaugeStyle: GaugeStyle { public init() {} }
-public struct AccessoryCircularGaugeStyle: GaugeStyle { public init() {} }
-public struct AccessoryCircularCapacityGaugeStyle: GaugeStyle { public init() {} }
-
 extension GaugeStyle where Self == DefaultGaugeStyle { public static var automatic: DefaultGaugeStyle { DefaultGaugeStyle() } }
 extension GaugeStyle where Self == LinearCapacityGaugeStyle { public static var linearCapacity: LinearCapacityGaugeStyle { LinearCapacityGaugeStyle() } }
 extension GaugeStyle where Self == AccessoryLinearGaugeStyle { public static var accessoryLinear: AccessoryLinearGaugeStyle { AccessoryLinearGaugeStyle() } }
@@ -480,12 +472,16 @@ extension EnvironmentValues {
 extension View {
     public func gaugeStyle<S: GaugeStyle>(_ style: S) -> some View {
         env {
+            $0.gaugeCustomStyleBox = nil
             switch style {
             case is AccessoryLinearGaugeStyle: $0.gaugeStyleKind = .accessoryLinear
             case is AccessoryLinearCapacityGaugeStyle: $0.gaugeStyleKind = .accessoryLinearCapacity
-            case is AccessoryCircularGaugeStyle: $0.gaugeStyleKind = .accessoryCircular
+            case is AccessoryCircularGaugeStyle, is CircularGaugeStyle: $0.gaugeStyleKind = .accessoryCircular
             case is AccessoryCircularCapacityGaugeStyle: $0.gaugeStyleKind = .accessoryCircularCapacity
-            default: $0.gaugeStyleKind = .linearCapacity
+            case is DefaultGaugeStyle, is LinearCapacityGaugeStyle, is LinearGaugeStyle: $0.gaugeStyleKind = .linearCapacity
+            default:
+                $0.gaugeStyleKind = .linearCapacity
+                $0.gaugeCustomStyleBox = GaugeStyleBox { AnyView(_GaugeStyleApplier(style: style, configuration: $0)) }
             }
         }
     }
@@ -499,8 +495,11 @@ public struct Gauge<Label: View, CurrentValueLabel: View, BoundsLabel: View, Mar
     let minLabel: AnyView?
     let maxLabel: AnyView?
     @Environment(\.gaugeStyleKind) private var kind
+    @Environment(\.gaugeCustomStyleBox) private var customStyle
+    var forcedKind: GaugeStyleKind.Kind?
 
-    init(fraction: Double, label: AnyView, current: AnyView?, minLabel: AnyView?, maxLabel: AnyView?) {
+    init(fraction: Double, label: AnyView, current: AnyView?, minLabel: AnyView?, maxLabel: AnyView?, forcedKind: GaugeStyleKind.Kind? = nil) {
+        self.forcedKind = forcedKind
         self.fraction = clamp01(fraction)
         self.label = label
         self.current = current
@@ -523,7 +522,17 @@ public struct Gauge<Label: View, CurrentValueLabel: View, BoundsLabel: View, Mar
     }
 
     @ViewBuilder private var gaugeBody: some View {
-        switch kind {
+        if forcedKind == nil, let customStyle {
+            customStyle.make(GaugeStyleConfiguration(
+                value: fraction, label: .init(view: label), currentValueLabel: current.map { .init(view: $0) },
+                minimumValueLabel: minLabel.map { .init(view: $0) }, maximumValueLabel: maxLabel.map { .init(view: $0) }))
+        } else {
+            builtInBody
+        }
+    }
+
+    @ViewBuilder private var builtInBody: some View {
+        switch forcedKind ?? kind {
         case .linearCapacity, .accessoryLinearCapacity, .accessoryLinear: linear
         case .accessoryCircular: circular(open: true)
         case .accessoryCircularCapacity: circular(open: false)

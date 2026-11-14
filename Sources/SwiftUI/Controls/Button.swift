@@ -443,6 +443,8 @@ public struct Menu<Label: View, Content: View>: View {
     let label: Label
     let content: Content
     let primaryAction: (@MainActor () -> Void)?
+    @Environment(\.menuStyleBox) private var customStyle
+    var forceDefault = false
 
     public init(@ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label) {
         self.content = content()
@@ -457,8 +459,12 @@ public struct Menu<Label: View, Content: View>: View {
 
     /// A closed menu looks like a button with the menu's label; the items are not shown.
     public var body: some View {
-        Button(action: primaryAction ?? {}) { label }
-            .axInfo(shared: true) { $0.addTraits = [.hasPopup] }
+        if let custom = customStyle, !forceDefault {
+            custom.make(AnyView(label), AnyView(content))
+        } else {
+            Button(action: primaryAction ?? {}) { label }
+                .axInfo(shared: true) { $0.addTraits = [.hasPopup] }
+        }
     }
 }
 
@@ -478,15 +484,4 @@ extension Menu where Label == SwiftUI.Label<Text, Image> {
     public init<S: StringProtocol>(_ title: S, systemImage name: String, @ViewBuilder content: () -> Content) {
         self.init(content: content) { SwiftUI.Label(title, systemImage: name) }
     }
-}
-
-public struct MenuStyle: Sendable {
-    let raw: Int
-    public static let automatic = MenuStyle(raw: 0)
-    public static let button = MenuStyle(raw: 1)
-    public static let borderlessButton = MenuStyle(raw: 2)
-}
-extension View {
-    /// Menus are always drawn closed, so the style has no effect on a screenshot.
-    public func menuStyle(_ style: MenuStyle) -> some View { self }
 }

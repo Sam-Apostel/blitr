@@ -137,11 +137,21 @@ extension Label where Title == Text, Icon == Image {
 public struct LabeledContent<Label: View, Content: View>: View {
     let label: Label
     let content: Content
+    @Environment(\.labeledContentStyleBox) private var customStyle
+    var forceDefault = false
     public init(@ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label) {
         self.content = content()
         self.label = label()
     }
     public var body: some View {
+        if let custom = customStyle, !forceDefault {
+            custom.make(AnyView(label), AnyView(content))
+                .axInfo { $0.isElement = true; $0.children = .combine }
+        } else {
+            defaultBody
+        }
+    }
+    private var defaultBody: some View {
         HStack {
             label
             Spacer(minLength: 8)

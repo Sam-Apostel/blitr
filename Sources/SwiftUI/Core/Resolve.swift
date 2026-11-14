@@ -141,5 +141,7 @@ private func installDynamicProperties(of value: Any, _ ic: inout InstallContext)
 private func holdsDynamicProperties(_ value: Any) -> Bool {
     value is any ButtonStyle || value is any PrimitiveButtonStyle || value is any ToggleStyle
         || value is any LabelStyle || value is any ProgressViewStyle || value is any GaugeStyle
-        || value is any GroupBoxStyle
+        || value is any GroupBoxStyle || value is any LabeledContentStyle || value is any DisclosureGroupStyle
+        || value is any MenuStyle || value is any ControlGroupStyle || value is any DatePickerStyle
+        || value is any NavigationSplitViewStyle || value is any TextEditorStyle
 }

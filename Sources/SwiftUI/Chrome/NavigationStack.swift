@@ -232,14 +232,6 @@ public struct NavigationSplitView<Sidebar: View, Content: View, Detail: View>: V
     }
 }
 
-public protocol NavigationSplitViewStyle {}
-public struct AutomaticNavigationSplitViewStyle: NavigationSplitViewStyle { public init() {} }
-public struct BalancedNavigationSplitViewStyle: NavigationSplitViewStyle { public init() {} }
-public struct ProminentDetailNavigationSplitViewStyle: NavigationSplitViewStyle { public init() {} }
-extension NavigationSplitViewStyle where Self == AutomaticNavigationSplitViewStyle { public static var automatic: Self { .init() } }
-extension NavigationSplitViewStyle where Self == BalancedNavigationSplitViewStyle { public static var balanced: Self { .init() } }
-extension NavigationSplitViewStyle where Self == ProminentDetailNavigationSplitViewStyle { public static var prominentDetail: Self { .init() } }
-
 public protocol NavigationViewStyle {}
 public struct DefaultNavigationViewStyle: NavigationViewStyle { public init() {} }
 public struct StackNavigationViewStyle: NavigationViewStyle { public init() {} }
@@ -1144,7 +1136,6 @@ extension View {
         return navigationChrome { chrome, _ in if let item { chrome.presented.append(AnyView(destination(item))) } }
     }
 
-    public func navigationSplitViewStyle<S: NavigationSplitViewStyle>(_ style: S) -> some View { self }
     public func navigationSplitViewColumnWidth(_ width: CGFloat) -> some View { self }
     public func navigationSplitViewColumnWidth(min: CGFloat? = nil, ideal: CGFloat, max: CGFloat? = nil) -> some View { self }
     @available(*, deprecated)

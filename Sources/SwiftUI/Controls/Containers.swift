@@ -9,16 +9,6 @@ public struct DatePickerComponents: OptionSet, Sendable {
     public static let date = DatePickerComponents(rawValue: 2)
 }
 
-public protocol DatePickerStyle {}
-public struct DefaultDatePickerStyle: DatePickerStyle { public init() {} }
-public struct CompactDatePickerStyle: DatePickerStyle { public init() {} }
-public struct GraphicalDatePickerStyle: DatePickerStyle { public init() {} }
-public struct WheelDatePickerStyle: DatePickerStyle { public init() {} }
-extension DatePickerStyle where Self == DefaultDatePickerStyle { public static var automatic: DefaultDatePickerStyle { DefaultDatePickerStyle() } }
-extension DatePickerStyle where Self == CompactDatePickerStyle { public static var compact: CompactDatePickerStyle { CompactDatePickerStyle() } }
-extension DatePickerStyle where Self == GraphicalDatePickerStyle { public static var graphical: GraphicalDatePickerStyle { GraphicalDatePickerStyle() } }
-extension DatePickerStyle where Self == WheelDatePickerStyle { public static var wheel: WheelDatePickerStyle { WheelDatePickerStyle() } }
-
 enum DatePickerGraphicalKey: EnvironmentKey { static let defaultValue = false }
 extension EnvironmentValues {
     var datePickerGraphical: Bool {
@@ -26,14 +16,7 @@ extension EnvironmentValues {
         set { self[DatePickerGraphicalKey.self] = newValue }
     }
 }
-extension View {
-    /// Compact and graphical are drawn; the wheel style is drawn as compact.
-    public func datePickerStyle<S: DatePickerStyle>(_ style: S) -> some View {
-        env { $0.datePickerGraphical = style is GraphicalDatePickerStyle }
-    }
-}
-
-private func formatted(_ date: Date, _ format: String) -> String {
+func formatted(_ date: Date, _ format: String) -> String {
     let f = DateFormatter()
     f.locale = Locale(identifier: "en_US")
     f.dateFormat = format
@@ -99,24 +82,47 @@ struct _GraphicalCalendar: View {
 
 public struct DatePicker<Label: View>: View {
     private let _tvOSCheck = tvOSUnavailable("DatePicker")
-    let date: Date
+    let selection: Binding<Date>
     let components: DatePickerComponents
     let label: Label?
-    @Environment(\.datePickerGraphical) private var graphical
+    var minimumDate: Date?
+    var maximumDate: Date?
+    var forcedKind: DatePickerKind?
+    @Environment(\.datePickerGraphical) private var datePickerGraphical
+    @Environment(\.datePickerStyleBox) private var styleBox
     @Environment(\.isEnabled) private var isEnabled
 
-    init(date: Date, components: DatePickerComponents, label: Label?) {
-        self.date = date
+    var date: Date { selection.wrappedValue }
+
+    init(selection: Binding<Date>, components: DatePickerComponents, label: Label?, minimumDate: Date? = nil, maximumDate: Date? = nil) {
+        self.selection = selection
         self.components = components
         self.label = label
+        self.minimumDate = minimumDate
+        self.maximumDate = maximumDate
     }
 
     public var body: some View {
-        VStack(spacing: 8) {
+        if forcedKind == nil, let make = styleBox?.make {
+            make(DatePickerStyleConfiguration(
+                label: .init(view: label.map { AnyView($0) } ?? AnyView(EmptyView())), selection: selection,
+                minimumDate: minimumDate, maximumDate: maximumDate, displayedComponents: components))
+        } else {
+            builtIn(forcedKind ?? styleBox?.kind ?? (datePickerGraphical ? .graphical : .compact))
+        }
+    }
+
+    private func builtIn(_ kind: DatePickerKind) -> some View {
+        let graphical = kind == .graphical
+        return VStack(spacing: 8) {
             HStack(spacing: 6) {
                 ControlLabel(label: label)
-                if !graphical && components.contains(.date) { _DatePill(text: formatted(date, "MMM d, yyyy")) }
-                if components.contains(.hourAndMinute) { _DatePill(text: formatted(date, "h:mm a")) }
+                if kind == .field || kind == .stepperField {
+                    _DateField(date: date, components: components, stepper: kind == .stepperField)
+                } else {
+                    if !graphical && components.contains(.date) { _DatePill(text: formatted(date, "MMM d, yyyy")) }
+                    if components.contains(.hourAndMinute) { _DatePill(text: formatted(date, "h:mm a")) }
+                }
             }
             if graphical && components.contains(.date) { _GraphicalCalendar(date: date) }
         }
@@ -143,43 +149,43 @@ public struct DatePicker<Label: View>: View {
 
 extension DatePicker where Label == Text {
     public init(_ titleKey: LocalizedStringKey, selection: Binding<Date>, displayedComponents: DatePickerComponents = [.hourAndMinute, .date]) {
-        self.init(date: selection.wrappedValue, components: displayedComponents, label: Text(titleKey))
+        self.init(selection: selection, components: displayedComponents, label: Text(titleKey))
     }
     public init(_ titleKey: LocalizedStringKey, selection: Binding<Date>, in range: ClosedRange<Date>, displayedComponents: DatePickerComponents = [.hourAndMinute, .date]) {
-        self.init(date: selection.wrappedValue, components: displayedComponents, label: Text(titleKey))
+        self.init(selection: selection, components: displayedComponents, label: Text(titleKey), minimumDate: range.lowerBound, maximumDate: range.upperBound)
     }
     public init(_ titleKey: LocalizedStringKey, selection: Binding<Date>, in range: PartialRangeFrom<Date>, displayedComponents: DatePickerComponents = [.hourAndMinute, .date]) {
-        self.init(date: selection.wrappedValue, components: displayedComponents, label: Text(titleKey))
+        self.init(selection: selection, components: displayedComponents, label: Text(titleKey), minimumDate: range.lowerBound)
     }
     public init(_ titleKey: LocalizedStringKey, selection: Binding<Date>, in range: PartialRangeThrough<Date>, displayedComponents: DatePickerComponents = [.hourAndMinute, .date]) {
-        self.init(date: selection.wrappedValue, components: displayedComponents, label: Text(titleKey))
+        self.init(selection: selection, components: displayedComponents, label: Text(titleKey), maximumDate: range.upperBound)
     }
     public init<S: StringProtocol>(_ title: S, selection: Binding<Date>, displayedComponents: DatePickerComponents = [.hourAndMinute, .date]) {
-        self.init(date: selection.wrappedValue, components: displayedComponents, label: Text(title))
+        self.init(selection: selection, components: displayedComponents, label: Text(title))
     }
     public init<S: StringProtocol>(_ title: S, selection: Binding<Date>, in range: ClosedRange<Date>, displayedComponents: DatePickerComponents = [.hourAndMinute, .date]) {
-        self.init(date: selection.wrappedValue, components: displayedComponents, label: Text(title))
+        self.init(selection: selection, components: displayedComponents, label: Text(title), minimumDate: range.lowerBound, maximumDate: range.upperBound)
     }
     public init<S: StringProtocol>(_ title: S, selection: Binding<Date>, in range: PartialRangeFrom<Date>, displayedComponents: DatePickerComponents = [.hourAndMinute, .date]) {
-        self.init(date: selection.wrappedValue, components: displayedComponents, label: Text(title))
+        self.init(selection: selection, components: displayedComponents, label: Text(title), minimumDate: range.lowerBound)
     }
     public init<S: StringProtocol>(_ title: S, selection: Binding<Date>, in range: PartialRangeThrough<Date>, displayedComponents: DatePickerComponents = [.hourAndMinute, .date]) {
-        self.init(date: selection.wrappedValue, components: displayedComponents, label: Text(title))
+        self.init(selection: selection, components: displayedComponents, label: Text(title), maximumDate: range.upperBound)
     }
 }
 
 extension DatePicker {
     public init(selection: Binding<Date>, displayedComponents: DatePickerComponents = [.hourAndMinute, .date], @ViewBuilder label: () -> Label) {
-        self.init(date: selection.wrappedValue, components: displayedComponents, label: label())
+        self.init(selection: selection, components: displayedComponents, label: label())
     }
     public init(selection: Binding<Date>, in range: ClosedRange<Date>, displayedComponents: DatePickerComponents = [.hourAndMinute, .date], @ViewBuilder label: () -> Label) {
-        self.init(date: selection.wrappedValue, components: displayedComponents, label: label())
+        self.init(selection: selection, components: displayedComponents, label: label(), minimumDate: range.lowerBound, maximumDate: range.upperBound)
     }
     public init(selection: Binding<Date>, in range: PartialRangeFrom<Date>, displayedComponents: DatePickerComponents = [.hourAndMinute, .date], @ViewBuilder label: () -> Label) {
-        self.init(date: selection.wrappedValue, components: displayedComponents, label: label())
+        self.init(selection: selection, components: displayedComponents, label: label(), minimumDate: range.lowerBound)
     }
     public init(selection: Binding<Date>, in range: PartialRangeThrough<Date>, displayedComponents: DatePickerComponents = [.hourAndMinute, .date], @ViewBuilder label: () -> Label) {
-        self.init(date: selection.wrappedValue, components: displayedComponents, label: label())
+        self.init(selection: selection, components: displayedComponents, label: label(), maximumDate: range.upperBound)
     }
 }
 
@@ -244,6 +250,8 @@ public struct DisclosureGroup<Label: View, Content: View>: View {
     let content: Content
     let binding: Binding<Bool>?
     @State private var local = false
+    @Environment(\.disclosureGroupStyleBox) private var customStyle
+    var forceDefault = false
 
     public init(isExpanded: Binding<Bool>, @ViewBuilder content: @escaping () -> Content, @ViewBuilder label: () -> Label) {
         self.binding = isExpanded
@@ -257,6 +265,16 @@ public struct DisclosureGroup<Label: View, Content: View>: View {
     }
 
     public var body: some View {
+        if let custom = customStyle, !forceDefault {
+            custom.make(AnyView(label), AnyView(content), Binding(
+                get: { binding?.wrappedValue ?? local },
+                set: { if let binding { binding.wrappedValue = $0 } else { local = $0 } }))
+        } else {
+            defaultBody
+        }
+    }
+
+    private var defaultBody: some View {
         let expanded = binding?.wrappedValue ?? local
         return VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -350,13 +368,20 @@ extension GroupBox where Label == Text {
 public struct ControlGroup<Content: View>: View, PrimitiveView {
     public typealias Body = Never
     let content: Content
+    var labelView: AnyView?
+    var forceDefault = false
 
     public init(@ViewBuilder content: () -> Content) { self.content = content() }
     public init<C: View, L: View>(@ViewBuilder content: () -> C, @ViewBuilder label: () -> L) where Content == C {
         self.content = content()
+        self.labelView = AnyView(label())
     }
 
     func resolve(_ ctx: ResolveContext, into out: inout [Node]) {
+        if !forceDefault, let box = ctx.env.controlGroupStyleBox, let styled = _styledControlGroup(box, content: AnyView(content), label: labelView) {
+            resolveView(styled, ctx.child("styled"), into: &out)
+            return
+        }
         let nodes = resolveNodes(content, ctx.child("group"))
         let view = HStack(spacing: 0) {
             ForEach(Array(nodes.enumerated()), id: \.offset) { pair in

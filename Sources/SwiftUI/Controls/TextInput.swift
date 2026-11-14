@@ -167,6 +167,7 @@ public struct TextEditor: View {
             .padding(.horizontal, 5)
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .modifier(_TextEditorBorder())
             .axInfo(context: { ctx in .textInput(role: "textEditor", text: text, placeholder: nil, ctx) })
             .focusElement(role: "textEditor", activate: { Runtime.current?.warn("select on a text field would open the tvOS keyboard; text entry is not simulated") })
     }
