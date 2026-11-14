@@ -60,7 +60,40 @@ enum ListMetrics {
     static let badgeFontSize: CGFloat = 17
 }
 
+/// The measurements of a List that differ between design languages. `.flat` is exactly the
+/// `ListMetrics` constants (iOS 18); the glass values are estimates to calibrate later.
+struct ListDesignMetrics {
+    var minRowHeight: CGFloat
+    var rowInsetVertical: CGFloat
+    var rowInsetHorizontal: CGFloat
+    var cardCornerRadius: CGFloat
+    /// Distance between the trailing end of a separator and the card's trailing edge.
+    var separatorTrailingInset: CGFloat
+    var headerFontSize: CGFloat
+    var headerWeight: Font.Weight?
+    var headerUppercased: Bool
+    var headerBaselineToCard: CGFloat
+}
+
 extension ListMetrics {
+    static func forDesign(_ design: DesignLanguage) -> ListDesignMetrics {
+        guard design.isGlass else {
+            return ListDesignMetrics(minRowHeight: minRowHeight, rowInsetVertical: rowInsetTop, rowInsetHorizontal: rowInsetHorizontal,
+                                     cardCornerRadius: cardCornerRadius, separatorTrailingInset: 0, headerFontSize: headerFontSize,
+                                     headerWeight: nil, headerUppercased: true, headerBaselineToCard: headerBaselineToCard)
+        }
+        // iOS 26 and 27 share these values (iOS 27 did not change lists).
+        return ListDesignMetrics(minRowHeight: 52,                 // est.
+                                 rowInsetVertical: 15,             // 22pt line + 2 * 15 = 52
+                                 rowInsetHorizontal: 20,           // est.
+                                 cardCornerRadius: 26,
+                                 separatorTrailingInset: 20,       // est.
+                                 headerFontSize: 15,               // est.
+                                 headerWeight: .semibold,
+                                 headerUppercased: false,
+                                 headerBaselineToCard: 12)         // about 8pt below the descenders, est.
+    }
+
     @MainActor static func colors(_ env: EnvironmentValues, style: ListStyleKind) -> (background: RGBA, card: RGBA) {
         let scheme = env.colorScheme
         let elevated = env.isElevatedPresentation && scheme == .dark

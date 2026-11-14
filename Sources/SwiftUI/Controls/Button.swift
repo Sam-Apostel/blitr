@@ -173,8 +173,23 @@ struct ButtonMetrics {
     var h: CGFloat, v: CGFloat, radius: CGFloat
     var font: Font?
     var weight: Font.Weight?
+    /// Minimum height of the bordered/glass background (glass designs; nil keeps the padding-derived height).
+    var minHeight: CGFloat?
 
-    init(_ size: ControlSize) {
+    init(_ size: ControlSize, design: DesignLanguage = .flat) {
+        minHeight = nil
+        if design.isGlass {
+            // iOS 26: capsule buttons with fixed heights; the horizontal padding grows with the rounder ends.
+            // All estimates (est.), shared by iOS 26 and 27.
+            switch size {
+            case .mini: (h, v, radius, font, weight, minHeight) = (10, 3, 12, .system(size: 12), nil, 24)
+            case .small: (h, v, radius, font, weight, minHeight) = (12, 4, 14, .system(size: 15), nil, 28)
+            case .regular: (h, v, radius, font, weight, minHeight) = (16, 7, 18, nil, nil, 36)
+            case .large: (h, v, radius, font, weight, minHeight) = (24, 14, 26, nil, .semibold, 52)
+            case .extraLarge: (h, v, radius, font, weight, minHeight) = (28, 16, 30, .system(size: 20), .semibold, 60)
+            }
+            return
+        }
         switch size {
         case .mini: (h, v, radius, font, weight) = (8, 3, 7, .system(size: 12), nil)
         case .small: (h, v, radius, font, weight) = (10, 4, 8, .system(size: 15), nil)
@@ -185,8 +200,47 @@ struct ButtonMetrics {
     }
 }
 
+// MARK: - Glass styles and sizing (iOS 26)
+
+/// A neutral Liquid Glass capsule with a primary-colored label. Renders as `.bordered` before iOS 26.
+public struct GlassButtonStyle: PrimitiveButtonStyle {
+    public init() {}
+    public func makeBody(configuration: PrimitiveButtonStyleConfiguration) -> some View {
+        _ButtonVisual(kind: .glass, label: AnyView(configuration.label), role: configuration.role)
+    }
+}
+/// Accent-tinted Liquid Glass with a white label. Renders as `.borderedProminent` before iOS 26.
+public struct GlassProminentButtonStyle: PrimitiveButtonStyle {
+    public init() {}
+    public func makeBody(configuration: PrimitiveButtonStyleConfiguration) -> some View {
+        _ButtonVisual(kind: .glassProminent, label: AnyView(configuration.label), role: configuration.role)
+    }
+}
+extension PrimitiveButtonStyle where Self == GlassButtonStyle { public static var glass: GlassButtonStyle { GlassButtonStyle() } }
+extension PrimitiveButtonStyle where Self == GlassProminentButtonStyle { public static var glassProminent: GlassProminentButtonStyle { GlassProminentButtonStyle() } }
+
+public struct ButtonSizing: Hashable, Sendable {
+    enum Kind: Hashable, Sendable { case automatic, flexible, fitted }
+    let kind: Kind
+    public static let automatic = ButtonSizing(kind: .automatic)
+    /// Fills the width the parent offers.
+    public static let flexible = ButtonSizing(kind: .flexible)
+    /// Sizes to the label.
+    public static let fitted = ButtonSizing(kind: .fitted)
+}
+enum ButtonSizingKey: EnvironmentKey { static let defaultValue = ButtonSizing.automatic }
+extension EnvironmentValues {
+    var buttonSizing: ButtonSizing {
+        get { self[ButtonSizingKey.self] }
+        set { self[ButtonSizingKey.self] = newValue }
+    }
+}
+extension View {
+    public func buttonSizing(_ sizing: ButtonSizing) -> some View { env { $0.buttonSizing = sizing } }
+}
+
 struct _ButtonVisual: View {
-    enum Kind { case plain, borderless, bordered, prominent }
+    enum Kind { case plain, borderless, bordered, prominent, glass, glassProminent }
     let kind: Kind
     let label: AnyView
     let role: ButtonRole?
@@ -194,6 +248,8 @@ struct _ButtonVisual: View {
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.controlSize) private var size
     @Environment(\.buttonBorderShape) private var borderShape
+    @Environment(\.buttonSizing) private var sizing
+    @Environment(\.designLanguage) private var design
     @Environment(\.accentColor) private var explicitAccent
     @Environment(\.foregroundStyle) private var explicitForeground
     @Environment(\.font) private var userFont
@@ -205,12 +261,14 @@ struct _ButtonVisual: View {
         case .capsule: return AnyShape(Capsule())
         case .circle: return AnyShape(Circle())
         case .rounded(let r?): return AnyShape(RoundedRectangle(cornerRadius: r))
-        case .rounded(nil), .automatic: return AnyShape(RoundedRectangle(cornerRadius: m.radius))
+        case .rounded(nil), .automatic:
+            // iOS 26: bordered buttons default to a capsule.
+            return design.isGlass ? AnyShape(Capsule()) : AnyShape(RoundedRectangle(cornerRadius: m.radius))
         }
     }
 
     private var styled: AnyView {
-        let m = ButtonMetrics(size)
+        let m = ButtonMetrics(size, design: design)
         let tinted = destructive || explicitAccent != nil
         let disabledColor = Color(SystemColor.tertiaryLabel)
         var content = label
@@ -225,21 +283,43 @@ struct _ButtonVisual: View {
             if explicitForeground != nil && !destructive { return content }
             return AnyView(content.foregroundStyle(Color.accentColor))
         case .bordered:
+            // Before iOS 26 the glass styles look like their bordered counterparts.
             let fill = tinted ? Color.accentColor.opacity(0.15) : Color(SystemColor.tertiaryFill)
             let foreground: Color = isEnabled ? Color.accentColor : disabledColor
             return AnyView(
-                content
-                    .foregroundStyle(foreground)
-                    .padding(.horizontal, m.h).padding(.vertical, m.v)
+                padded(content.foregroundStyle(foreground), m)
                     .background(fill, in: shape(m)))
         case .prominent:
             let fill: Color = isEnabled ? Color.accentColor : Color(SystemColor.tertiaryFill)
             let foreground: Color = isEnabled ? .white : disabledColor
             return AnyView(
-                content
-                    .foregroundStyle(foreground)
-                    .padding(.horizontal, m.h).padding(.vertical, m.v)
+                padded(content.foregroundStyle(foreground), m)
                     .background(fill, in: shape(m)))
+        case .glass:
+            guard design.isGlass else { return AnyView(_ButtonVisual(kind: .bordered, label: label, role: role)) }
+            let foreground: Color = !isEnabled ? disabledColor : (tinted ? Color.accentColor : Color(SystemColor.label))
+            return AnyView(
+                padded(content.foregroundStyle(foreground), m)
+                    .modifier(ControlGlassSurface(prominent: false, borderShape: borderShape, enabled: isEnabled)))
+        case .glassProminent:
+            guard design.isGlass else { return AnyView(_ButtonVisual(kind: .prominent, label: label, role: role)) }
+            let foreground: Color = isEnabled ? .white : disabledColor
+            let semibold = design == .liquidGlass27
+            return AnyView(
+                padded(semibold ? AnyView(content.fontWeight(.semibold).foregroundStyle(foreground)) : AnyView(content.foregroundStyle(foreground)), m)
+                    .modifier(ControlGlassSurface(prominent: true, borderShape: borderShape, enabled: isEnabled)))
+        }
+    }
+
+    /// The label with the style's padding; glass designs add the fixed control height, and
+    /// `.buttonSizing(.flexible)` stretches the button over the available width.
+    private func padded<V: View>(_ content: V, _ m: ButtonMetrics) -> AnyView {
+        let padded = content.padding(.horizontal, m.h).padding(.vertical, m.v)
+        switch (m.minHeight, sizing.kind) {
+        case (nil, .flexible): return AnyView(padded.frame(maxWidth: .infinity))
+        case (let h?, .flexible): return AnyView(padded.frame(minHeight: h).frame(maxWidth: .infinity))
+        case (let h?, _): return AnyView(padded.frame(minHeight: h))
+        case (nil, _): return AnyView(padded)
         }
     }
 
