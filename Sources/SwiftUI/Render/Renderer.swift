@@ -24,8 +24,9 @@ struct RenderConfiguration {
     var locale: String?
     /// Seconds async `.task` work may run before the frame is taken.
     var taskBudget: TimeInterval = 0.5
-    /// Major iOS version whose look is rendered.
+    /// Major OS version whose look is rendered (iOS numbering; tvOS and the others share it).
     var osVersion = RenderedPlatform.defaultVersion
+    var platform = RenderPlatform.iOS
 }
 
 struct RenderResult {
@@ -48,7 +49,9 @@ enum Renderer {
         env.displayScale = scale
         env.dynamicTypeSize = config.dynamicTypeSize
         env.platformVersion = config.osVersion
+        env.renderPlatform = config.platform
         RenderedPlatform.current = config.osVersion
+        RenderedPlatform.platform = config.platform
         // An app's accent color comes from the "AccentColor" asset when there is one.
         if let accent = AssetCatalog.shared.color(named: "AccentColor", scheme: config.colorScheme) {
             env.accentColor = Color(accent)
