@@ -12,6 +12,7 @@ Usage:
   swiftui-screenshot list <file-or-dir>...               List the previews found
   swiftui-screenshot devices                             List device profiles
   swiftui-screenshot doctor                              Check the installation
+  swiftui-screenshot version                             Tool version and the Swift version it was built with
 
 What is rendered (first match wins):
   --view "<expr>"        A view expression, e.g. --view "ContentView()"
@@ -282,6 +283,7 @@ func build(_ options: Options, _ installation: Installation) -> Build {
             for (rewritten, original) in originalPath { diagnostics = diagnostics.replacingOccurrences(of: rewritten, with: original) }
             FileHandle.standardError.write(Data(diagnostics.utf8))
             try? FileManager.default.removeItem(atPath: work)
+            if let mismatch = compilerMismatch(installation) { fail(mismatch) }
             fail("the sources did not compile against the Linux SwiftUI module. Errors about unknown members usually mean an API this renderer does not implement yet.")
         }
     }
@@ -366,10 +368,55 @@ func render(_ options: Options, _ installation: Installation) {
     exit(failures == 0 ? 0 : 1)
 }
 
+// MARK: - Version
+
+/// "Swift version 6.4.2 (swift-6.4.2-RELEASE)" out of compiler output or a .swiftmodule's metadata.
+func swiftVersionBanner(in text: String) -> String? {
+    guard let range = text.range(of: #"Swift version \S+ \([^)]*\)"#, options: .regularExpression) else { return nil }
+    return String(text[range])
+}
+
+/// The compiler that built the bundled modules, read from the module file itself.
+func moduleCompiler(_ installation: Installation) -> String? {
+    let dir = installation.sdk + "/SwiftUI.swiftmodule"
+    guard let name = (try? FileManager.default.contentsOfDirectory(atPath: dir))?.first(where: { $0.hasSuffix(".swiftmodule") }),
+          let data = FileManager.default.contents(atPath: dir + "/" + name) else { return nil }
+    return swiftVersionBanner(in: String(decoding: data.map { $0 < 0x80 ? $0 : 0x20 }, as: UTF8.self))
+}
+
+func runtimeCompiler(_ installation: Installation) -> String? {
+    guard !installation.swiftc.isEmpty else { return nil }
+    return swiftVersionBanner(in: run(installation.swiftc, ["--version"]).stdout)
+}
+
+/// A plain-language message if the compiler on this machine cannot load the bundled modules.
+func compilerMismatch(_ installation: Installation) -> String? {
+    guard let built = moduleCompiler(installation), let current = runtimeCompiler(installation), built != current else { return nil }
+    return "the bundled SwiftUI modules were built with \(built), but \(installation.swiftc) is \(current). "
+        + "Swift modules only load with the exact compiler that built them: install \(built) (set SWIFTC or put it first on PATH), or rebuild swiftui-screenshot with this compiler."
+}
+
+func versionCommand(_ installation: Installation) {
+    var version = "dev", commit = ""
+    let file = installation.sdk + "/../../share/swiftui-screenshot/VERSION"
+    if let text = try? String(contentsOfFile: file, encoding: .utf8) {
+        for line in text.split(separator: "\n") {
+            let parts = line.split(separator: ":", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
+            if parts.count == 2 { if parts[0] == "version" { version = parts[1] } else if parts[0] == "commit" { commit = parts[1] } }
+        }
+    }
+    print("swiftui-screenshot \(version)" + (commit.isEmpty ? "" : " (\(commit))"))
+    print("built with:     \(moduleCompiler(installation) ?? "unknown")")
+    if let current = runtimeCompiler(installation) { print("compiler now:   \(current)") }
+}
+
 func doctor(_ installation: Installation) {
     print("SwiftUI module: \(installation.sdk)")
     print("swiftc:         \(installation.swiftc.isEmpty ? "NOT FOUND" : installation.swiftc)")
     if !installation.swiftc.isEmpty { print("                " + run(installation.swiftc, ["--version"]).stdout.split(separator: "\n").first.map(String.init)!) }
+    print("built with:     \(moduleCompiler(installation) ?? "unknown")")
+    let mismatch = compilerMismatch(installation)
+    if let mismatch { print("PROBLEM:        \(mismatch)") }
     print("font dirs:      \(installation.fontDirectories.isEmpty ? "NONE (run scripts/bootstrap.sh)" : installation.fontDirectories.joined(separator: ", "))")
     let fm = FileManager.default
     let hasSystemFont = installation.appleFontDirectory != nil
@@ -377,7 +424,7 @@ func doctor(_ installation: Installation) {
     let usesSF = installation.appleFontDirectory != nil || installation.fontDirectories.contains { fm.fileExists(atPath: $0 + "/SF-Pro.ttf") }
     if let apple = installation.appleFontDirectory { print("Apple fonts:    \(apple)") }
     print("system font:    \(usesSF ? "SF Pro (fetched from Apple)" : hasSystemFont ? "Inter (open substitute; run scripts/fetch-apple-fonts.sh for SF Pro)" : "MISSING")")
-    exit(hasSystemFont && !installation.swiftc.isEmpty ? 0 : 1)
+    exit(hasSystemFont && !installation.swiftc.isEmpty && mismatch == nil ? 0 : 1)
 }
 
 // MARK: - Entry
@@ -405,6 +452,8 @@ enum Tool {
             listDevices(Installation.locate())
         case "doctor":
             doctor(Installation.locate())
+        case "version", "--version", "-V":
+            versionCommand(Installation.locate())
         case "-h", "--help", "help":
             print(usage)
         default:

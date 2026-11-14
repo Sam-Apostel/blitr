@@ -4,6 +4,10 @@
 #
 #   scripts/fetch-apple-fonts.sh --accept-apple-font-license [--dest DIR]
 #
+# --dest defaults to Vendor/apple-fonts in a source checkout, and to
+# <prefix>/lib/swiftui-screenshot/apple-fonts when run from an installed tree
+# (<prefix>/share/swiftui-screenshot/fetch-apple-fonts.sh), where the tool looks for them.
+#
 # Nothing here is redistributed: the files are downloaded from Apple to this machine and
 # unpacked locally. Apple licenses these fonts solely for creating mock-ups of user
 # interfaces for software running on Apple platforms; read the terms at
@@ -12,15 +16,20 @@
 #
 # Requires: curl, 7z (apt-get install 7zip).
 set -euo pipefail
-cd "$(dirname "$0")/.."
-
-dest="Vendor/apple-fonts"
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -d "$here/../../lib/swiftui-screenshot/SwiftUI.swiftmodule" ]; then
+  # Installed layout: write next to the modules, and leave the caller's directory alone.
+  dest="$(cd "$here/../../lib/swiftui-screenshot" && pwd)/apple-fonts"
+else
+  cd "$here/.."
+  dest="Vendor/apple-fonts"
+fi
 accepted="${ACCEPT_APPLE_FONT_LICENSE:-0}"
 while [ $# -gt 0 ]; do
   case "$1" in
     --accept-apple-font-license) accepted=1 ;;
     --dest) dest="$2"; shift ;;
-    -h|--help) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "unknown option: $1" >&2; exit 2 ;;
   esac
   shift
