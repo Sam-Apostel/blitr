@@ -1,0 +1,88 @@
+{
+  "colorScheme": "light",
+  "device": "Apple TV 4K (3rd generation)",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 45.5,
+        "width": 200,
+        "x": 610,
+        "y": 466
+      },
+      "label": "Inline picker",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "UISegment",
+      "frame": {
+        "height": 84,
+        "width": 233,
+        "x": 610,
+        "y": 531.5
+      },
+      "label": "Auto",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "UISegment",
+      "frame": {
+        "height": 84,
+        "width": 233,
+        "x": 843,
+        "y": 531.5
+      },
+      "label": "1080p",
+      "role": "button",
+      "traits": [
+        "button",
+        "selected"
+      ]
+    },
+    {
+      "class": "UISegment",
+      "frame": {
+        "height": 84,
+        "width": 234,
+        "x": 1076,
+        "y": 531.5
+      },
+      "label": "4K",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    }
+  ],
+  "focused": {
+    "frame": {
+      "height": 84,
+      "width": 700,
+      "x": 610,
+      "y": 531.5
+    }
+  },
+  "model": "AppleTV14,1",
+  "presses": [],
+  "preview": 2,
+  "safeArea": {
+    "bottom": 60,
+    "left": 80,
+    "right": 80,
+    "top": 60
+  },
+  "scale": 2,
+  "screen": "TVControls",
+  "size": {
+    "height": 1080,
+    "width": 1920
+  },
+  "systemVersion": "26.5",
+  "version": 1
+}

@@ -1,0 +1,242 @@
+{
+  "colorScheme": "light",
+  "device": "Apple TV 4K (3rd generation)",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 57.5,
+        "width": 164.5,
+        "x": 451,
+        "y": 183
+      },
+      "label": "Buttons",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 74,
+        "width": 178.5,
+        "x": 447,
+        "y": 280.5
+      },
+      "label": "Focused",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 66,
+        "width": 178.5,
+        "x": 661.5,
+        "y": 284.5
+      },
+      "label": "Bordered",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 66,
+        "width": 192,
+        "x": 880,
+        "y": 284.5
+      },
+      "label": "Prominent",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 66,
+        "width": 143.5,
+        "x": 1112,
+        "y": 284.5
+      },
+      "label": "Delete",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 66,
+        "width": 173.5,
+        "x": 1295.5,
+        "y": 284.5
+      },
+      "label": "Disabled",
+      "role": "button",
+      "traits": [
+        "button",
+        "notEnabled"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 66,
+        "width": 153,
+        "x": 451,
+        "y": 404
+      },
+      "label": "Play",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 66,
+        "width": 166,
+        "x": 644,
+        "y": 404
+      },
+      "label": "Capsule",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 66,
+        "width": 66,
+        "x": 850,
+        "y": 404
+      },
+      "label": "Love",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 50,
+        "width": 121.5,
+        "x": 956,
+        "y": 412
+      },
+      "label": "Small",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 85,
+        "width": 138,
+        "x": 1117.5,
+        "y": 394.5
+      },
+      "label": "Large",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 221,
+        "width": 260,
+        "x": 451,
+        "y": 523.5
+      },
+      "label": "Card",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 374,
+        "width": 220,
+        "x": 771,
+        "y": 523.5
+      },
+      "label": "Borderless",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 360,
+        "width": 280,
+        "x": 1021,
+        "y": 508.5
+      },
+      "label": "",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 65,
+        "width": 178,
+        "x": 1301,
+        "y": 508.5
+      },
+      "label": "Plain text",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    }
+  ],
+  "focused": {
+    "frame": {
+      "height": 66,
+      "width": 170.5,
+      "x": 451,
+      "y": 284.5
+    }
+  },
+  "model": "AppleTV14,1",
+  "presses": [],
+  "preview": 0,
+  "safeArea": {
+    "bottom": 60,
+    "left": 80,
+    "right": 80,
+    "top": 60
+  },
+  "scale": 2,
+  "screen": "TVControls",
+  "size": {
+    "height": 1080,
+    "width": 1920
+  },
+  "systemVersion": "26.5",
+  "version": 1
+}
