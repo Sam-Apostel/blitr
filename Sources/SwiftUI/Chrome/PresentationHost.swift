@@ -41,6 +41,12 @@ enum SheetMetrics {
         var formSheetCornerRadius: CGFloat = 38     // (est.)
         /// Dark: the presenter behind a sheet below the large detent is dimmed more than before iOS 26 (light keeps 0.2).
         var partialDimDark: Double = 0.48                   // measured: iOS 27.0 simulator (presenter at 0.52 of its colour)
+        /// The grabber (drag indicator), in screen points: wider, thinner and a little lower than before iOS 26.
+        var grabberSize = CGSize(width: 57.67, height: 4)   // measured: iOS 27.0 simulator (x 167.7...225.3pt)
+        var grabberTop: CGFloat = 5.67                      // measured: iOS 27.0 simulator (y 409.3...413.3pt, card at 403.7pt)
+        /// Light: darkens the glass to about 73%. Dark: adds a constant (plus-lighter), 34 -> 103 and 91 -> 157.
+        var grabberLight = RGBA(0, 0, 0, 0.27)              // measured: iOS 27.0 simulator
+        var grabberDark = RGBA(0.26, 0.26, 0.26, 1)         // measured: iOS 27.0 simulator
         /// Lists and forms in a floating sheet: no background of their own, and cards that only veil the glass.
         /// measured: iOS 27.0 simulator (form over the sheet's glass: 230 -> 215.5 light, 32 -> 47 dark)
         var listCardLight = RGBA(0, 0, 0, 0.063)
@@ -455,7 +461,19 @@ final class SheetLayerNode: PresentationLayerNode {
         options.backgroundNode?.draw(p)
         content.draw(p)
         p.restore()
-        if showsGrabber {
+        if showsGrabber && design.isGlass && !isFormSheet {
+            let g = glass.grabberSize
+            let r = CGRect(x: cardRect.midX - g.width / 2, y: cardRect.minY + glass.grabberTop, width: g.width, height: g.height)
+            let path = Path(roundedRect: r, cornerRadius: g.height / 2, style: .circular)
+            if env.colorScheme == .dark {
+                // Lightens what is under it by a constant amount, whatever the glass shows.
+                p.saveLayer(.init(blendMode: .plusLighter, bounds: r))
+                p.fill(path, with: .color(glass.grabberDark), in: r)
+                p.restore()
+            } else {
+                p.fill(path, with: .color(glass.grabberLight), in: r)
+            }
+        } else if showsGrabber {
             let g = SheetMetrics.grabberSize
             let r = CGRect(x: cardRect.midX - g.width / 2, y: cardRect.minY + SheetMetrics.grabberTop, width: g.width, height: g.height)
             p.fill(Path(roundedRect: r, cornerRadius: g.height / 2, style: .circular),
