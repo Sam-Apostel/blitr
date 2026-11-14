@@ -89,6 +89,9 @@ func hex<S: Sequence>(_ bytes: S) -> String where S.Element == UInt8 { bytes.map
     let markdown = (try? AttributedString(markdown: "**Bold** and [link](https://example.com) `code`",
                                           options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))).map { String($0.characters) }
     check("Markdown markers removed", markdown == "Bold and link code")
+    let intents = (try? AttributedString(markdown: "**a** _b_ `c` ~~d~~ [e](https://example.com)"))
+        .map { a in a.runs.map { "\($0.inlinePresentationIntent?.rawValue ?? 0)\($0.link == nil ? "" : "L")" }.joined(separator: ",") }
+    check("Markdown inline presentation intents", intents == "2,0,1,0,4,0,32,0,0L")
     return result
 }
 
