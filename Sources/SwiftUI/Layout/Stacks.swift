@@ -8,6 +8,10 @@ final class StackNode: Node {
     let axis: Axis
     let crossAlignment: AlignmentKey
     let spacing: CGFloat?
+    /// iOS 27: two texts above one another are put the lower one's leading apart instead of the default 8pt
+    /// (SwiftUI's text-to-text spacing). measured: iOS 27.0 simulator: body over body and subheadline over
+    /// caption are 2pt apart (leading 22 - 20.3 and 16 - 14.3, rounded up to a pixel).
+    var textToTextSpacing = false
 
     struct Result {
         var sizes: [CGSize] = []
@@ -35,6 +39,10 @@ final class StackNode: Node {
         let (trailing, leading): (Edge, Edge) = axis == .horizontal ? (.trailing, .leading) : (.bottom, .top)
         let sa = a.spacing(trailing), sb = b.spacing(leading)
         if sa == 0 || sb == 0 { return 0 }
+        if textToTextSpacing, axis == .vertical, sa == nil, sb == nil, a.textLeading(.bottom) != nil,
+           let leading = b.textLeading(.top) {
+            return leading
+        }
         return max(sa ?? defaultStackSpacing, sb ?? defaultStackSpacing)
     }
 
@@ -225,7 +233,9 @@ public struct VStack<Content: View>: View, PrimitiveView {
     }
     func resolve(_ ctx: ResolveContext, into out: inout [Node]) {
         let children = resolveNodes(content, ctx.with { $0.stackAxis = .vertical })
-        out.append(StackNode(axis: .vertical, alignment: alignment.key, spacing: spacing, children: children))
+        let node = StackNode(axis: .vertical, alignment: alignment.key, spacing: spacing, children: children)
+        node.textToTextSpacing = ctx.env.designLanguage == .liquidGlass27 && ctx.env.renderPlatform == .iOS
+        out.append(node)
     }
 }
 

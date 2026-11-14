@@ -118,6 +118,9 @@ class Node {
 
     /// Preferred distance to a neighbour in a stack. `nil` means the system default.
     func spacing(_ edge: Edge) -> CGFloat? { nil }
+    /// The leading (line gap) of the text this view starts or ends with at `edge`, rounded up to a pixel;
+    /// nil when the view does not end in text there. A VStack on iOS 27 puts two texts this far apart.
+    func textLeading(_ edge: Edge) -> CGFloat? { nil }
 
     /// Override to provide an explicit alignment guide (text baselines, `.alignmentGuide`).
     func explicitAlignment(_ key: AlignmentKey, size: CGSize) -> CGFloat? { nil }
@@ -164,6 +167,7 @@ class WrapperNode: Node {
     /// What this wrapper proposes to its child when it has been given `size`.
     func childProposal(forOwnSize size: CGSize) -> ProposedViewSize { proposal(forSize: size) }
     override func spacing(_ edge: Edge) -> CGFloat? { child.spacing(edge) }
+    override func textLeading(_ edge: Edge) -> CGFloat? { child.textLeading(edge) }
     override func explicitAlignment(_ key: AlignmentKey, size: CGSize) -> CGFloat? {
         child.explicitAlignment(key, size: size)
     }

@@ -197,6 +197,7 @@ final class MaskNode: Node {
         placeAligned(children[1], childSize: m, in: size, alignment: alignment, ctx)
     }
     override func spacing(_ edge: Edge) -> CGFloat? { children[0].spacing(edge) }
+    override func textLeading(_ edge: Edge) -> CGFloat? { children[0].textLeading(edge) }
     override func explicitAlignment(_ key: AlignmentKey, size: CGSize) -> CGFloat? { children[0].explicitAlignment(key, size: size) }
     override func drawContent(_ p: Painter) {
         // Content in a layer, then the mask composited with destination-in (keeps content where the mask is opaque).
