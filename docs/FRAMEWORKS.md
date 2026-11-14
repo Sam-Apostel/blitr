@@ -61,6 +61,7 @@ dropped and `#selector(x)` becomes `Selector("x")` (there is no Objective-C runt
 | StoreKit | | no products, review requests ignored | store views: neutral placeholder |
 | TipKit | rules, events (donations), parameters (`@Parameter` is a property wrapper, `#Rule` is rewritten to `Tips.Rule`), invalidation, testing overrides; state lasts one render | tips do not display unless `Tips.showAllTipsForTesting()`/`showTipsForTesting(_:)` ran or the render has `--show-tips` | `TipView` and `popoverTip` draw the tip card (popover tips next to the view, kept on screen) |
 | os, OSLog | `Logger`, `OSLogMessage` interpolation (privacy, integer/float/bool formats, alignment) formats lazily; `OSSignposter` ids; `os_unfair_lock` and `OSAllocatedUnfairLock` are real locks | log messages and signposts are dropped; `OSLogStore` is empty | |
+| WatchKit (watchOS) | `WKInterfaceDevice` (screen is the canvas), `WKApplication`/`WKExtension` (active) | haptics, remote notifications, background refresh | |
 | AVFoundation / AVKit | CMTime | players never play; capture not determined | VideoPlayer: black surface, play glyph, playback bar |
 | SafariServices, MessageUI, CoreMotion, CoreHaptics | | no account / no hardware | controllers: placeholders |
 

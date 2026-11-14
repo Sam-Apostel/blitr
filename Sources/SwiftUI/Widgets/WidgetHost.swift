@@ -233,6 +233,16 @@ public enum _WidgetHost {
 public struct ContainerBackgroundPlacement: Hashable, Sendable {
     let id: String
     public static let _widget = ContainerBackgroundPlacement(id: "widget")
+    /// The background of a tab view's page (watchOS), a navigation stack and a split view's columns:
+    /// drawn behind the view, filling the screen.
+    public static let tabView = ContainerBackgroundPlacement(id: "tabView")
+    public static let navigation = ContainerBackgroundPlacement(id: "navigation")
+    public static let navigationSplitView = ContainerBackgroundPlacement(id: "navigationSplitView")
+}
+
+enum TabContainerBackgroundKey: PreferenceKey {
+    static let defaultValue: AnyView? = nil
+    static func reduce(value: inout AnyView?, nextValue: () -> AnyView?) { value = value ?? nextValue() }
 }
 
 enum WidgetContainerBackgroundKey: PreferenceKey {
@@ -246,7 +256,15 @@ extension View {
     }
     public func containerBackground<V: View>(for container: ContainerBackgroundPlacement, alignment: Alignment = .center,
                                              @ViewBuilder content: () -> V) -> some View {
-        preference(key: WidgetContainerBackgroundKey.self, value: AnyView(ZStack(alignment: alignment) { content() }))
+        let background = AnyView(ZStack(alignment: alignment) { content() })
+        if container == ._widget {
+            return AnyView(preference(key: WidgetContainerBackgroundKey.self, value: background))
+        }
+        if container == .tabView {
+            // Read by the paging tab view, which draws it behind the whole page (Chrome/TabView.swift).
+            return AnyView(preference(key: TabContainerBackgroundKey.self, value: background))
+        }
+        return AnyView(self.background { background.ignoresSafeArea() })
     }
 
     /// WidgetKit's `widgetAccentable(_:)`: marks content drawn in the accent color in the accented rendering mode.

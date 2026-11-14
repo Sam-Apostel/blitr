@@ -238,9 +238,14 @@ public struct TabPlacement: Hashable, Sendable {
 
 extension View {
     public func tabViewStyle<S: TabViewStyle>(_ style: S) -> some View {
-        let mode = (style as? PageTabViewStyle)?.indexDisplayMode
+        let vertical = style is VerticalPageTabViewStyle
+        let mode = vertical ? .automatic : (style as? PageTabViewStyle)?.indexDisplayMode
         let sidebar = style is SidebarAdaptableTabViewStyle
-        return env { $0.tabViewPageMode = mode; $0[TabViewSidebarAdaptableKey.self] = sidebar }
+        return env {
+            $0.tabViewPageMode = mode
+            $0[TabViewSidebarAdaptableKey.self] = sidebar
+            $0[TabViewVerticalPageKey.self] = vertical
+        }
     }
     public func indexViewStyle<S: IndexViewStyle>(_ style: S) -> some View {
         let mode = (style as? PageIndexViewStyle)?.backgroundDisplayMode ?? .automatic
@@ -607,6 +612,10 @@ public struct TabView<SelectionValue: Hashable, Content: View>: View, PrimitiveV
             let page = PageTabViewNode(content: entries[selected].content(), count: entries.count, selected: selected,
                                        mode: mode, background: ctx.env.pageIndexBackground)
             if ctx.env.renderPlatform == .tvOS { page.dotScale = TVMetrics.pageDotScale }
+            page.vertical = ctx.env[TabViewVerticalPageKey.self]
+            if let background = page.content.preferences[TabContainerBackgroundKey.self] {
+                page.containerBackground = resolveSingle(background, ctx.child("containerBackground"))
+            }
             out.append(page)
             // Scripted `swipe` turns the page (Interaction/).
             InteractionRegistry.notePager(out[out.count - 1], count: entries.count, selected: selected) {
@@ -1117,6 +1126,10 @@ final class PageTabViewNode: Node {
     private var dotsCenterY: CGFloat = 0
     /// tvOS draws larger page dots (est.).
     var dotScale: CGFloat = 1
+    /// watchOS `.verticalPage`: small dots stacked at the trailing edge, centred vertically.
+    var vertical = false
+    /// `containerBackground(_:for: .tabView)` of the page: fills the screen behind it.
+    var containerBackground: Node?
 
     init(content: Node, count: Int, selected: Int, mode: PageTabViewStyle.IndexDisplayMode,
          background: PageIndexViewStyle.BackgroundDisplayMode) {
@@ -1133,13 +1146,20 @@ final class PageTabViewNode: Node {
     override func layout(size: CGSize, _ ctx: PlaceContext) {
         let c = content.sizeThatFits(ProposedViewSize(size))
         content.place(at: CGPoint(x: (size.width - c.width) / 2, y: (size.height - c.height) / 2), size: c, ctx)
+        if let containerBackground {
+            let full = ctx.container.offsetBy(dx: -ctx.origin.x, dy: -ctx.origin.y)
+            _ = containerBackground.sizeThatFits(ProposedViewSize(full.size))
+            containerBackground.place(at: full.origin, size: full.size, ctx)
+        }
         let bottom = min(size.height, ctx.safeRect.maxY - ctx.origin.y)
         dotsCenterY = bottom - TabBarMetrics.pageDotsCenterFromBottom * dotScale
     }
 
     override func drawContent(_ p: Painter) {
+        containerBackground?.draw(p)
         drawChildren(p)
         guard showsDots, count > 0 else { return }
+        if vertical { drawVerticalDots(p); return }
         let m = TabBarMetrics.self
         let pitch = m.pageDotPitch * dotScale, diameter = m.pageDotDiameter * dotScale
         let total = CGFloat(count - 1) * pitch
@@ -1154,6 +1174,17 @@ final class PageTabViewNode: Node {
             let r = CGRect(x: x - diameter / 2, y: dotsCenterY - diameter / 2, width: diameter, height: diameter)
             let alpha = i == selected ? 1 : m.pageDotInactiveOpacity
             p.fill(Path(ellipseIn: r), with: .color(RGBA(1, 1, 1, alpha)), in: r)
+        }
+    }
+
+    /// watchOS vertical page indicator (est.: 5pt dots, 9pt apart, 6pt from the trailing edge).
+    private func drawVerticalDots(_ p: Painter) {
+        let diameter: CGFloat = 5, pitch: CGFloat = 9
+        let total = CGFloat(count - 1) * pitch
+        let startY = frame.height / 2 - total / 2, x = frame.width - 6
+        for i in 0..<count {
+            let r = CGRect(x: x - diameter / 2, y: startY + CGFloat(i) * pitch - diameter / 2, width: diameter, height: diameter)
+            p.fill(Path(ellipseIn: r), with: .color(RGBA(1, 1, 1, i == selected ? 1 : TabBarMetrics.pageDotInactiveOpacity)), in: r)
         }
     }
 }

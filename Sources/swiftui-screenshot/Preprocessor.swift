@@ -12,6 +12,7 @@ import Foundation
 ///     #if canImport(UIKit)             ->  #if false       (on platforms without the framework; see frameworkPlatforms)
 ///     import SwiftUI                   ->  import SwiftUI; import UIKit   (iOS, tvOS, visionOS: SwiftUI re-exports UIKit there)
 ///     @objc, @IBAction, @IBOutlet      ->  (removed: there is no Objective-C runtime on Linux)
+///     .accessoryCorner                 ->  ._accessoryCorner   (WidgetKit's watchOS family; see WidgetFamily)
 ///     #Rule(Self.$x) { ... }           ->  TipKit.Tips.Rule(Self.$x) { ... }   (TipKit's macro)
 ///     #selector(tap(_:))               ->  Selector("tap(_:)")   (ObjectiveC's Selector, which UIKit re-exports)
 ///     import CoreImage.CIFilterBuiltins ->  import CoreImage   (the shims are Swift modules, without submodules)
@@ -267,8 +268,7 @@ struct Preprocessor {
     static let uiKitPlatforms: Set<String> = ["iOS", "tvOS", "visionOS"]
 
     /// Frameworks the SDK has a module for that Apple does not ship on every platform: `canImport` of one is
-    /// false when another platform is rendered. AppKit and WatchKit have no module here, so `canImport` of
-    /// them is false on every platform.
+    /// false when another platform is rendered.
     static let frameworkPlatforms: [String: Set<String>] = [
         // watchOS ships a small UIKit (UIImage, UIColor, UIFont) that is importable, though SwiftUI does not re-export it there.
         "UIKit": uiKitPlatforms.union(["watchOS"]),
@@ -277,6 +277,7 @@ struct Preprocessor {
         "AppKit": ["macOS"],
         "PhotosUI": ["iOS", "macOS", "tvOS", "visionOS"],
         "WatchConnectivity": ["iOS", "watchOS"],
+        "WatchKit": ["watchOS"],
         "EventKitUI": ["iOS", "visionOS"],
         "ContactsUI": ["iOS", "macOS", "visionOS"],
         "PassKit": ["iOS", "macOS", "watchOS", "visionOS"],
@@ -378,6 +379,12 @@ struct Preprocessor {
                 var j = i + attribute.utf8.count
                 if j < bytes.count, bytes[j] == UInt8(ascii: "("), let close = bytes[j...].firstIndex(of: UInt8(ascii: ")")) { j = close + 1 }
                 i = j
+                continue
+            }
+            // WidgetKit's watchOS-only family (see WidgetFamily.accessoryCorner).
+            if hasPrefix(".accessoryCorner", at: i), i + 16 >= bytes.count || !Self.isIdentifierByte(bytes[i + 16]) {
+                out += Array("._accessoryCorner".utf8)
+                i += 16
                 continue
             }
             // TipKit's `#Rule(...)` macro: the same arguments make a `Tips.Rule` here.

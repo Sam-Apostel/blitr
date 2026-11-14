@@ -106,6 +106,9 @@ public struct _WidgetPreview: _PreviewEntryGroup {
             guard let description, let render = description.render else {
                 return message("\(W.self) is not a timeline widget")
             }
+            if family == ._accessoryCorner {
+                _WidgetHost.warn("accessoryCorner (a watch face corner) is drawn as accessoryCircular")
+            }
             if let families = description.supportedFamilies, !families.contains(family) {
                 _WidgetHost.warn("\(W.self) does not list \(family) in supportedFamilies")
             }
@@ -193,6 +196,10 @@ public struct _WidgetPreview: _PreviewEntryGroup {
         guard let previewEntry = description.previewEntry else { return [] }
         let defaults: [WidgetFamily] = [.systemSmall, .systemMedium, .systemLarge, .systemExtraLarge]
         var families = (description.supportedFamilies ?? defaults).filter { _WidgetHost.supports($0._id) }
+        if families.contains(._accessoryCorner) {
+            skipped.append("\(W.self): the watchOS accessoryCorner family is not drawn")
+            families.removeAll { $0 == ._accessoryCorner }
+        }
         if let wanted = _WidgetHostOptions.current.family.map(WidgetFamily.init) {
             families = families.contains(wanted) ? [wanted] : []
             if families.isEmpty { skipped.append("\(W.self) does not support \(wanted)") }

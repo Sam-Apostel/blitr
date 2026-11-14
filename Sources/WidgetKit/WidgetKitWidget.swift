@@ -11,8 +11,27 @@ import SwiftUI
 public enum WidgetFamily: Int, CaseIterable, Codable, CustomStringConvertible, Hashable, Sendable {
     case systemSmall, systemMedium, systemLarge, systemExtraLarge
     case accessoryCircular, accessoryRectangular, accessoryInline
+    /// watchOS: a complication in a corner of the watch face, which is not drawn (see `placeholderEntries`).
+    /// Apple declares it unavailable on iOS, so iOS switches over the families need not list it; one module
+    /// serves every platform here, so the case is unavailable everywhere and `.accessoryCorner` in source is
+    /// rewritten to `._accessoryCorner` by the preprocessor, which is this value.
+    @available(*, unavailable, message: "accessoryCorner is a watchOS family")
+    case accessoryCorner
 
-    public var description: String { _id.rawValue }
+    public static let _accessoryCorner = WidgetFamily(rawValue: 7)!
+
+    /// Written out because the synthesized initializer leaves out the unavailable case.
+    public init?(rawValue: Int) {
+        guard (0...7).contains(rawValue) else { return nil }
+        self = unsafeBitCast(UInt8(rawValue), to: WidgetFamily.self)
+    }
+
+    /// The families an iOS widget can have, as on iOS.
+    public static var allCases: [WidgetFamily] {
+        [.systemSmall, .systemMedium, .systemLarge, .systemExtraLarge, .accessoryCircular, .accessoryRectangular, .accessoryInline]
+    }
+
+    public var description: String { self == ._accessoryCorner ? "accessoryCorner" : _id.rawValue }
 
     var _id: _WidgetFamilyID {
         switch self {
@@ -23,6 +42,7 @@ public enum WidgetFamily: Int, CaseIterable, Codable, CustomStringConvertible, H
         case .accessoryCircular: return .accessoryCircular
         case .accessoryRectangular: return .accessoryRectangular
         case .accessoryInline: return .accessoryInline
+        default: return .accessoryCircular
         }
     }
     init(_ id: _WidgetFamilyID) {
