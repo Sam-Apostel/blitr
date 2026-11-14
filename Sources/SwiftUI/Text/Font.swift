@@ -17,6 +17,28 @@ public struct Font: Hashable, Sendable {
     public enum TextStyle: Hashable, CaseIterable, Sendable {
         case largeTitle, title, title2, title3, headline, subheadline, body, callout, footnote, caption, caption2
         case extraLargeTitle, extraLargeTitle2
+        /// tvOS text styles are sized for viewing from across a room (values from the tvOS
+        /// typography table in Apple's Human Interface Guidelines; largeTitle is an estimate).
+        var tvMetrics: (size: CGFloat, weight: Weight) {
+            switch self {
+            case .extraLargeTitle: return (96, .bold)
+            case .extraLargeTitle2: return (86, .bold)
+            case .largeTitle: return (76, .medium)
+            case .title: return (76, .medium)
+            case .title2: return (57, .medium)
+            case .title3: return (48, .medium)
+            case .headline: return (38, .medium)
+            case .subheadline: return (38, .regular)
+            case .callout: return (31, .medium)
+            case .body: return (29, .medium)
+            case .footnote: return (23, .medium)
+            case .caption: return (25, .medium)
+            case .caption2: return (23, .medium)
+            }
+        }
+        func metrics(for platform: RenderPlatform) -> (size: CGFloat, weight: Weight) {
+            platform == .tvOS ? tvMetrics : metrics
+        }
         /// Point size and default weight at the standard Dynamic Type size (Large).
         var metrics: (size: CGFloat, weight: Weight) {
             switch self {
@@ -127,7 +149,7 @@ extension Font {
         let scale = env.dynamicTypeSize.scale
         switch provider {
         case .style(let style, let design, let weight):
-            let m = style.metrics
+            let m = style.metrics(for: env.renderPlatform)
             r.size = (m.size * env.dynamicTypeSize.scale(for: style)).rounded()
             r.weight = (weight ?? m.weight).value
             r.family = .system(design ?? env.fontDesign ?? .default)

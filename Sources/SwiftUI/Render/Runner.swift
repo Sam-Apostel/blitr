@@ -34,6 +34,7 @@ public enum _ScreenshotRunner {
         var previewName: String?
         var listOnly = false
         var listDevices = false
+        var deviceWasSet = false
         var orientation: DeviceOrientation?
         var layoutSet = false
         var args = Array(CommandLine.arguments.dropFirst())
@@ -62,7 +63,13 @@ public enum _ScreenshotRunner {
                     fail("unknown device \"\(key)\". Known: \(DeviceProfile.table.map(\.id).joined(separator: ", "))")
                 }
                 config.device = device
+                deviceWasSet = true
             case "--list-devices": listDevices = true
+            case "--platform":
+                guard let platform = RenderPlatform(argument: value(flag)) else {
+                    fail("--platform must be one of \(RenderPlatform.allCases.map { $0.rawValue.lowercased() }.joined(separator: ", "))")
+                }
+                config.platform = platform
             case "--orientation":
                 switch DeviceProfile.normalize(value(flag)) {
                 case "portrait": orientation = .portrait
@@ -117,6 +124,10 @@ public enum _ScreenshotRunner {
             print(DeviceProfile.listing())
             exit(0)
         }
+        // The platform and the device have to agree: a TV platform defaults to an Apple TV, and vice versa.
+        if config.platform == .tvOS, !deviceWasSet, let tv = DeviceProfile.lookup("apple-tv-4k") { config.device = tv }
+        if config.device.idiom == .tv { config.platform = .tvOS }
+
         if listOnly {
             for (i, p) in previews.enumerated() { print("\(i)\t\(p.name ?? "")") }
             exit(0)

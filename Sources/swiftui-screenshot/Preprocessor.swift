@@ -5,7 +5,7 @@ import Foundation
 ///     #Preview("Name", ...) { body }  ->  @MainActor let __preview_N = SwiftUI._PreviewEntry("Name") { body }
 ///     @Previewable                     ->  (removed)
 ///     @main                            ->  (removed; the generated main.swift is the entry point)
-///     #if os(iOS)                      ->  #if os(Linux)   (so iOS-only branches are the ones rendered)
+///     #if os(iOS)                      ->  #if os(Linux)   (for the platform being rendered: its branches are kept)
 ///     @Entry var x: T = v              ->  an explicit EnvironmentKey + computed property
 ///     #available(iOS 26, *)            ->  SwiftUI.RenderedPlatform.isAtLeast(iOS: 26)
 ///     #unavailable(iOS 26)             ->  !SwiftUI.RenderedPlatform.isAtLeast(iOS: 26)
@@ -19,6 +19,9 @@ struct Preprocessor {
     }
 
     private var counter = 0
+    /// The Apple platform being rendered, as Swift spells it in `os(...)` and `#available(...)`:
+    /// iOS, tvOS, watchOS, macOS or visionOS. Its branches are the ones kept.
+    var platform = "iOS"
 
     mutating func process(_ sources: [(path: String, contents: String)], viewExpression: String?) -> Output {
         var files: [(String, String)] = []
@@ -284,9 +287,9 @@ struct Preprocessor {
                     let arguments = String(decoding: bytes[(k + 1)..<close], as: UTF8.self)
                     // Use the iOS entry; a check that does not mention iOS is left for the compiler.
                     let iosEntry = arguments.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
-                        .first { $0.hasPrefix("iOS ") || $0.hasPrefix("iOS\t") }
+                        .first { $0.hasPrefix(platform + " ") || $0.hasPrefix(platform + "\t") }
                     if let iosEntry {
-                        let version = iosEntry.dropFirst(3).trimmingCharacters(in: .whitespaces).split(separator: ".")
+                        let version = iosEntry.dropFirst(platform.count).trimmingCharacters(in: .whitespaces).split(separator: ".")
                         if let major = version.first.flatMap({ Int($0) }) {
                             let minor = version.count > 1 ? Int(version[1]) ?? 0 : 0
                             let call = "\(availability.negated ? "!" : "")SwiftUI.RenderedPlatform.isAtLeast(iOS: \(major), \(minor))"
@@ -297,9 +300,10 @@ struct Preprocessor {
                     }
                 }
             }
-            if hasToken("os(iOS)", at: i) {
+            // `#if os(<the rendered platform>)` must be the true branch; other Apple platforms stay false.
+            if hasToken("os(\(platform))", at: i) {
                 out += Array("os(Linux)".utf8)
-                i += "os(iOS)".utf8.count
+                i += "os(\(platform))".utf8.count
                 continue
             }
             if hasToken("#Preview", at: i) {
