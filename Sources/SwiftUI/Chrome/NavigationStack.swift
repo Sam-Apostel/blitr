@@ -798,7 +798,8 @@ extension NavigationStackNode {
     static func glassItems(_ chrome: NavigationChrome, glass: NavigationGlassMetrics, barAdjust: @escaping (inout EnvironmentValues) -> Void,
                            accent: _Paint, hasBack: Bool, backTitle: String? = nil, env: EnvironmentValues)
     -> (leading: [Node], trailing: [Node], principal: Node?, status: Node?, bottom: ToolbarGlassRowNode?) {
-        let neutral = GlassAppearance.system(.regular, scheme: env.colorScheme, design: env.designLanguage)
+        var neutral = GlassAppearance.system(.regular, scheme: env.colorScheme, design: env.designLanguage)
+        if env.designLanguage == .liquidGlass26 && env.isElevatedPresentation { neutral = glass.sheetItemGlass26(env.colorScheme) }
         // Prominent glass takes the app's accent color (the bar's own environment made labels monochrome).
         // An opaque accent fill. measured: iOS 27.0 simulator (confirm button (0,134,251) light, (0,145,255) dark)
         var prominent = GlassAppearance.resolve(Glass.regular.tint(Color.accentColor), in: env)

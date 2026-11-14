@@ -99,6 +99,15 @@ struct NavigationGlassMetrics {
 
     static func forDesign(_ design: DesignLanguage) -> NavigationGlassMetrics { NavigationGlassMetrics() }
 
+    /// iOS 26, in a sheet: the bar's items sit on a flat, barely visible capsule instead of glass (no rim, lens
+    /// or shadow): the sheet's 236 gray turns 227 under it in light mode, 30 turns 32 in dark mode.
+    /// measured: iOS 26.5 simulator (10_Agenda's Cancel and Add)
+    func sheetItemGlass26(_ scheme: ColorScheme) -> GlassAppearance {
+        GlassAppearance(blurRadius: 0, saturation: 1,
+                        tint: scheme == .dark ? RGBA(1, 1, 1, 0.01) : RGBA(0, 0, 0, 0.04),
+                        lensWidth: 0.001, lensStrength: 0, highlight: (0, 0), edge: .clear, shadow: (.clear, 0, 0))
+    }
+
     /// The glass search field.
     struct Search {
         var bottomHeight: CGFloat = 48                // measured: iOS 27.0 simulator

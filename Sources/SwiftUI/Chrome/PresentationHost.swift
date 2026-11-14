@@ -61,7 +61,7 @@ enum SheetMetrics {
         /// iOS 26: the floating sheet's glass is more opaque than a bar's, so content stays legible. (est.)
         /// iOS 27 uses the regular system glass: it turns the dimmed presenter's 204 gray into 230 (light)
         /// and black into 32 (dark), as a bar's glass does. measured: iOS 27.0 simulator
-        var tintLight = RGBA(1, 1, 1, 0.72)         // (est.)
+        var tintLight = RGBA(1, 1, 1, 0.67)         // measured: iOS 26.5 simulator (10_Agenda: 236 over the dimmed list; GlassTabsAndSheets-2)
         var tintDark = RGBA(0.11, 0.11, 0.12, 0.72) // (est.)
         /// iOS 27 dark: the system glass with a deeper black tint, so colours behind it come through darker
         /// (black still turns into 32). measured: iOS 27.0 simulator (GlassTabsAndSheets cards under the sheet)
