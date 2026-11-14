@@ -9,7 +9,7 @@ let skiaLib = Context.packageDirectory + "/Vendor/skia/lib"
 let moduleSettings: [SwiftSetting] = [.swiftLanguageMode(.v5), .unsafeFlags(["-enable-library-evolution"])]
 
 // Modules linked into libSwiftUI next to the SwiftUI module itself (Combine is a dependency of SwiftUI).
-let shimModules = ["Combine", "CoreGraphics", "ImageIO", "CoreText", "ObjectiveC", "QuartzCore", "UIKit", "CoreLocation", "MapKit", "AppIntents", "ActivityKit", "WidgetKit"]
+let shimModules = ["Combine", "CoreGraphics", "ImageIO", "CoreImage", "CoreText", "ObjectiveC", "QuartzCore", "UIKit", "CoreLocation", "MapKit", "AppIntents", "ActivityKit", "WidgetKit"]
 
 let package = Package(
     name: "swift-ui-screenshot",
@@ -44,11 +44,12 @@ let package = Package(
         .target(name: "CoreGraphics", dependencies: ["CSkia"], swiftSettings: moduleSettings),
         .target(name: "ImageIO", dependencies: ["CoreGraphics", "CSkia"], swiftSettings: moduleSettings),
         .target(name: "CoreText", dependencies: ["CoreGraphics", "CSkia"], swiftSettings: moduleSettings),
+        .target(name: "CoreImage", dependencies: ["CoreGraphics", "ImageIO", "CSkia"], swiftSettings: moduleSettings),
         .target(name: "ObjectiveC", swiftSettings: moduleSettings),
         .target(name: "QuartzCore", dependencies: ["CoreGraphics", "ObjectiveC"], swiftSettings: moduleSettings),
         .target(name: "SwiftUI", dependencies: ["CSkia", "CHarfBuzz", "Combine", "CoreGraphics", "SwiftUIScreenshotFoundation"], swiftSettings: moduleSettings),
         // The shim frameworks: each its own module, linked into libSwiftUI (see the SwiftUI product).
-        .target(name: "UIKit", dependencies: ["SwiftUI", "QuartzCore", "ImageIO", "CSkia"], swiftSettings: moduleSettings),
+        .target(name: "UIKit", dependencies: ["SwiftUI", "QuartzCore", "ImageIO", "CoreImage", "CSkia"], swiftSettings: moduleSettings),
         .target(name: "AppIntents", dependencies: ["SwiftUI", "UIKit"], swiftSettings: moduleSettings),
         .target(name: "ActivityKit", dependencies: ["SwiftUIScreenshotFoundation"], swiftSettings: moduleSettings),
         .target(name: "WidgetKit", dependencies: ["SwiftUI", "AppIntents", "ActivityKit"], swiftSettings: moduleSettings),

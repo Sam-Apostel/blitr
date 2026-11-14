@@ -5,6 +5,11 @@ internal import CSkia
 // out). HEIC and AVIF are recognised but cannot be decoded or encoded. Properties come from the
 // codec (size, orientation) and, for JPEG, from the EXIF block (TIFF, Exif and GPS dictionaries).
 
+/// EXIF orientation values, as ImageIO and `Image.Orientation`'s cases order them.
+public enum CGImagePropertyOrientation: UInt32, Sendable {
+    case up = 1, upMirrored, down, downMirrored, leftMirrored, right, rightMirrored, left
+}
+
 public enum CGImageSourceStatus: Int32, Sendable {
     case statusUnexpectedEOF = -5, statusInvalidData = -4, statusUnknownType = -3, statusReadingHeader = -2, statusIncomplete = -1, statusComplete = 0
 }

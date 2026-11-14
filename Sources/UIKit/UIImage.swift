@@ -1,14 +1,11 @@
 import Foundation
 import SwiftUI
+import ImageIO
+import CoreImage
 internal import CSkia
 
 // UIImage: a named asset, an SF Symbol, or pixels (decoded data, a CGImage, a renderer's output).
 // `Image(uiImage:)` draws all three.
-
-/// EXIF orientation values, as ImageIO and `Image.Orientation`'s cases order them.
-public enum CGImagePropertyOrientation: UInt32, Sendable {
-    case up = 1, upMirrored, down, downMirrored, leftMirrored, right, rightMirrored, left
-}
 
 open class UIImage: NSObject, @unchecked Sendable {
     public enum RenderingMode: Int, Sendable { case automatic, alwaysOriginal, alwaysTemplate }
@@ -380,4 +377,29 @@ extension Image {
 
 extension ImageRenderer {
     public var uiImage: UIImage? { cgImage.map { UIImage(cgImage: $0, scale: scale, orientation: .up) } }
+}
+
+// MARK: - Core Image
+
+extension UIImage {
+    /// Rendered at once over the image's extent (an infinite image gives an empty UIImage).
+    public convenience init(ciImage: CIImage) { self.init(ciImage: ciImage, scale: 1, orientation: .up) }
+    public convenience init(ciImage: CIImage, scale: CGFloat, orientation: Orientation) {
+        if let cg = CIContext().createCGImage(ciImage, from: ciImage.extent) {
+            self.init(cgImage: cg, scale: scale, orientation: orientation)
+        } else {
+            self.init(source: Source.named(""))
+        }
+    }
+    public var ciImage: CIImage? { nil }
+}
+extension CIImage {
+    public convenience init?(image: UIImage) {
+        guard let cg = image.uprightPixels else { return nil }
+        self.init(cgImage: cg)
+    }
+    public convenience init?(image: UIImage, options: [CIImageOption: Any]? = nil) { self.init(image: image) }
+}
+extension CIColor {
+    public convenience init(color: UIColor) { self.init(cgColor: color.cgColor) }
 }
