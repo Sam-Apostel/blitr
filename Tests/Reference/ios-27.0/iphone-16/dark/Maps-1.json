@@ -1,0 +1,285 @@
+{
+  "colorScheme": "dark",
+  "device": "agent-calibrate-iphone16-ios27",
+  "elements": [
+    {
+      "class": "MKMarkerAnnotationView",
+      "frame": {
+        "height": 34.94,
+        "width": 31.33,
+        "x": 248,
+        "y": 218.33
+      },
+      "label": "Ferry",
+      "role": "group",
+      "traits": []
+    },
+    {
+      "class": "VKMapView",
+      "frame": {
+        "height": 430,
+        "width": 393,
+        "x": 0,
+        "y": 0
+      },
+      "label": "Map",
+      "role": "group",
+      "traits": []
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 15.67,
+        "width": 8.67,
+        "x": 332.67,
+        "y": 178.17
+      },
+      "label": "5",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 15.67,
+        "width": 8.33,
+        "x": 83.17,
+        "y": 248.17
+      },
+      "label": "2",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 10.33,
+        "width": 15.33,
+        "x": 276.67,
+        "y": 155.67
+      },
+      "label": "Bedtime",
+      "role": "image",
+      "traits": [
+        "image"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 15.67,
+        "width": 8.67,
+        "x": 179.67,
+        "y": 223.17
+      },
+      "label": "3",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 15.67,
+        "width": 6.67,
+        "x": 52.67,
+        "y": 275.5
+      },
+      "label": "1",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 15.67,
+        "width": 9,
+        "x": 322.5,
+        "y": 206.17
+      },
+      "label": "4",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "MKAttributionLabel",
+      "frame": {
+        "height": 10.74,
+        "width": 28.58,
+        "x": 70.25,
+        "y": 409.26
+      },
+      "label": "Legal",
+      "role": "link",
+      "traits": [
+        "link"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 15.67,
+        "width": 6.67,
+        "x": 25.67,
+        "y": 450.17
+      },
+      "label": "1",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 97.67,
+        "x": 54,
+        "y": 447.83
+      },
+      "label": "Bel\u00e9m Tower",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 15.67,
+        "width": 8.33,
+        "x": 24.83,
+        "y": 506.17
+      },
+      "label": "2",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 81,
+        "x": 54,
+        "y": 503.83
+      },
+      "label": "Monastery",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 15.67,
+        "width": 8.67,
+        "x": 24.67,
+        "y": 562.17
+      },
+      "label": "3",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 82,
+        "x": 54,
+        "y": 559.83
+      },
+      "label": "LX Factory",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 15.67,
+        "width": 9,
+        "x": 24.5,
+        "y": 618.17
+      },
+      "label": "4",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 145,
+        "x": 54,
+        "y": 615.83
+      },
+      "label": "Pra\u00e7a do Com\u00e9rcio",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 15.67,
+        "width": 8.67,
+        "x": 24.67,
+        "y": 674.17
+      },
+      "label": "5",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 48,
+        "x": 54,
+        "y": 671.83
+      },
+      "label": "Castle",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 1,
+  "previewName": "Trip",
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "Maps",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "27.0",
+  "version": 1
+}

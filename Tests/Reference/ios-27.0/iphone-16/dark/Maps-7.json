@@ -1,0 +1,85 @@
+{
+  "colorScheme": "dark",
+  "device": "agent-calibrate-iphone16-ios27",
+  "elements": [
+    {
+      "class": "MKMarkerAnnotationView",
+      "frame": {
+        "height": 34.94,
+        "width": 31.33,
+        "x": -4.33,
+        "y": 424
+      },
+      "label": "Map pin",
+      "role": "group",
+      "traits": []
+    },
+    {
+      "class": "MKMarkerAnnotationView",
+      "frame": {
+        "height": 34.94,
+        "width": 31.33,
+        "x": 16,
+        "y": 340
+      },
+      "label": "Map pin",
+      "role": "group",
+      "traits": []
+    },
+    {
+      "class": "MKMarkerAnnotationView",
+      "frame": {
+        "height": 34.94,
+        "width": 31.33,
+        "x": 180.67,
+        "y": 403.33
+      },
+      "label": "Map pin",
+      "role": "group",
+      "traits": []
+    },
+    {
+      "class": "VKMapView",
+      "frame": {
+        "height": 759,
+        "width": 393,
+        "x": 0,
+        "y": 59
+      },
+      "label": "Map",
+      "role": "group",
+      "traits": []
+    },
+    {
+      "class": "MKAttributionLabel",
+      "frame": {
+        "height": 10.74,
+        "width": 28.58,
+        "x": 70.25,
+        "y": 797.26
+      },
+      "label": "Legal",
+      "role": "link",
+      "traits": [
+        "link"
+      ]
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 7,
+  "previewName": "Legacy",
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "Maps",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "27.0",
+  "version": 1
+}

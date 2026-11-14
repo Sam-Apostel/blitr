@@ -1,0 +1,195 @@
+{
+  "colorScheme": "dark",
+  "device": "agent-calibrate-iphone16-ios27",
+  "elements": [
+    {
+      "class": "MKMarkerAnnotationView",
+      "frame": {
+        "height": 34.94,
+        "width": 31.33,
+        "x": 180.67,
+        "y": 211.67
+      },
+      "label": "Lisbon",
+      "role": "group",
+      "traits": []
+    },
+    {
+      "class": "MKMarkerAnnotationView",
+      "frame": {
+        "height": 34.94,
+        "width": 31.33,
+        "x": 324,
+        "y": 234.33
+      },
+      "label": "\u00c9vora",
+      "role": "group",
+      "traits": []
+    },
+    {
+      "class": "MKMarkerAnnotationView",
+      "frame": {
+        "height": 34.94,
+        "width": 31.33,
+        "x": 147.67,
+        "y": 215.33
+      },
+      "label": "Cascais",
+      "role": "group",
+      "traits": []
+    },
+    {
+      "class": "MKMarkerAnnotationView",
+      "frame": {
+        "height": 34.94,
+        "width": 31.33,
+        "x": 151.33,
+        "y": 200.33
+      },
+      "label": "Sintra",
+      "role": "group",
+      "traits": []
+    },
+    {
+      "class": "MKMarkerAnnotationView",
+      "frame": {
+        "height": 34.94,
+        "width": 31.33,
+        "x": 210,
+        "y": 241.33
+      },
+      "label": "Set\u00fabal",
+      "role": "group",
+      "traits": []
+    },
+    {
+      "class": "VKMapView",
+      "frame": {
+        "height": 434.67,
+        "width": 393,
+        "x": 0,
+        "y": 0
+      },
+      "label": "Map",
+      "role": "group",
+      "traits": []
+    },
+    {
+      "class": "MKAttributionLabel",
+      "frame": {
+        "height": 10.74,
+        "width": 28.58,
+        "x": 70.25,
+        "y": 413.93
+      },
+      "label": "Legal",
+      "role": "link",
+      "traits": [
+        "link"
+      ]
+    },
+    {
+      "class": "MKMarkerAnnotationView",
+      "frame": {
+        "height": 34.94,
+        "width": 31.33,
+        "x": 139.67,
+        "y": 642
+      },
+      "label": "Set\u00fabal",
+      "role": "group",
+      "traits": []
+    },
+    {
+      "class": "MKMarkerAnnotationView",
+      "frame": {
+        "height": 34.94,
+        "width": 31.33,
+        "x": 321,
+        "y": 630.67
+      },
+      "label": "\u00c9vora",
+      "role": "group",
+      "traits": []
+    },
+    {
+      "class": "MKMarkerAnnotationView",
+      "frame": {
+        "height": 34.94,
+        "width": 31.33,
+        "x": 46,
+        "y": 576.67
+      },
+      "label": "Sintra",
+      "role": "group",
+      "traits": []
+    },
+    {
+      "class": "MKMarkerAnnotationView",
+      "frame": {
+        "height": 34.94,
+        "width": 31.33,
+        "x": 92.67,
+        "y": 594.67
+      },
+      "label": "Lisbon",
+      "role": "group",
+      "traits": []
+    },
+    {
+      "class": "MKMarkerAnnotationView",
+      "frame": {
+        "height": 34.94,
+        "width": 31.33,
+        "x": 40.33,
+        "y": 600.33
+      },
+      "label": "Cascais",
+      "role": "group",
+      "traits": []
+    },
+    {
+      "class": "VKMapView",
+      "frame": {
+        "height": 409.33,
+        "width": 393,
+        "x": 0,
+        "y": 442.67
+      },
+      "label": "Map",
+      "role": "group",
+      "traits": []
+    },
+    {
+      "class": "MKAttributionLabel",
+      "frame": {
+        "height": 11,
+        "width": 28.58,
+        "x": 70.25,
+        "y": 797
+      },
+      "label": "Legal",
+      "role": "link",
+      "traits": [
+        "link"
+      ]
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 3,
+  "previewName": "Region vs automatic",
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "Maps",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "27.0",
+  "version": 1
+}
