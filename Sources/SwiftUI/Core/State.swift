@@ -16,7 +16,12 @@ public struct State<Value>: DynamicProperty, InstallableProperty {
         get { box.storage.value }
         nonmutating set {
             box.storage.value = newValue
-            MainActor.assumeIsolated { Runtime.current?.needsAnotherPass = true }
+            // SwiftUI tolerates updates from a background task (it logs a runtime warning); do the same.
+            if Thread.isMainThread {
+                MainActor.assumeIsolated { Runtime.current?.needsAnotherPass = true }
+            } else {
+                DispatchQueue.main.async { MainActor.assumeIsolated { Runtime.current?.needsAnotherPass = true } }
+            }
         }
     }
 
@@ -24,7 +29,12 @@ public struct State<Value>: DynamicProperty, InstallableProperty {
         let box = self.box
         return Binding(get: { box.storage.value }, set: { newValue in
             box.storage.value = newValue
-            MainActor.assumeIsolated { Runtime.current?.needsAnotherPass = true }
+            // SwiftUI tolerates updates from a background task (it logs a runtime warning); do the same.
+            if Thread.isMainThread {
+                MainActor.assumeIsolated { Runtime.current?.needsAnotherPass = true }
+            } else {
+                DispatchQueue.main.async { MainActor.assumeIsolated { Runtime.current?.needsAnotherPass = true } }
+            }
         })
     }
 
