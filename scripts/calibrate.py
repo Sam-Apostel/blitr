@@ -8,10 +8,24 @@ renders each listed preview with the renderer at the same OS version, device and
 `swiftui-screenshot compare` on the two directories. Prints one line per screen, worst first, and
 leaves heatmaps, side-by-side images and report.json under <out>/<scheme>/compare.
 
+The reference captures live on the `data/references` branch, not on `main`, so clones and CI stay small.
+The first run for a set fetches it (`git fetch --depth 1 origin data/references`) into Tests/Reference/.
+
 Use Apple's fonts (scripts/fetch-apple-fonts.sh) and, if you have one, the SF Symbols name map,
 so that font and symbol differences do not drown out layout differences.
 """
 import argparse, concurrent.futures, json, os, re, subprocess, sys
+
+def fetch_references(root, name):
+    """Extracts one reference set from the data/references branch into Tests/Reference/<name>."""
+    print(f"fetching reference set {name} from origin/data/references ...", file=sys.stderr)
+    subprocess.run(["git", "fetch", "--depth", "1", "origin", "data/references"], cwd=root, check=True)
+    dest = os.path.join(root, "Tests", "Reference")
+    os.makedirs(dest, exist_ok=True)
+    archive = subprocess.Popen(["git", "archive", "FETCH_HEAD", name], cwd=root, stdout=subprocess.PIPE)
+    subprocess.run(["tar", "-x", "-C", dest], stdin=archive.stdout, check=True)
+    if archive.wait() != 0:
+        sys.exit(f"no reference set named {name} on data/references")
 
 def main():
     ap = argparse.ArgumentParser()
@@ -26,6 +40,8 @@ def main():
 
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     ref_root = os.path.join(root, "Tests", "Reference", f"ios-{args.ios}")
+    if not os.path.exists(os.path.join(ref_root, "manifest.json")):
+        fetch_references(root, f"ios-{args.ios}")
     manifest = json.load(open(os.path.join(ref_root, "manifest.json")))
     ref_dir = os.path.join(ref_root, args.device, args.scheme)
     bin_dir = subprocess.check_output(["swift", "build", "--show-bin-path"], cwd=root, text=True).strip()
