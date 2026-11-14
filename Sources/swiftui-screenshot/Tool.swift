@@ -35,7 +35,8 @@ Render options:
       --dynamic-type <s> xSmall ... xxxLarge, accessibility1 ... accessibility5
       --no-chrome        Omit the status bar and home indicator
       --assets <dir>     Extra directory with images / .xcassets (repeatable)
-      --fonts <dir>      Extra font directory, e.g. with your own SF-Pro.ttf (repeatable)
+      --fonts <dir>      Extra font directory, searched first (repeatable)
+      --open-fonts       Use the open substitute fonts even if Apple's fonts are installed
       --task-budget <s>  Seconds .task closures may run before the frame is taken (default 0.5)
       --json             Print one JSON object per image instead of text
       --no-cache         Recompile even if an identical build is cached
@@ -57,6 +58,8 @@ struct Installation {
     /// Directory containing SwiftUI.swiftmodule and libSwiftUI.so.
     var sdk: String
     var fontDirectories: [String]
+    /// Apple's own fonts, if the user installed them. Used ahead of the open substitutes unless `--open-fonts`.
+    var appleFontDirectory: String?
     var swiftc: String
 
     static func locate() -> Installation {
@@ -72,21 +75,28 @@ struct Installation {
         }
 
         var fonts: [String] = []
+        var appleFonts: String?
         if let dir = env["SWIFTUI_SCREENSHOT_FONTS"] { fonts += dir.split(separator: ":").map(String.init) }
         if fm.fileExists(atPath: sdk + "/fonts") { fonts.append(sdk + "/fonts") }
         // In a source checkout the fonts are in <repo>/Vendor/fonts: walk up from the build dir.
         var dir = binDir
         for _ in 0..<8 {
-            if fm.fileExists(atPath: dir + "/Vendor/fonts") { fonts.append(dir + "/Vendor/fonts"); break }
+            if fm.fileExists(atPath: dir + "/Vendor/fonts") {
+                // Apple's fonts, when the user fetched them (scripts/fetch-apple-fonts.sh), take precedence.
+                if fm.fileExists(atPath: dir + "/Vendor/apple-fonts/SF-Pro.ttf") { appleFonts = dir + "/Vendor/apple-fonts" }
+                fonts.append(dir + "/Vendor/fonts")
+                break
+            }
             dir = (dir as NSString).deletingLastPathComponent
         }
+        if fm.fileExists(atPath: sdk + "/apple-fonts/SF-Pro.ttf") { appleFonts = sdk + "/apple-fonts" }
 
         var swiftc = env["SWIFTC"] ?? ""
         if swiftc.isEmpty {
             let paths = (env["PATH"] ?? "").split(separator: ":").map(String.init) + ["/opt/swift/usr/bin", "/usr/local/swift/usr/bin"]
             swiftc = paths.map { $0 + "/swiftc" }.first(where: { fm.isExecutableFile(atPath: $0) }) ?? ""
         }
-        return Installation(sdk: (sdk as NSString).standardizingPath, fontDirectories: fonts, swiftc: swiftc)
+        return Installation(sdk: (sdk as NSString).standardizingPath, fontDirectories: fonts, appleFontDirectory: appleFonts, swiftc: swiftc)
     }
 }
 
@@ -155,6 +165,7 @@ struct Options {
     var schemes = ["light"]
     var json = false
     var noCache = false
+    var openFonts = false
     var verbose = false
     /// Passed through to the runner unchanged.
     var runnerArguments: [String] = []
@@ -183,6 +194,7 @@ func parse(_ arguments: [String]) -> Options {
             options.schemes = v == "both" ? ["light", "dark"] : [v]
         case "--json": options.json = true
         case "--no-cache": options.noCache = true
+        case "--open-fonts": options.openFonts = true
         case "-v", "--verbose": options.verbose = true
         case "--assets": options.userAssetDirectories.append(value(arg))
         case "--fonts": options.userFontDirectories.append(value(arg))
@@ -314,7 +326,8 @@ func render(_ options: Options, _ installation: Installation) {
                 path = (options.outDir ?? ".") + "/" + name + ".png"
             }
             var arguments = ["--out", path, "--preview", "\(preview.index)", "--scheme", scheme] + options.runnerArguments
-            for dir in options.userFontDirectories + installation.fontDirectories { arguments += ["--fonts", dir] }
+            let apple = options.openFonts ? [] : [installation.appleFontDirectory].compactMap { $0 }
+            for dir in options.userFontDirectories + apple + installation.fontDirectories { arguments += ["--fonts", dir] }
             for dir in options.userAssetDirectories + autoAssets { arguments += ["--assets", dir] }
             let result = run(built.runner, arguments)
             if result.status != 0 {
@@ -344,9 +357,11 @@ func doctor(_ installation: Installation) {
     if !installation.swiftc.isEmpty { print("                " + run(installation.swiftc, ["--version"]).stdout.split(separator: "\n").first.map(String.init)!) }
     print("font dirs:      \(installation.fontDirectories.isEmpty ? "NONE (run scripts/bootstrap.sh)" : installation.fontDirectories.joined(separator: ", "))")
     let fm = FileManager.default
-    let hasSystemFont = installation.fontDirectories.contains { fm.fileExists(atPath: $0 + "/InterVariable.ttf") || fm.fileExists(atPath: $0 + "/SF-Pro.ttf") }
-    let usesSF = installation.fontDirectories.contains { fm.fileExists(atPath: $0 + "/SF-Pro.ttf") }
-    print("system font:    \(usesSF ? "SF Pro (user supplied)" : hasSystemFont ? "Inter (substitute for SF Pro)" : "MISSING")")
+    let hasSystemFont = installation.appleFontDirectory != nil
+        || installation.fontDirectories.contains { fm.fileExists(atPath: $0 + "/InterVariable.ttf") || fm.fileExists(atPath: $0 + "/SF-Pro.ttf") }
+    let usesSF = installation.appleFontDirectory != nil || installation.fontDirectories.contains { fm.fileExists(atPath: $0 + "/SF-Pro.ttf") }
+    if let apple = installation.appleFontDirectory { print("Apple fonts:    \(apple)") }
+    print("system font:    \(usesSF ? "SF Pro (fetched from Apple)" : hasSystemFont ? "Inter (open substitute; run scripts/fetch-apple-fonts.sh for SF Pro)" : "MISSING")")
     exit(hasSystemFont && !installation.swiftc.isEmpty ? 0 : 1)
 }
 

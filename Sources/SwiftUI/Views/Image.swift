@@ -345,9 +345,15 @@ final class SymbolLibrary {
             let extra = variants.suffixes.filter { !parts.contains($0) }
             if !extra.isEmpty { candidates.insert((parts + extra).joined(separator: "."), at: 0) }
         }
+        let factor: CGFloat = scale == .small ? 0.82 : scale == .large ? 1.28 : 1
+        // Apple's own artwork, when the user has installed SF Pro and a symbol name map.
+        if provider == nil, AppleSymbols.shared.isAvailable {
+            for candidate in candidates {
+                if let glyph = AppleSymbols.shared.glyph(named: candidate, weight: font.weight, pointSize: font.size * factor) { return glyph }
+            }
+        }
         for candidate in candidates {
             guard let art = lookup(candidate) else { continue }
-            let factor: CGFloat = scale == .small ? 0.82 : scale == .large ? 1.28 : 1
             // SF Symbols are drawn roughly 1.2x the point size tall at medium scale.
             let height = font.size * 1.2 * factor
             let width = height * art.viewBox.width / max(art.viewBox.height, 1)
