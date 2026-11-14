@@ -119,12 +119,14 @@ enum AlertMetrics {
         var buttonFontSize: CGFloat = 17
         var buttonTextPadding: CGFloat = 10
         var buttonFill = SystemColor.fill
-        /// iOS 27: the buttons darken (light) or lighten (dark) the card without greying it, their labels are
-        /// medium weight and a destructive label is a deeper red in light mode and a light red in dark mode.
+        /// The button labels are medium weight. measured: iOS 27.0 and 26.5 simulators ("Cancel" 52pt wide in
+        /// Presentations, as wide and as heavy on both)
+        var buttonWeight = Font.Weight.medium
+        /// iOS 27: the buttons darken (light) or lighten (dark) the card without greying it, and a destructive
+        /// label is a deeper red in light mode and a light red in dark mode (iOS 26.5 keeps the system red).
         /// measured: iOS 27.0 simulator (GlassTabsAndSheets-3/4/5: card 234,219,160 -> button 206,191,145;
         /// dark 112,104,55 -> 140,134,87; destructive 224,36,42 and 255,137,140)
         var buttonFill27 = DynamicColor(0x000000, 0xFFFFFF, alpha: 0.12, darkAlpha: 0.2)
-        var buttonWeight27 = Font.Weight.medium
         var destructive27 = DynamicColor(0xE0242A, 0xFF8988)
         func buttonFill(_ design: DesignLanguage) -> DynamicColor { design == .liquidGlass27 ? buttonFill27 : buttonFill }
         var tintLight = RGBA(1, 1, 1, 0.7)          // (est.)
@@ -688,11 +690,11 @@ final class AlertCardNode: Node {
             title = spec.title.map { t in
                 resolveDialogText(nodeResolver(t), ctx.child("title"), size: g.titleFontSize, weight: .semibold, color: label, alignment: .leading)
             } ?? nil
-            // iOS 27: the message is set in the subheadline style, wrapped lines 20pt apart.
-            // measured: iOS 27.0 simulator (two-line messages 38pt tall in GlassTabsAndSheets-3/4, 11_Profile)
+            // The message is set in the subheadline style, wrapped lines 20pt apart. measured: iOS 27.0 and 26.5
+            // simulators (two-line messages 38pt tall in GlassTabsAndSheets-3/4, 11_Profile; lines at 405.7 and 425.7pt in both)
             message = resolveDialogText(spec.message, ctx.child("message"), size: g.messageFontSize, weight: .regular,
                                         color: SystemColor.secondaryLabel.resolve(scheme), alignment: .leading,
-                                        font: design == .liquidGlass27 ? .subheadline : nil)
+                                        font: .subheadline)
         } else {
             title = spec.title.map { t in
                 resolveDialogText(nodeResolver(t), ctx.child("title"), size: AlertMetrics.titleFontSize, weight: .semibold, color: label)
@@ -712,10 +714,10 @@ final class AlertCardNode: Node {
         actionHandlers = list.map(\.activate)
         actions = list.map { action in
             if design.isGlass {
-                // Label-coloured, regular weight; destructive red. measured: iOS 26.5 simulator
+                // Label-coloured, medium weight; destructive red. measured: iOS 26.5 and 27.0 simulators
                 let g = AlertMetrics.forDesign(design), refined = design == .liquidGlass27
                 let red = (refined ? g.destructive27 : SystemColor.red).resolve(scheme)
-                return textNode(action.title, size: fontSize, weight: refined ? g.buttonWeight27 : .regular,
+                return textNode(action.title, size: fontSize, weight: g.buttonWeight,
                                 color: action.role == .destructive ? red : label, env: env)
             }
             return textNode(action.title, size: fontSize, weight: action.role == .cancel ? .semibold : .regular,
