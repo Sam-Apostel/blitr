@@ -73,6 +73,8 @@ enum Renderer {
             runtime.pendingActions = []
             let ctx = ResolveContext(env: env, path: IdentityPath(), runtime: runtime)
             root = resolveSingle(view, ctx)
+            // Sheets, alerts and dialogs presented anywhere in the tree are drawn above the root.
+            root = PresentationHostNode.wrap(root, ctx)
 
             switch config.layout {
             case .device, .fixed:
