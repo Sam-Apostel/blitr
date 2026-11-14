@@ -19,6 +19,7 @@ import Foundation
 ///     @Entry var x: T = v              ->  an explicit EnvironmentKey + computed property
 ///     #available(iOS 26, *)            ->  SwiftUI.RenderedPlatform.isAtLeast(iOS: 26)
 ///     #unavailable(iOS 26)             ->  !SwiftUI.RenderedPlatform.isAtLeast(iOS: 26)
+///     formatter.monthSymbols?[i]       ->  formatter.monthSymbols[i]   (implicitly unwrapped on Apple; see implicitlyUnwrappedSymbols)
 ///     extension UIWindow { override func motionEnded(...) { ... } }  ->  the override is blanked out, with a warning
 ///                                     (see dropExtensionOverrides)
 ///
@@ -391,6 +392,17 @@ struct Preprocessor {
     /// Modules of the SDK whose Apple counterparts have submodules (`import CoreImage.CIFilterBuiltins`).
     static let submoduleParents: Set<String> = ["os", "CoreImage", "UIKit", "AppKit", "CoreGraphics", "QuartzCore", "ImageIO", "CoreText"]
     /// Attributes that need the Objective-C runtime, which Swift on Linux does not have; they are dropped.
+    /// DateFormatter properties declared `[String]!` / `String!` by Apple's Foundation and non-optional by Linux
+    /// Foundation. (Its other implicitly unwrapped properties, and NumberFormatter's, are optional on Linux too;
+    /// Calendar's and Locale's symbols are non-optional on both.)
+    static let implicitlyUnwrappedSymbols = [
+        "monthSymbols", "shortMonthSymbols", "veryShortMonthSymbols",
+        "standaloneMonthSymbols", "shortStandaloneMonthSymbols", "veryShortStandaloneMonthSymbols",
+        "weekdaySymbols", "shortWeekdaySymbols", "veryShortWeekdaySymbols",
+        "standaloneWeekdaySymbols", "shortStandaloneWeekdaySymbols", "veryShortStandaloneWeekdaySymbols",
+        "quarterSymbols", "shortQuarterSymbols", "standaloneQuarterSymbols", "shortStandaloneQuarterSymbols",
+        "eraSymbols", "longEraSymbols", "amSymbol", "pmSymbol",
+    ]
     static let objCAttributes = ["@objcMembers", "@objc", "@nonobjc", "@IBAction", "@IBOutlet", "@IBInspectable", "@IBDesignable", "@IBSegueAction"]
 
     private static func isIdentifierByte(_ b: UInt8) -> Bool {
@@ -477,6 +489,18 @@ struct Preprocessor {
                 if j < bytes.count, bytes[j] == UInt8(ascii: "("), let close = bytes[j...].firstIndex(of: UInt8(ascii: ")")) { j = close + 1 }
                 i = j
                 continue
+            }
+            // DateFormatter's symbol properties are implicitly unwrapped (`[String]!`, `String!`) on Apple platforms
+            // and plain on Linux, so `f.monthSymbols?[i]` and `f.amSymbol!` lose their `?` / `!` here.
+            if bytes[i] == UInt8(ascii: "."), mask[i], let name = Self.implicitlyUnwrappedSymbols.first(where: { hasToken("." + $0, at: i) }) {
+                let after = i + 1 + name.utf8.count
+                let next = after + 1 < bytes.count ? bytes[after + 1] : 0
+                if after < bytes.count, (bytes[after] == UInt8(ascii: "?") && (next == UInt8(ascii: ".") || next == UInt8(ascii: "[")))
+                    || (bytes[after] == UInt8(ascii: "!") && next != UInt8(ascii: "=")) {
+                    out += bytes[i..<after]
+                    i = after + 1
+                    continue
+                }
             }
             // WidgetKit's watchOS-only family (see WidgetFamily.accessoryCorner).
             if hasPrefix(".accessoryCorner", at: i), i + 16 >= bytes.count || !Self.isIdentifierByte(bytes[i + 16]) {

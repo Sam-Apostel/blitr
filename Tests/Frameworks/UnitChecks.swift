@@ -91,6 +91,10 @@ func hex<S: Sequence>(_ bytes: S) -> String where S.Element == UInt8 { bytes.map
     check("Markdown markers removed", markdown == "Bold and link code")
     let intents = (try? AttributedString(markdown: "**a** _b_ `c` ~~d~~ [e](https://example.com)"))
         .map { a in a.runs.map { "\($0.inlinePresentationIntent?.rawValue ?? 0)\($0.link == nil ? "" : "L")" }.joined(separator: ",") }
+    let monthFormatter = DateFormatter()
+    monthFormatter.locale = Locale(identifier: "en_US")
+    // Implicitly unwrapped on Apple platforms; the tool drops the `?` / `!` for Linux Foundation.
+    check("DateFormatter symbols as on Apple", monthFormatter.shortStandaloneMonthSymbols?[0] == "Jan" && monthFormatter.amSymbol! == "AM")
     check("Markdown inline presentation intents", intents == "2,0,1,0,4,0,32,0,0L")
     return result
 }
