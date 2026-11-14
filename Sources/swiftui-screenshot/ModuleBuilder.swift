@@ -39,15 +39,9 @@ struct ModuleBuilder {
         ProcessInfo.processInfo.environment["SWIFTUI_SCREENSHOT_CACHE"] ?? (NSHomeDirectory() + "/.cache/swiftui-screenshot")
     }
 
-    /// Modules shipped next to the SwiftUI module (SwiftUI, Combine, UIKit and any shim modules): a
-    /// `.swiftmodule` with a matching `lib<Name>.so`. Linked into every module compiled against the SDK.
-    var shimModules: [String] {
-        let fm = FileManager.default
-        let names = ((try? fm.contentsOfDirectory(atPath: installation.sdk)) ?? []).filter { $0.hasSuffix(".swiftmodule") }
-            .map { ($0 as NSString).deletingPathExtension }
-            .filter { fm.fileExists(atPath: installation.sdk + "/lib\($0).so") }
-        return names.sorted()
-    }
+    /// Modules shipped next to the SwiftUI module (SwiftUI, Combine, the shim frameworks, CoreText, the
+    /// Foundation shim). A module importing any of them is compiled against the SDK.
+    var shimModules: [String] { installation.modules }
 
     static func stamp(_ path: String) -> String {
         (try? FileManager.default.attributesOfItem(atPath: path))
@@ -57,8 +51,7 @@ struct ModuleBuilder {
     /// Identity of everything a compiled module depends on besides its own inputs.
     var environmentStamp: [String] {
         let tool = (try? FileManager.default.destinationOfSymbolicLink(atPath: "/proc/self/exe")) ?? CommandLine.arguments[0]
-        return [installation.swiftc, ModuleBuilder.stamp(installation.sdk + "/libSwiftUI.so"), ModuleBuilder.stamp(tool), "module-builder-1"]
-            + shimModules.map { $0 + ModuleBuilder.stamp(installation.sdk + "/lib\($0).so") }
+        return [installation.swiftc, installation.stamp, ModuleBuilder.stamp(tool), "module-builder-2"]
             + ModuleBuilder.extraModuleDirectories.flatMap { directory in
                 [directory] + ((try? FileManager.default.contentsOfDirectory(atPath: directory)) ?? []).sorted().map { $0 + ModuleBuilder.stamp(directory + "/" + $0) }
             } + ModuleBuilder.extraImports
@@ -157,7 +150,7 @@ struct ModuleBuilder {
         var arguments = flags + ["-Onone", "-module-name", target.moduleName, "-parse-as-library", "-no-color-diagnostics",
                                  "-emit-library", "-emit-module", "-emit-module-path", directory + "/\(target.moduleName).swiftmodule",
                                  "-Xlinker", "-soname=lib\(target.moduleName).so", "-j\(ProcessInfo.processInfo.activeProcessorCount)"]
-        arguments += linkArguments(dependencies, sdk: sdk, imports: ModuleBuilder.imports(files.map(\.contents)))
+        arguments += linkArguments(dependencies, sdk: sdk)
         arguments += written + ["-o", library]
         let result = run(arguments)
         if result.status != 0 || !FileManager.default.fileExists(atPath: library) {
@@ -168,12 +161,6 @@ struct ModuleBuilder {
     }
 
     static let foundationShim = "SwiftUIScreenshotFoundation"
-
-    static func imports(_ contents: [String]) -> Set<String> {
-        var names: Set<String> = []
-        for text in contents { names.formUnion(SwiftIndexer.index(Array(text.utf8)).importsModules) }
-        return names
-    }
 
     /// Modules imported into every file compiled against the SDK (SWIFTUI_SCREENSHOT_IMPORTS, comma-separated):
     /// lets a stand-in module add members to SDK types while scouting a project.
@@ -204,19 +191,13 @@ struct ModuleBuilder {
     }
 
     /// Search paths and libraries for a module. Every module imports the Foundation shim implicitly.
-    /// The SDK's core libraries, linked first and always. The other shim libraries are linked only when imported:
-    /// each is a separate dynamic library that also contains a copy of the SwiftUI module, so linking one
-    /// that is not needed (or ahead of libSwiftUI) puts a second SwiftUI runtime in the process.
-    static let coreLibraries = ["SwiftUI", "Combine", "SwiftUIScreenshotFoundation", "UIKit"]
-
-    func linkArguments(_ dependencies: [BuiltModule], sdk: Bool, imports: Set<String> = []) -> [String] {
+    /// Compiles against the SDK link libSwiftUI, which also holds Combine and the shim frameworks (UIKit,
+    /// MapKit, WidgetKit, ...), so a process has one copy of SwiftUI whatever it imports. CoreText and the
+    /// Foundation shim are separate libraries without SwiftUI, autolinked by their modules.
+    func linkArguments(_ dependencies: [BuiltModule], sdk: Bool) -> [String] {
         var arguments: [String] = []
         if sdk {
-            arguments += ["-I", installation.sdk, "-L", installation.sdk]
-            let available = Set(shimModules)
-            for library in ModuleBuilder.coreLibraries where available.contains(library) { arguments.append("-l" + library) }
-            for library in shimModules where !ModuleBuilder.coreLibraries.contains(library) && imports.contains(library) { arguments.append("-l" + library) }
-            arguments += ["-Xlinker", "-rpath", "-Xlinker", installation.sdk]
+            arguments += installation.linkFlags
         } else if let shim = foundationShimDirectory {
             arguments += ["-I", shim, "-L", shim, "-l" + ModuleBuilder.foundationShim, "-Xlinker", "-rpath", "-Xlinker", installation.sdk]
         }
@@ -288,7 +269,7 @@ struct ModuleBuilder {
             try? FileManager.default.createSymbolicLink(atPath: destination, withDestinationPath: source)
         }
         var arguments = flags + ["-Onone", "-module-name", target.moduleName, "-no-color-diagnostics", "-j\(ProcessInfo.processInfo.activeProcessorCount)"]
-        arguments += linkArguments(dependencies, sdk: true, imports: ModuleBuilder.imports(all.map(\.contents)))
+        arguments += linkArguments(dependencies, sdk: true)
         arguments += written + ["-o", runner]
         let result = run(arguments)
         if result.status != 0 || !FileManager.default.isExecutableFile(atPath: runner) {
@@ -334,7 +315,7 @@ struct ModuleBuilder {
                          "-parse-as-library", "-no-color-diagnostics", "-continue-building-after-errors", "-j\(ProcessInfo.processInfo.activeProcessorCount)"]
         if let package = target.packageName { arguments += ["-package-name", package.filter { $0.isLetter || $0.isNumber || $0 == "_" }] }
         for condition in target.compilationConditions { arguments += ["-D", condition] }
-        arguments += linkArguments(dependencies, sdk: sdk, imports: ModuleBuilder.imports(files.map(\.contents)))
+        arguments += linkArguments(dependencies, sdk: sdk)
         if let stubs { arguments += ["-I", stubs] }
         let result = run(arguments + written)
         return (result.status, ModuleBuilder.mapDiagnostics(result.output, work: work))

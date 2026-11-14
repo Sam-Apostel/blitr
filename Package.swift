@@ -8,19 +8,19 @@ let skiaLib = Context.packageDirectory + "/Vendor/skia/lib"
 // C dependencies do not leak into the user's compile.
 let moduleSettings: [SwiftSetting] = [.swiftLanguageMode(.v5), .unsafeFlags(["-enable-library-evolution"])]
 
+// Modules linked into libSwiftUI next to the SwiftUI module itself (Combine is a dependency of SwiftUI).
+let shimModules = ["Combine", "UIKit", "CoreLocation", "MapKit", "AppIntents", "ActivityKit", "WidgetKit"]
+
 let package = Package(
     name: "swift-ui-screenshot",
     products: [
-        // A Linux reimplementation of the SwiftUI API surface, named `SwiftUI`
-        // so unmodified app code (`import SwiftUI`) compiles against it.
-        .library(name: "SwiftUI", type: .dynamic, targets: ["SwiftUI"]),
-        // Shims so `import Combine` / `import UIKit` resolve (SwiftUI re-exports Combine).
-        .library(name: "Combine", type: .dynamic, targets: ["Combine"]),
-        .library(name: "UIKit", type: .dynamic, targets: ["UIKit"]),
-        // Shims for widget extensions: `import WidgetKit`, `ActivityKit`, `AppIntents` (see docs/WIDGETS.md).
-        .library(name: "AppIntents", type: .dynamic, targets: ["AppIntents"]),
-        .library(name: "ActivityKit", type: .dynamic, targets: ["ActivityKit"]),
-        .library(name: "WidgetKit", type: .dynamic, targets: ["WidgetKit"]),
+        // A Linux reimplementation of the SwiftUI API surface, named `SwiftUI` so unmodified app code
+        // (`import SwiftUI`) compiles against it. The shim frameworks (`import UIKit`, `MapKit`, `WidgetKit`, ...)
+        // are separate modules, so their names are only visible where they are imported, but their code is
+        // linked into this one library: a dynamic library of their own would carry a second copy of SwiftUI
+        // (SwiftPM links a target's dependencies into every dynamic product), and two copies in a process
+        // break protocol conformance lookups at run time. Importers link `-lSwiftUI` (docs/ARCHITECTURE.md).
+        .library(name: "SwiftUI", type: .dynamic, targets: ["SwiftUI"] + shimModules),
         // Foundation's localization API (String(localized:), LocalizedStringResource), which Linux Foundation
         // lacks; SwiftUI re-exports it and project mode imports it into Foundation-only packages.
         .library(name: "SwiftUIScreenshotFoundation", type: .dynamic, targets: ["SwiftUIScreenshotFoundation"]),
@@ -44,11 +44,11 @@ let package = Package(
         .target(name: "SwiftUIScreenshotFoundation", swiftSettings: moduleSettings + [.unsafeFlags(["-module-link-name", "SwiftUIScreenshotFoundation"])]),
         .target(name: "CoreText", swiftSettings: moduleSettings + [.unsafeFlags(["-module-link-name", "CoreText"])]),
         .target(name: "SwiftUI", dependencies: ["CSkia", "CHarfBuzz", "Combine", "SwiftUIScreenshotFoundation"], swiftSettings: moduleSettings),
+        // The shim frameworks: each its own module, linked into libSwiftUI (see the SwiftUI product).
         .target(name: "UIKit", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
         .target(name: "AppIntents", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
         .target(name: "ActivityKit", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
         .target(name: "WidgetKit", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
-        // `import CoreLocation` / `import MapKit`: re-export SwiftUI, where the API lives (Sources/SwiftUI/Maps).
         .target(name: "CoreLocation", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
         .target(name: "MapKit", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
         .executableTarget(name: "swiftui-screenshot", swiftSettings: [.swiftLanguageMode(.v5)]),

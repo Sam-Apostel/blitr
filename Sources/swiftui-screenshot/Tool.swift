@@ -126,6 +126,43 @@ struct Installation {
         }
         return Installation(sdk: (sdk as NSString).standardizingPath, fontDirectories: fonts, appleFontDirectory: appleFonts, swiftc: swiftc)
     }
+
+    /// The modules of the SDK: every `Name.swiftmodule` next to the SwiftUI module (SwiftUI, Combine and the
+    /// shim frameworks, which are linked into libSwiftUI; CoreText and the Foundation shim have their own library).
+    var modules: [String] {
+        ((try? FileManager.default.contentsOfDirectory(atPath: sdk)) ?? []).filter { $0.hasSuffix(".swiftmodule") }
+            .map { ($0 as NSString).deletingPathExtension }.sorted()
+    }
+
+    /// Identity of the SDK for build caches: size and date of every library and module file in it, so a
+    /// rebuilt SwiftUI or shim module invalidates what was compiled against the old one.
+    var stamp: String {
+        let fm = FileManager.default
+        var parts: [String] = []
+        for name in ((try? fm.contentsOfDirectory(atPath: sdk)) ?? []).sorted() {
+            let path = sdk + "/" + name
+            if name.hasPrefix("lib"), name.hasSuffix(".so") {
+                parts.append(name + fileStamp(path))
+            } else if name.hasSuffix(".swiftmodule") {
+                var isDirectory: ObjCBool = false
+                guard fm.fileExists(atPath: path, isDirectory: &isDirectory) else { continue }
+                let files = isDirectory.boolValue ? ((try? fm.contentsOfDirectory(atPath: path)) ?? []).sorted().filter { $0.hasSuffix(".swiftmodule") }.map { path + "/" + $0 } : [path]
+                parts += files.map { name + fileStamp($0) }
+            }
+        }
+        return hash(parts)
+    }
+
+    private func fileStamp(_ path: String) -> String {
+        (try? FileManager.default.attributesOfItem(atPath: path))
+            .map { "-\($0[.size] ?? 0)-\(($0[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0)" } ?? ""
+    }
+
+    /// Libraries every compile against the SDK links. The shim frameworks need no flag of their own: their code
+    /// is in libSwiftUI. CoreText and the Foundation shim are autolinked by their modules.
+    var linkFlags: [String] {
+        ["-I", sdk, "-L", sdk, "-lSwiftUI", "-Xlinker", "-rpath", "-Xlinker", sdk]
+    }
 }
 
 // MARK: - Helpers
@@ -297,9 +334,7 @@ func build(_ options: Options, _ installation: Installation) -> Build {
     }
 
     // Cache key: the rewritten sources plus the identity of the module they are compiled against.
-    let moduleStamp = (try? FileManager.default.attributesOfItem(atPath: installation.sdk + "/libSwiftUI.so"))
-        .map { "\($0[.size] ?? 0)-\(($0[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0)" } ?? ""
-    let key = hash(output.files.flatMap { [$0.name, $0.contents] } + [moduleStamp, installation.swiftc])
+    let key = hash(output.files.flatMap { [$0.name, $0.contents] } + [installation.stamp, installation.swiftc])
     let cacheRoot = ProcessInfo.processInfo.environment["SWIFTUI_SCREENSHOT_CACHE"]
         ?? (NSHomeDirectory() + "/.cache/swiftui-screenshot")
     let work = cacheRoot + "/" + key
@@ -318,9 +353,7 @@ func build(_ options: Options, _ installation: Installation) -> Build {
             written.append(path)
             if index < sources.count { originalPath[path] = sources[index].path }
         }
-        var arguments = ["-swift-version", "5", "-Onone", "-module-name", "App", "-no-color-diagnostics",
-                         "-I", installation.sdk, "-L", installation.sdk, "-lSwiftUI", "-lCombine", "-lUIKit",
-                         "-Xlinker", "-rpath", "-Xlinker", installation.sdk]
+        var arguments = ["-swift-version", "5", "-Onone", "-module-name", "App", "-no-color-diagnostics"] + installation.linkFlags
         arguments += written + ["-o", runner]
         if options.verbose { note(([installation.swiftc] + arguments).joined(separator: " ")) }
         let result = run(installation.swiftc, arguments)

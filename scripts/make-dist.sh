@@ -5,7 +5,7 @@
 #
 #   swiftui-screenshot/
 #     bin/swiftui-screenshot
-#     lib/swiftui-screenshot/   SwiftUI, Combine, UIKit modules + shared libraries, libSkiaSharp, fonts/
+#     lib/swiftui-screenshot/   SwiftUI and shim modules, their shared libraries, libSkiaSharp, fonts/
 #     share/swiftui-screenshot/ fetch-apple-fonts.sh, THIRD-PARTY-NOTICES, VERSION
 #
 # Usage: scripts/make-dist.sh [VERSION]     (default: git describe --tags --always)
@@ -47,13 +47,13 @@ mkdir -p "$stage/bin" "$lib/fonts" "$share"
 cp "$bin/swiftui-screenshot" "$stage/bin/"
 
 # Modules (the .swiftmodule directories carry the .swiftdoc next to the binary module) and libraries.
-for m in SwiftUI Combine UIKit; do
+# The shim frameworks (UIKit, MapKit, WidgetKit, ...) and Combine are modules whose code is in libSwiftUI;
+# CoreText and the Foundation shim have libraries of their own (docs/ARCHITECTURE.md, "Shim modules").
+for m in SwiftUI SwiftUIScreenshotFoundation CoreText Combine UIKit CoreLocation MapKit AppIntents ActivityKit WidgetKit; do
   cp -r "$bin/$m.swiftmodule" "$lib/"
-  cp "$bin/lib$m.so" "$lib/"
 done
-# Shims that only re-export SwiftUI: their API is in libSwiftUI, so only the module interfaces are needed.
-for m in WidgetKit ActivityKit AppIntents CoreLocation MapKit; do
-  cp -r "$bin/$m.swiftmodule" "$lib/"
+for m in SwiftUI SwiftUIScreenshotFoundation CoreText; do
+  cp "$bin/lib$m.so" "$lib/"
 done
 
 # Skia, plus the symlink named after its SONAME (the loader looks that name up).
@@ -66,7 +66,7 @@ find Vendor/fonts -maxdepth 1 -type f \( -name '*.ttf' -o -name '*.otf' -o -name
 
 # Relocatability. The build links libSwiftUI.so with absolute rpaths (toolchain and Vendor/skia/lib)
 # next to $ORIGIN; keep only $ORIGIN so libSkiaSharp is found beside it, wherever the tree lives.
-for so in "$lib"/libSwiftUI.so "$lib"/libCombine.so "$lib"/libUIKit.so "$lib"/libSkiaSharp.so; do
+for so in "$lib"/*.so; do
   patchelf --set-rpath '$ORIGIN' "$so"
 done
 # The tool itself only needs the Swift runtime of the toolchain it is used with (it also needs one to
