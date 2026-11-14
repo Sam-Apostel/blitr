@@ -8,6 +8,8 @@ import Foundation
 ///     @Previewable                     ->  (removed)
 ///     @main                            ->  (removed; the generated main.swift is the entry point)
 ///     #if os(iOS)                      ->  #if os(Linux)   (for the platform being rendered: its branches are kept)
+///     #if os(Linux)                    ->  #if false       (the code is rendered as an Apple platform)
+///     #if canImport(UIKit)             ->  #if false       (on platforms without the framework; see frameworkPlatforms)
 ///     import SwiftUI                   ->  import SwiftUI; import UIKit   (iOS, tvOS, visionOS: SwiftUI re-exports UIKit there)
 ///     @Entry var x: T = v              ->  an explicit EnvironmentKey + computed property
 ///     #available(iOS 26, *)            ->  SwiftUI.RenderedPlatform.isAtLeast(iOS: 26)
@@ -260,6 +262,15 @@ struct Preprocessor {
     /// Platforms whose SwiftUI re-exports UIKit.
     static let uiKitPlatforms: Set<String> = ["iOS", "tvOS", "visionOS"]
 
+    /// Frameworks the SDK has a module for that Apple does not ship on every platform: `canImport` of one is
+    /// false when another platform is rendered. AppKit and WatchKit have no module here, so `canImport` of
+    /// them is false on every platform.
+    static let frameworkPlatforms: [String: Set<String>] = [
+        "UIKit": uiKitPlatforms,
+        "ActivityKit": ["iOS"],
+        "WidgetKit": ["iOS", "macOS", "watchOS", "visionOS"],
+    ]
+
     private static func isIdentifierByte(_ b: UInt8) -> Bool {
         b == UInt8(ascii: "_") || (b >= 48 && b <= 57) || (b >= 65 && b <= 90) || (b >= 97 && b <= 122)
     }
@@ -342,6 +353,25 @@ struct Preprocessor {
                 out += Array("os(Linux)".utf8)
                 i += "os(\(platform))".utf8.count
                 continue
+            }
+            // The code is rendered as the Apple platform, so its Linux branches are not taken.
+            if hasToken("os(Linux)", at: i), i == 0 || !Self.isIdentifierByte(bytes[i - 1]) {
+                out += Array("false".utf8)
+                i += "os(Linux)".utf8.count
+                continue
+            }
+            // `canImport` follows the rendered platform too: UIKit only where Apple ships it, and so on
+            // (Self.frameworkPlatforms). Other modules are left to the compiler, which finds the ones the
+            // SDK provides and no others.
+            if hasPrefix("canImport(", at: i), i == 0 || !Self.isIdentifierByte(bytes[i - 1]),
+               let close = bytes[i...].firstIndex(of: UInt8(ascii: ")")) {
+                let argument = String(decoding: bytes[(i + "canImport(".utf8.count)..<close], as: UTF8.self)
+                let module = argument.split(separator: ",").first.map { $0.trimmingCharacters(in: .whitespaces) } ?? ""
+                if let platforms = Self.frameworkPlatforms[module], !platforms.contains(platform) {
+                    out += Array("false".utf8)
+                    i = close + 1
+                    continue
+                }
             }
             if hasToken("#Preview", at: i) {
                 var j = i + "#Preview".utf8.count
