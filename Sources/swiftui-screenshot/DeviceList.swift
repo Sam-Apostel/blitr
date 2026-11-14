@@ -3,6 +3,15 @@ import Foundation
 /// `swiftui-screenshot devices`: the table lives in the runtime module, so build (once, cached) a
 /// trivial runner against it and ask it with `--list-devices`.
 func listDevices(_ installation: Installation) -> Never {
+    let listing = run(utilityRunner(installation), ["--list-devices"])
+    guard listing.status == 0 else { fail("device listing failed:\n\(listing.stderr)") }
+    print(listing.stdout, terminator: "")
+    exit(0)
+}
+
+/// A tiny runner with no previews, built once against the `SwiftUI` module and cached. It serves the
+/// modes that need the module (and Skia) but no user code: `--list-devices`, `--compare`.
+func utilityRunner(_ installation: Installation) -> String {
     guard !installation.swiftc.isEmpty else { fail("swiftc not found. Install a Swift 6 toolchain and put it on PATH, or set SWIFTC.") }
     let moduleStamp = (try? FileManager.default.attributesOfItem(atPath: installation.sdk + "/libSwiftUI.so"))
         .map { "\($0[.size] ?? 0)-\(($0[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0)" } ?? ""
@@ -21,8 +30,5 @@ func listDevices(_ installation: Installation) -> Never {
             fail("could not build the device listing runner")
         }
     }
-    let listing = run(runner, ["--list-devices"])
-    guard listing.status == 0 else { fail("device listing failed:\n\(listing.stderr)") }
-    print(listing.stdout, terminator: "")
-    exit(0)
+    return runner
 }
