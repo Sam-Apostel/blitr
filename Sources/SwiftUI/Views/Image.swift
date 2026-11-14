@@ -101,13 +101,17 @@ public struct Image: Equatable, Sendable {
         case file(String)
     }
     var source: Source
+    /// `Image(decorative:)`: hidden from assistive technology.
+    var isDecorative = false
+    /// `Image(_:label:)`: the accessibility label.
+    var accessibilityLabelText: String?
     var isResizable = false
     var renderingMode: TemplateRenderingMode?
     var symbolMode: SymbolRenderingMode?
 
     public init(_ name: String, bundle: Bundle? = nil) { source = .named(name) }
-    public init(_ name: String, bundle: Bundle? = nil, label: Text) { source = .named(name) }
-    public init(decorative name: String, bundle: Bundle? = nil) { source = .named(name) }
+    public init(_ name: String, bundle: Bundle? = nil, label: Text) { source = .named(name); accessibilityLabelText = label.plainString }
+    public init(decorative name: String, bundle: Bundle? = nil) { source = .named(name); isDecorative = true }
     public init(systemName: String) { source = .system(systemName) }
     public init(systemName: String, variableValue: Double?) { source = .system(systemName) }
     public init(_ name: String, variableValue: Double?, bundle: Bundle? = nil) { source = .named(name) }
@@ -269,6 +273,10 @@ extension Image {
 final class ImageNode: Node {
     let content: ImageContent
     let isResizable: Bool
+    /// Where the image came from, for accessibility labels (set by `Image.resolve`).
+    var imageSource: Image.Source?
+    var isDecorative = false
+    var accessibilityLabelText: String?
     init(content: ImageContent, isResizable: Bool) {
         self.content = content
         self.isResizable = isResizable
@@ -290,7 +298,11 @@ extension Image: View, PrimitiveView {
     func resolve(_ ctx: ResolveContext, into out: inout [Node]) {
         var env = ctx.env
         if let symbolMode { env.symbolRenderingMode = symbolMode }
-        out.append(ImageNode(content: content(in: env), isResizable: isResizable))
+        let node = ImageNode(content: content(in: env), isResizable: isResizable)
+        node.imageSource = source
+        node.isDecorative = isDecorative
+        node.accessibilityLabelText = accessibilityLabelText
+        out.append(node)
     }
 }
 

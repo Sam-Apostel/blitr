@@ -71,6 +71,62 @@ What gets rendered, first match wins: `--view "ContentView()"`, a `#Preview` (pi
 Pass a directory to render a multi-file module. Anything that is not rendered faithfully is
 reported as a warning (an unmapped SF Symbol, a missing asset, a UIKit view).
 
+## Accessibility tree and tap targets
+
+For agents and CI that want structure rather than pixels:
+
+```
+swiftui-screenshot render Screen.swift --accessibility-tree a11y.json --tap-targets taps.png --accessibility-outline
+```
+
+| Flag | Output |
+|---|---|
+| `--accessibility-tree <file.json>` | The accessibility tree, tap-target data and an `issues` array. |
+| `--tap-targets <file.png>` | The screenshot dimmed, every interactive element's hit rect outlined and lightly filled: green when both sides are at least 44pt, red otherwise (with a `WxH` label). |
+| `--accessibility-outline` | The tree as indented text on stdout, one element per line: `button "Follow" (16,360 170x38)`. With `--json` the text is in the result's `outline` field. |
+
+With several images (`--all`, `--scheme both`) the file names get the same suffix as the PNGs
+(`a11y-Dark-dark.json`), in `--out-dir` unless the flag value has its own directory. The `--json` result lists
+`accessibilityTree`, `tapTargets` and an `accessibility` summary. Rendering is unaffected: the PNG is
+byte-identical with or without these flags.
+
+The tree follows what VoiceOver would see, approximately: `Text` is static text, images are labelled by
+their symbol or asset name (`Image(decorative:)` is hidden), buttons, links, menus, toggles, sliders, steppers,
+pickers and text fields are elements with label, value and traits, and `.accessibilityElement(children:)`,
+`.accessibilityLabel/Value/Hint/Identifier/AddTraits/Hidden/SortPriority` are honoured. Navigation bar, tab bar,
+list section headers, alerts, dialogs and sheets are read from the system chrome; elements behind a modal
+presentation are omitted. `onTapGesture` and friends make a view a tap target.
+
+JSON shape (frames are points in screen coordinates):
+
+```json
+{ "version": 1, "device": "iPhone 16", "size": {"width": 393, "height": 852}, "scale": 3, "colorScheme": "light",
+  "modal": {"kind": "alert", "obscuredElements": 24},
+  "elements": [ { "role": "button", "label": "Follow", "value": "...", "hint": "...", "identifier": "...",
+                  "traits": ["button"], "enabled": true, "frame": {"x": 20, "y": 359, "width": 170, "height": 38},
+                  "interactive": true, "hitFrame": {"x": 20, "y": 359, "width": 170, "height": 38},
+                  "meetsMinimumSize": false, "offscreen": true, "truncated": true, "inputLabels": ["..."],
+                  "actions": ["..."], "children": [] } ],
+  "summary": {"elementCount": 12, "interactiveCount": 3, "issueCount": 2, "byRole": {"button": 3},
+              "issuesByKind": {"smallTarget": 2}},
+  "issues": [ {"kind": "smallTarget", "message": "...", "frame": {"x": 0, "y": 0, "width": 0, "height": 0},
+               "label": "Follow", "identifier": "...", "related": {"x": 0, "y": 0, "width": 0, "height": 0}} ] }
+```
+
+Always present on an element: `role`, `label` (possibly empty), `traits`, `enabled`, `frame`, `interactive`,
+`actions`, `children`. Present only when set: `value`, `hint`, `identifier`, `inputLabels`; `hitFrame` and
+`meetsMinimumSize` only when `interactive`; `offscreen` and `truncated` only when true. Top level: `modal` only when an
+alert, dialog or sheet is presented; `issues` is always present. Roles: `button`, `link`, `header`, `image`,
+`staticText`, `switch`, `slider`, `stepper`, `picker`, `segmentedControl`, `textField`, `secureTextField`,
+`textEditor`, `searchField`, `datePicker`, `colorPicker`, `progress`, `gauge`, `tab`, `tabBar`, `navigationBar`,
+`alert`, `dialog`, `sheet`, `group`. Scroll content below the fold stays in the tree, flagged `offscreen`.
+
+Issue kinds: `smallTarget` (hit area under 44x44pt), `missingLabel` (interactive element with no label),
+`imageMissingLabel` (image read only by its asset name), `duplicateIdentifier`, `overlappingTargets` (`related` is the
+other frame) and `truncatedText` (cut off by its line limit). System controls and bar items get the platform's
+expanded 44pt hit region; a lone control in a list row is hit across the whole row.
+[`Examples/Accessibility.swift`](Examples/Accessibility.swift) contains one of each problem.
+
 ## What is supported
 
 - **Layout**: stacks, frames, padding, alignment guides, `Spacer`, `GeometryReader`, safe
@@ -87,7 +143,8 @@ reported as a warning (an unmapped SF Symbol, a missing asset, a UIKit view).
   `@Environment`, `@AppStorage`, preferences. `onAppear` and `.task` run before the frame
   is taken, so views show their loaded state.
 - **SF Symbols**: about 1,500 names drawn from an open icon set.
-- Gestures, animations, transitions, accessibility and focus APIs compile and are ignored.
+- Gestures, animations, transitions and focus APIs compile and are ignored; accessibility modifiers feed the
+  accessibility outputs above and never change the picture.
 
 ## Limitations
 

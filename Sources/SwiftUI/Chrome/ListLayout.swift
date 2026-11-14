@@ -111,7 +111,7 @@ final class ListNode: Node {
     // Results of layout, in this node's coordinates.
     private var cards: [(rect: CGRect, radius: CGFloat, rows: Range<Int>, section: Int)] = []
     private var separators: [(rect: CGRect, color: RGBA)] = []
-    private var bleed = EdgeInsets()
+    private(set) var bleed = EdgeInsets()
 
     init(items: [Node], style: ListStyleKind, env: EnvironmentValues) {
         self.style = style

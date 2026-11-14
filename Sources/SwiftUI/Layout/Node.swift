@@ -21,6 +21,8 @@ class Node {
     final var frame: CGRect = .zero
     final var absoluteOrigin: CGPoint = .zero
     final var traits = Traits()
+    /// Accessibility information recorded by modifiers and controls (see Accessibility/).
+    final var ax: AXBox?
     /// Preference values written on this node itself; they replace what its children report.
     final var ownPreferences = PreferenceStore()
     private var blockedPreferences: Set<ObjectIdentifier> = []

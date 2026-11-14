@@ -107,7 +107,13 @@ public struct Label<Title: View, Icon: View>: View {
     }
 
     public var body: some View {
-        styleBox.make(AnyView(title), AnyView(icon))
+        let titleText = axPlainString(title)
+        return styleBox.make(AnyView(title), AnyView(icon.axInfo { $0.hidden = true }))
+            .axInfo(shared: true) {
+                $0.isElement = true
+                $0.children = .combine
+                $0.label = titleText
+            }
     }
 }
 
@@ -141,6 +147,7 @@ public struct LabeledContent<Label: View, Content: View>: View {
             Spacer(minLength: 8)
             content.foregroundStyle(.secondary).multilineTextAlignment(.trailing)
         }
+        .axInfo { $0.isElement = true; $0.children = .combine }
     }
 }
 
