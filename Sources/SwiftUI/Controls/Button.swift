@@ -161,16 +161,6 @@ public struct BorderedProminentButtonStyle: PrimitiveButtonStyle {
     }
 }
 
-/// tvOS card buttons. Drawn like `.plain` for now (the label as is); the focused lift comes from the
-/// default focus effect (Focus/FocusEffect.swift) until tvOS controls get their own styles.
-public struct CardButtonStyle: PrimitiveButtonStyle {
-    public init() {}
-    public func makeBody(configuration: PrimitiveButtonStyleConfiguration) -> some View {
-        _ButtonVisual(kind: .plain, label: AnyView(configuration.label), role: configuration.role)
-    }
-}
-extension PrimitiveButtonStyle where Self == CardButtonStyle { public static var card: CardButtonStyle { CardButtonStyle() } }
-
 extension PrimitiveButtonStyle where Self == DefaultButtonStyle { public static var automatic: DefaultButtonStyle { DefaultButtonStyle() } }
 extension PrimitiveButtonStyle where Self == BorderlessButtonStyle { public static var borderless: BorderlessButtonStyle { BorderlessButtonStyle() } }
 extension PrimitiveButtonStyle where Self == PlainButtonStyle { public static var plain: PlainButtonStyle { PlainButtonStyle() } }
