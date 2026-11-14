@@ -24,8 +24,13 @@ package struct RenderConfiguration {
     var assetDirectories: [String] = []
     var padding: CGFloat = 0
     var locale: String?
-    /// Seconds async `.task` work may run before the frame is taken.
-    var taskBudget: TimeInterval = 0.5
+    /// Real seconds async `.task` work may run before the frame is taken (`--task-timeout`).
+    var taskTimeout: TimeInterval = 0.5
+    /// Virtual seconds that pass before the frame is taken: `Task.sleep` calls ending within them
+    /// return at once (`--settle-time`).
+    var settleTime: TimeInterval = 2
+    /// Let code reach the network. Off by default: requests fail at once, as offline.
+    var allowsNetwork = false
     /// Major OS version whose look is rendered (iOS numbering; tvOS and the others share it).
     var osVersion = RenderedPlatform.defaultVersion
     var platform = RenderPlatform.iOS
@@ -42,6 +47,8 @@ enum Renderer {
         let runtime = Runtime(config: config)
         Runtime.current = runtime
         defer { Runtime.current = nil }
+        _RenderClock.shared.begin(settleTime: config.settleTime)
+        defer { _RenderClock.shared.end() }
         // Scripted steps and animation capture (Interaction/); nil for a plain render.
         let session = try InteractionSession.begin(runtime: runtime)
         defer { InteractionSession.end() }

@@ -36,6 +36,14 @@ grep -q 'state changed, 15 frames' "$out/a/card.log" && echo "ok    card step lo
 # The settled end of the animation is the plain render of the end state.
 cmp -s "$out/a/card.png" "$out/a/card-apng.png" && echo "ok    end frames agree" || fail "card PNGs differ between runs with different outputs"
 
+# Task.sleep on the virtual clock: delays within the settle time pass at once, no task is reported as
+# unfinished, and a `wait` step wakes the 5 s slideshow timer (a different frame).
+mkdir -p "$out/tasks"
+"$bin" render Examples/TaskTiming.swift --open-fonts --scale 1 -o "$out/tasks/tasks.png" >"$out/tasks/tasks.log" 2>&1 || fail "task timing render"
+"$bin" render Examples/TaskTiming.swift --open-fonts --scale 1 -o "$out/tasks/tasks-wait.png" --steps 'wait 5' >"$out/tasks/tasks-wait.log" 2>&1 || fail "task timing wait"
+grep -q "did not finish" "$out/tasks/tasks.log" && fail "a .task was reported unfinished: $(cat "$out/tasks/tasks.log")" || echo "ok    sleeping tasks settle"
+cmp -s "$out/tasks/tasks.png" "$out/tasks/tasks-wait.png" && fail "wait 5 did not wake the timer" || echo "ok    wait wakes sleeping tasks"
+
 # Determinism: same input, same bytes.
 for f in $(cd "$out/a" && find . -type f ! -name '*.log' ! -name '*.json' | sort); do
   cmp -s "$out/a/$f" "$out/b/$f" || fail "$f differs between two runs"

@@ -320,6 +320,14 @@ final class InteractionSession {
         switch step.action {
         case .wait(let seconds):
             try hold(.tween, caption: step.text, seconds: seconds)
+            // Time passes for `Task.sleep` too: sleepers due by now wake, and their changes show.
+            let clock = _RenderClock.shared
+            if clock.isDriven, clock.sleeping > 0 {
+                clock.horizon += seconds
+                runtime.needsAnotherPass = true
+                host.settle()
+                drawPlain()
+            }
             log("\(step.text) -> \(AnimationDefaults.format(seconds))s")
             return
         case .snapshot(let name):

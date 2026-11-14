@@ -50,7 +50,10 @@ Render options:
       --assets <dir>     Extra directory with images / .xcassets (repeatable)
       --fonts <dir>      Extra font directory, searched first (repeatable)
       --open-fonts       Use the open substitute fonts even if Apple's fonts are installed
-      --task-budget <s>  Seconds .task closures may run before the frame is taken (default 0.5)
+      --task-timeout <s> Real seconds .task closures may run before the frame is taken (default 0.5)
+      --settle-time <s>  Virtual seconds that pass before the frame is taken: Task.sleep calls that end within
+                         them return at once (default 2). Sleeps that end later wait past the frame
+      --allow-network    Let the code reach the network; by default requests fail at once (offline)
       --widget-family <f>          Widgets: render this family (systemSmall, systemMedium, systemLarge,
                                    systemExtraLarge, accessoryCircular, accessoryRectangular, accessoryInline)
       --widget-rendering-mode <m>  Widgets: fullColor | accented | vibrant (default: fullColor; vibrant for
@@ -287,10 +290,11 @@ func parse(_ arguments: [String]) -> Options {
         case "-v", "--verbose": options.verbose = true
         case "--assets": options.userAssetDirectories.append(value(arg))
         case "--fonts": options.userFontDirectories.append(value(arg))
-        case "--device", "--layout", "--width", "--height", "--scale", "--padding", "--background", "--dynamic-type", "--task-budget", "--ios":
+        case "--device", "--layout", "--width", "--height", "--scale", "--padding", "--background", "--dynamic-type", "--task-budget", "--task-timeout",
+             "--settle-time", "--ios":
             options.runnerArguments += [arg, value(arg)]
         case "--os": options.runnerArguments += ["--ios", value(arg)]
-        case "--no-chrome", "--show-tips": options.runnerArguments.append(arg)
+        case "--no-chrome", "--show-tips", "--allow-network": options.runnerArguments.append(arg)
         case "--orientation": options.runnerArguments += [arg, value(arg)]
         case "--rounded-corners", "--show-island": options.runnerArguments.append(arg)
         case "--widget-family", "--widget-rendering-mode": options.runnerArguments += [arg, value(arg)]

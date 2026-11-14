@@ -86,7 +86,9 @@ swiftui-screenshot version
 | `--dynamic-type xxxLarge` | `xSmall` to `xxxLarge`, `accessibility1` to `accessibility5`. |
 | `--assets dir`, `--fonts dir` | Images and `.xcassets` catalogs; extra fonts searched first. Directories you pass as sources are searched for assets automatically. |
 | `--open-fonts` | Use the bundled open fonts even when Apple's are installed. |
-| `--task-budget <s>` | Seconds `.task` closures may run before the frame is taken (default 0.5). |
+| `--task-timeout <s>` | Real seconds `.task` closures may run before the frame is taken (default 0.5; `--task-budget` is the old name). |
+| `--settle-time <s>` | Virtual seconds that pass before the frame is taken (default 2): `Task.sleep` runs on a virtual clock, so a sleep that ends within them returns at once and one that ends later waits past the frame. |
+| `--allow-network` | Let the code reach the network. By default a render is offline: requests fail at once with `URLError(.notConnectedToInternet)`. |
 | `--accessibility-tree f.json`, `--tap-targets f.png`, `--accessibility-outline` | Accessibility outputs, below. |
 | `--json` | One JSON object per image with path, size and warnings. |
 | `--no-cache`, `-v` | Recompile even if an identical build is cached; show the compiler command. |

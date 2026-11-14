@@ -111,7 +111,9 @@ public enum _ScreenshotRunner {
                 let hex = value(flag).trimmingCharacters(in: CharacterSet(charactersIn: "#"))
                 if hex == "clear" || hex == "transparent" { config.background = .clear }
                 else if let v = UInt32(hex, radix: 16) { config.background = RGBA(hex: v) }
-            case "--task-budget": config.taskBudget = Double(value(flag)) ?? 0.5
+            case "--task-timeout", "--task-budget": config.taskTimeout = Double(value(flag)) ?? 0.5
+            case "--settle-time": config.settleTime = max(0, Double(value(flag)) ?? 2)
+            case "--allow-network": config.allowsNetwork = true
             case "--fonts": config.fontDirectories.append(value(flag))
             case "--assets": config.assetDirectories.append(value(flag))
             case "--accessibility-tree": AccessibilityOutputs.request.treePath = value(flag)
@@ -143,6 +145,9 @@ public enum _ScreenshotRunner {
                 } catch { fail("\(error)") }
             }
         }
+
+        // Renders run offline: a request fails at once instead of waiting on the network.
+        if !config.allowsNetwork { _RenderNetwork.goOffline() }
 
         if listDevices {
             print(DeviceProfile.listing())

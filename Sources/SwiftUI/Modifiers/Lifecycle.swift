@@ -23,8 +23,9 @@ extension View {
     }
     public func onDisappear(perform action: (() -> Void)? = nil) -> some View { self }
 
-    /// Async work is started and given a short time budget (see `RenderConfiguration.taskBudget`);
-    /// whatever state it has produced by then is what gets rendered.
+    /// Async work is started and given a short time budget (see `RenderConfiguration.taskTimeout`);
+    /// whatever state it has produced by then is what gets rendered. `Task.sleep` runs on a virtual
+    /// clock meanwhile (`_RenderClock`), so delays within the settle time pass at once.
     public func task(priority: TaskPriority = .userInitiated, _ action: @escaping @isolated(any) @Sendable () async -> Void) -> some View {
         modifier(LifecycleModifier(key: "task") { runtime in runtime.start(action) })
     }
@@ -87,15 +88,19 @@ extension Runtime {
         }
     }
 
-    /// Lets started tasks run on the main actor until they finish or the budget is spent.
+    /// Lets started tasks run on the main actor until they finish or the time is spent. When every
+    /// remaining task is asleep on the virtual clock, the clock moves on to the next wake-up within the
+    /// settle time; a task asleep past it is waiting for later, as on a device, and is not reported.
     func drainTasks() {
         guard runningTasks > 0 else { return }
-        let deadline = Date().addingTimeInterval(config.taskBudget)
+        let clock = _RenderClock.shared
+        let deadline = Date().addingTimeInterval(config.taskTimeout)
         while runningTasks > 0, Date() < deadline {
-            RunLoop.main.run(mode: .default, before: Date().addingTimeInterval(0.005))
+            RunLoop.main.run(mode: .default, before: Date().addingTimeInterval(0.002))
+            if runningTasks > 0, clock.sleeping >= runningTasks, !clock.advance() { break }
         }
-        if runningTasks > 0 {
-            warn("A .task did not finish within \(config.taskBudget)s; rendering the state reached so far")
+        if runningTasks > clock.sleeping {
+            warn("A .task did not finish within \(AnimationDefaults.format(config.taskTimeout))s (--task-timeout); rendering the state reached so far")
         }
     }
 }
