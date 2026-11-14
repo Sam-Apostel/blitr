@@ -62,6 +62,8 @@ final class TextLayout {
         /// Space added above this line when it follows another (a text style's line advance
         /// beyond the font's height).
         var leading: CGFloat = 0
+        /// Width of the whitespace the line wrapped at, counted in the text's width on iOS.
+        var trailingSpace: CGFloat = 0
     }
 
     let runs: [TextRun]
@@ -285,7 +287,14 @@ final class TextLayout {
             isTruncated = true
         }
         for (index, var lineGlyphs) in raw.enumerated() {
-            while let last = lineGlyphs.last, last.isWhitespace, lineGlyphs.count > 1 || index < raw.count - 1 { lineGlyphs.removeLast() }
+            var trailing: CGFloat = 0
+            while let last = lineGlyphs.last, last.isWhitespace, lineGlyphs.count > 1 || index < raw.count - 1 {
+                trailing += last.advance
+                lineGlyphs.removeLast()
+            }
+            // iOS counts the space a line wrapped at in the text's width (the glyphs are still
+            // aligned without it). measured: iOS 27.0 simulator, Hello and 08_Onboarding frames.
+            if !options.avoidsOrphans || paragraphEnds.contains(index) { trailing = 0 }
             var lineWidth = lineGlyphs.reduce(0) { $0 + $1.advance }
             if let maxWidth, lineWidth > maxWidth, !lineGlyphs.isEmpty {
                 isTruncated = true
@@ -307,12 +316,13 @@ final class TextLayout {
                 ascent = max(ascent, m.ascent); descent = max(descent, m.descent)
                 leading = max(leading, self.leading(of: runs[g.run], size: g.size))
             }
-            lines.append(Line(glyphs: lineGlyphs, width: lineWidth, ascent: ascent, descent: descent, leading: leading))
+            lines.append(Line(glyphs: lineGlyphs, width: lineWidth, ascent: ascent, descent: descent, leading: leading,
+                              trailingSpace: trailing))
         }
 
         // Geometry. Sizes are rounded up to whole pixels, as SwiftUI does for text.
         func ceilPx(_ v: CGFloat) -> CGFloat { (v * options.scale - 0.001).rounded(.up) / options.scale }
-        let contentWidth = lines.map(\.width).max() ?? 0
+        let contentWidth = lines.map { $0.width + $0.trailingSpace }.max() ?? 0
         let boxWidth = ceilPx(contentWidth)
         var y: CGFloat = 0
         for index in lines.indices {
