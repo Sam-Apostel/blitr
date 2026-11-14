@@ -132,7 +132,23 @@ public struct Toggle<Label: View>: View {
         self.label = label()
     }
 
-    public var body: some View { styleBox.make(AnyView(label), isOn) }
+    public var body: some View {
+        let on = isOn.wrappedValue
+        return styleBox.make(AnyView(label), isOn)
+            .axInfo(shared: true, context: { ctx in
+                AccessibilityInfo {
+                    $0.isElement = true
+                    $0.role = "switch"
+                    $0.addTraits = [.toggle]
+                    $0.children = .combine
+                    $0.value = on ? "1" : "0"
+                    $0.isTapTarget = true
+                    $0.systemHitSlop = true
+                    $0.isEnabled = ctx.env.isEnabled
+                    $0.activate = { isOn.wrappedValue.toggle() }
+                }
+            })
+    }
 }
 
 extension Toggle where Label == Text {

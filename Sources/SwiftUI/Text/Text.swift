@@ -39,6 +39,9 @@ public struct Text: Equatable, Sendable {
     }
     var storage: Storage
     var modifiers: [Modifier] = []
+    /// Set by `accessibilityLabel` / `accessibilityHeading` on a Text; copied to the node's accessibility info.
+    var accessibilityLabelText: String?
+    var isAccessibilityHeading = false
 
     /// String literals prefer the LocalizedStringKey initializer (Markdown, interpolation), as in SwiftUI.
     @_disfavoredOverload
@@ -117,10 +120,14 @@ public struct Text: Equatable, Sendable {
     public func monospaced(_ isActive: Bool = true) -> Text { adding(.monospaced(isActive)) }
     public func textScale(_ scale: Scale, isEnabled: Bool = true) -> Text { isEnabled ? adding(.scale(scale.factor)) : self }
     public func speechAlwaysIncludesPunctuation(_ value: Bool = true) -> Text { self }
-    public func accessibilityLabel(_ label: Text) -> Text { self }
-    public func accessibilityLabel<S: StringProtocol>(_ label: S) -> Text { self }
+    public func accessibilityLabel(_ label: Text) -> Text { var copy = self; copy.accessibilityLabelText = label.plainString; return copy }
+    public func accessibilityLabel<S: StringProtocol>(_ label: S) -> Text { var copy = self; copy.accessibilityLabelText = String(label); return copy }
     public func accessibilityTextContentType(_ value: AccessibilityTextContentType) -> Text { self }
-    public func accessibilityHeading(_ level: AccessibilityHeadingLevel) -> Text { self }
+    public func accessibilityHeading(_ level: AccessibilityHeadingLevel) -> Text {
+        var copy = self
+        copy.isAccessibilityHeading = level != .unspecified
+        return copy
+    }
 }
 
 public struct AccessibilityTextContentType: Sendable {
@@ -267,7 +274,14 @@ final class TextNode: Node {
 extension Text: View, PrimitiveView {
     public typealias Body = Never
     func resolve(_ ctx: ResolveContext, into out: inout [Node]) {
-        out.append(makeNode(ctx.env))
+        let node = makeNode(ctx.env)
+        if accessibilityLabelText != nil || isAccessibilityHeading {
+            node.ax = AXBox(AccessibilityInfo {
+                $0.label = accessibilityLabelText
+                if isAccessibilityHeading { $0.addTraits = [.header] }
+            })
+        }
+        out.append(node)
     }
     @MainActor
     func makeNode(_ env: EnvironmentValues) -> TextNode {

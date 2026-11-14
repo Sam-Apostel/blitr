@@ -175,7 +175,7 @@ final class SheetLayerNode: PresentationLayerNode {
     let content: Node
     let options: PresentationOptions
     let env: EnvironmentValues
-    private var cardRect = CGRect.zero
+    private(set) var cardRect = CGRect.zero
     private var showsGrabber = false
 
     init(content: Node, env: EnvironmentValues) {

@@ -119,6 +119,23 @@ public struct DatePicker<Label: View>: View {
             if graphical && components.contains(.date) { _GraphicalCalendar(date: date) }
         }
         .opacity(isEnabled ? 1 : 0.5)
+        .axInfo(context: { ctx in
+            let labelText = label.map { axText(resolveNodes($0, ctx.child("axLabel"))) } ?? ""
+            var parts: [String] = []
+            if components.contains(.date) { parts.append(formatted(date, "MMM d, yyyy")) }
+            if components.contains(.hourAndMinute) { parts.append(formatted(date, "h:mm a")) }
+            return AccessibilityInfo {
+                $0.isElement = true
+                $0.role = "datePicker"
+                $0.addTraits = graphical ? [.adjustable] : [.button]
+                $0.children = .ignore
+                $0.label = labelText.isEmpty ? nil : labelText
+                $0.value = parts.joined(separator: ", ")
+                $0.isTapTarget = true
+                $0.systemHitSlop = true
+                $0.isEnabled = isEnabled
+            }
+        })
     }
 }
 
@@ -195,6 +212,15 @@ public struct ColorPicker<Label: View>: View {
             ColorWell(color: color)
         }
         .opacity(isEnabled ? 1 : 0.5)
+        .axInfo {
+            $0.isElement = true
+            $0.role = "colorPicker"
+            $0.addTraits = [.button]
+            $0.children = .combine
+            $0.isTapTarget = true
+            $0.systemHitSlop = true
+            $0.isEnabled = isEnabled
+        }
     }
 }
 
@@ -233,6 +259,13 @@ public struct DisclosureGroup<Label: View, Content: View>: View {
                 label
                 Spacer(minLength: 8)
                 Chevron(direction: expanded ? .down : .right, width: 7, height: 12, weight: 2.2, color: AnyShapeStyle(Color.accentColor))
+            }
+            .axInfo {
+                $0.isElement = true
+                $0.addTraits = [.button]
+                $0.children = .combine
+                $0.value = expanded ? "expanded" : "collapsed"
+                $0.isTapTarget = true
             }
             if expanded { content }
         }

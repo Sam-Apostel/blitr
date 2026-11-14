@@ -542,12 +542,15 @@ final class TabViewNode: Node {
     let backgroundVisibility: Visibility
     let background: _Paint
     let hairline: _Paint
+    /// The index of the selected tab (accessibility).
+    let selectedIndex: Int
 
-    private var barTop: CGFloat = 0
+    private(set) var barTop: CGFloat = 0
     private var barBottom: CGFloat = 0
     private var showsBackground = false
 
     init(entries: [TabEntry], selected: Int, ctx: ResolveContext) {
+        selectedIndex = selected
         let env = ctx.env
         let content = entries[selected].content()
         self.content = content

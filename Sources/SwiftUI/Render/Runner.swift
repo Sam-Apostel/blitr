@@ -73,6 +73,9 @@ public enum _ScreenshotRunner {
             case "--task-budget": config.taskBudget = Double(value(flag)) ?? 0.5
             case "--fonts": config.fontDirectories.append(value(flag))
             case "--assets": config.assetDirectories.append(value(flag))
+            case "--accessibility-tree": AccessibilityOutputs.request.treePath = value(flag)
+            case "--tap-targets": AccessibilityOutputs.request.tapTargetsPath = value(flag)
+            case "--accessibility-outline": AccessibilityOutputs.request.wantsOutline = true
             default: fail("unknown option \(flag)")
             }
         }
@@ -92,8 +95,9 @@ public enum _ScreenshotRunner {
 
         do {
             let result = try Renderer.render(previews[index].make(), config: config, to: output)
-            let payload: [String: Any] = ["output": output, "width": result.pixelSize.width, "height": result.pixelSize.height,
+            var payload: [String: Any] = ["output": output, "width": result.pixelSize.width, "height": result.pixelSize.height,
                                           "warnings": result.warnings]
+            payload.merge(AccessibilityOutputs.payload) { current, _ in current }
             let json = try JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys])
             print(String(decoding: json, as: UTF8.self))
             exit(0)
