@@ -169,6 +169,8 @@ manifest.setdefault("devices", {})[slug] = {
     "colorSpace": "sRGB",
     # Set as the system appearance (Settings > General > Appearance), driven by AppearanceTests.
     "appearance": "system",
+    # The simulator runs in the Mac's time zone; calibrate.py renders with it (--time-zone).
+    "simulatorTimeZone": os.path.realpath("/etc/localtime").split("/zoneinfo/")[-1],
     "pressVariants": [dict(zip(["screen", "preview", "presses"], v.split("|"))) for v in variants],
 }
 manifest["screens"] = json.load(open(screens))

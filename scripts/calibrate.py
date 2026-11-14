@@ -15,6 +15,10 @@ leaves heatmaps, side-by-side images and report.json under <out>/<scheme>/compar
 The reference captures live on the `data/references` branch, not on `main`, so clones and CI stay small.
 The first run for a set fetches it (`git fetch --depth 1 origin data/references`) into Tests/Reference/.
 
+Renders use the time zone the set was captured in (dates and times on screen): the device's
+`simulatorTimeZone` in the manifest, else a manifest-level `timeZone`, else Europe/Brussels, where the sets
+recorded before the field existed (tvos-26.5) were captured. `--time-zone` overrides it.
+
 Use Apple's fonts (scripts/fetch-apple-fonts.sh) and, if you have one, the SF Symbols name map,
 so that font and symbol differences do not drown out layout differences.
 """
@@ -31,6 +35,9 @@ def fetch_references(root, name):
     if archive.wait() != 0:
         sys.exit(f"no reference set named {name} on data/references")
 
+# Time zone of reference sets that record none (scripts/mac/*capture* write `simulatorTimeZone` per device).
+DEFAULT_TIME_ZONE = "Europe/Brussels"
+
 # Press variants rendered with --focus instead of --press: the element the presses land on.
 FOCUS_VARIANTS = {"TVControls-0-right-right": "Prominent"}
 
@@ -45,6 +52,7 @@ def main():
     ap.add_argument("--out", default="out/cal")
     ap.add_argument("--jobs", type=int, default=4)
     ap.add_argument("--no-render", action="store_true", help="reuse renders from a previous run")
+    ap.add_argument("--time-zone", default=None, help="IANA time zone to render in (default: the set's)")
     args = ap.parse_args()
 
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -67,6 +75,8 @@ def main():
     ours = os.path.join(out, "ours")
     os.makedirs(ours, exist_ok=True)
     major = args.ios.split(".")[0]
+    time_zone = (args.time_zone or manifest.get("devices", {}).get(args.device, {}).get("simulatorTimeZone")
+                 or manifest.get("timeZone") or DEFAULT_TIME_ZONE)
 
     jobs = []
     for screen in manifest["screens"]:
@@ -91,7 +101,7 @@ def main():
         name, source, index, presses = job
         png = os.path.join(ours, name + ".png")
         cmd = [tool, "render", os.path.join(root, source), "--preview", str(index), "-o", png,
-               "--ios", major, "--device", args.device, "--scheme", args.scheme, "--scale", scale,
+               "--ios", major, "--device", args.device, "--scheme", args.scheme, "--scale", scale, "--time-zone", time_zone,
                "--accessibility-tree", os.path.join(ours, name + ".json")]
         if tvos:
             cmd += ["--platform", "tvos"]

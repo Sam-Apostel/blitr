@@ -88,6 +88,7 @@ swiftui-screenshot version
 | `--open-fonts` | Use the bundled open fonts even when Apple's are installed. |
 | `--task-timeout <s>` | Real seconds `.task` closures may run before the frame is taken (default 0.5; `--task-budget` is the old name). |
 | `--settle-time <s>` | Virtual seconds that pass before the frame is taken (default 2): `Task.sleep` runs on a virtual clock, so a sleep that ends within them returns at once and one that ends later waits past the frame. |
+| `--time-zone <tz>` | The device's time zone, an IANA name such as `Europe/Brussels` (default `UTC`, whatever the host's): `TimeZone.current`, `Date.formatted`, `Text(date, style:)` and the date pickers use it. |
 | `--allow-network` | Let the code reach the network. By default a render is offline: requests fail at once with `URLError(.notConnectedToInternet)`. |
 | `--accessibility-tree f.json`, `--tap-targets f.png`, `--accessibility-outline` | Accessibility outputs, below. |
 | `--json` | One JSON object per image with path, size and warnings. |

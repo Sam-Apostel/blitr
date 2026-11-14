@@ -1,5 +1,7 @@
 // The public surface used by the generated `main.swift` that wraps user code.
 
+import Foundation
+
 /// One renderable entry: a `#Preview`, a `PreviewProvider`, or an explicit view expression.
 public struct _PreviewEntry {
     let name: String?
@@ -26,6 +28,13 @@ public enum _ScreenshotRunner {
         MainActor.assumeIsolated { runOnMain(previews) }
     }
 
+    /// Makes `identifier` the process's time zone: TimeZone.current, the C library and the formatters.
+    static func applyTimeZone(_ identifier: String) {
+        setenv("TZ", identifier, 1)
+        tzset()
+        if let zone = TimeZone(identifier: identifier) { NSTimeZone.default = zone }
+    }
+
     @MainActor
     private static func runOnMain(_ previews: [_PreviewEntry]) -> Never {
         var config = RenderConfiguration()
@@ -37,6 +46,7 @@ public enum _ScreenshotRunner {
         var deviceWasSet = false
         var orientation: DeviceOrientation?
         var layoutSet = false
+        var timeZone = "UTC"
         var args = Array(CommandLine.arguments.dropFirst())
         // `compare` support: pixel comparison of PNG pairs needs Skia, so the CLI delegates it here.
         if args.first == "--compare", args.count >= 2 { ImageComparison.runJobs(args[1]) }
@@ -113,6 +123,11 @@ public enum _ScreenshotRunner {
                 else if let v = UInt32(hex, radix: 16) { config.background = RGBA(hex: v) }
             case "--task-timeout", "--task-budget": config.taskTimeout = Double(value(flag)) ?? 0.5
             case "--settle-time": config.settleTime = max(0, Double(value(flag)) ?? 2)
+            case "--time-zone":
+                timeZone = value(flag)
+                guard TimeZone(identifier: timeZone) != nil else {
+                    fail("unknown time zone \"\(timeZone)\"; --time-zone takes an IANA name such as Europe/Brussels or UTC")
+                }
             case "--allow-network": config.allowsNetwork = true
             case "--fonts": config.fontDirectories.append(value(flag))
             case "--assets": config.assetDirectories.append(value(flag))
@@ -148,6 +163,9 @@ public enum _ScreenshotRunner {
 
         // Renders run offline: a request fails at once instead of waiting on the network.
         if !config.allowsNetwork { _RenderNetwork.goOffline() }
+        // The time zone of the rendered device (`--time-zone`, UTC by default whatever the host's), set before
+        // any user code reads TimeZone.current.
+        Self.applyTimeZone(timeZone)
 
         if listDevices {
             print(DeviceProfile.listing())
