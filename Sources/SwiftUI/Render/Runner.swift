@@ -37,6 +37,8 @@ public enum _ScreenshotRunner {
         var orientation: DeviceOrientation?
         var layoutSet = false
         var args = Array(CommandLine.arguments.dropFirst())
+        // `compare` support: pixel comparison of PNG pairs needs Skia, so the CLI delegates it here.
+        if args.first == "--compare", args.count >= 2 { ImageComparison.runJobs(args[1]) }
 
         func fail(_ message: String) -> Never {
             FileHandle.standardError.write(Data(("error: " + message + "\n").utf8))

@@ -11,6 +11,7 @@ Usage:
   swiftui-screenshot render <file-or-dir>... [options]   Render previews to PNG
   swiftui-screenshot list <file-or-dir>...               List the previews found
   swiftui-screenshot devices                             List device profiles
+  swiftui-screenshot compare <reference> <candidate>     Compare reference screenshots with renders (see compare --help)
   swiftui-screenshot doctor                              Check the installation
   swiftui-screenshot version                             Tool version and the Swift version it was built with
 
@@ -450,6 +451,8 @@ enum Tool {
         case "devices":
             // The table lives in the runtime module (Render/Devices.swift); ask a runner for it.
             listDevices(Installation.locate())
+        case "compare":
+            compareCommand(arguments, Installation.locate())
         case "doctor":
             doctor(Installation.locate())
         case "version", "--version", "-V":
