@@ -51,7 +51,7 @@ extension EnvironmentValues {
 public enum RenderedPlatform {
     /// iOS versions with a distinct look that the renderer knows how to draw.
     static let supportedVersions = [18, 26, 27]
-    static let defaultVersion = 18
+    static let defaultVersion = 27
     nonisolated(unsafe) static var current = defaultVersion
     nonisolated(unsafe) static var platform = RenderPlatform.iOS
 

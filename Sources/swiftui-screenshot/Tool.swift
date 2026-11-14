@@ -31,7 +31,7 @@ Render options:
       --rounded-corners  Clip to the device's rounded display shape, corners transparent
       --show-island     Draw the Dynamic Island / notch over the content (simulator screenshots do not show it)
       --scheme <s>       light | dark | both (default light)
-      --ios <version>    OS release whose look is drawn: 18, 26, 27 or latest
+      --ios <version>    OS release whose look is drawn: 18, 26, 27 or latest (default latest)
       --platform <p>     ios (default) | tvos. Decides which #if os(...) branches of your code are compiled.
                          Implied by --device apple-tv-*.
       --layout <l>       device (full screen, default) | fit (size of the view) | fixed
