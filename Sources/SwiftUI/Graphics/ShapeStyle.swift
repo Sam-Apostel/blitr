@@ -292,7 +292,58 @@ public struct Gradient: Equatable, Hashable, Sendable, ShapeStyle {
     }
     public func colorSpace(_ space: ColorSpace) -> AnyGradient { AnyGradient(self) }
     func resolved(_ env: EnvironmentValues) -> [GradientStop] {
-        stops.map { GradientStop(color: $0.color.rgba(in: env), location: $0.location) }
+        let plain = stops.map { GradientStop(color: $0.color.rgba(in: env), location: $0.location) }
+        guard env.designLanguage.isGlass, env.renderPlatform != .tvOS else { return plain }
+        return Gradient.perceptual(plain.sorted { $0.location < $1.location })
+    }
+
+    /// iOS 26/27 blend gradient colours in Oklab. measured: iOS 27.0 simulator: a pink-to-green
+    /// card is C58E57 halfway (Oklab C19157, an sRGB blend 997657), an indigo-to-black
+    /// background is 2A2C63 halfway (Oklab 262C62, sRGB 373E7F), and orange-to-teal matches Oklab
+    /// within 6 levels at 10/30/50/70/90%. Skia blends the encoded values, so the stops are
+    /// subdivided with the Oklab colours in between.
+    static let perceptualSegments = 12
+    static func perceptual(_ stops: [GradientStop]) -> [GradientStop] {
+        guard stops.count > 1 else { return stops }
+        func lin(_ c: Double) -> Double { c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4) }
+        func enc(_ c: Double) -> Double {
+            let c = min(1, max(0, c))
+            return c <= 0.0031308 ? 12.92 * c : 1.055 * pow(c, 1 / 2.4) - 0.055
+        }
+        func toOklab(_ c: RGBA) -> (Double, Double, Double) {
+            let r = lin(c.r), g = lin(c.g), b = lin(c.b)
+            let l = cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b)
+            let m = cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b)
+            let s = cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b)
+            return (0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+                    1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+                    0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s)
+        }
+        func fromOklab(_ L: Double, _ A: Double, _ B: Double, alpha: Double) -> RGBA {
+            let l = pow(L + 0.3963377774 * A + 0.2158037573 * B, 3)
+            let m = pow(L - 0.1055613458 * A - 0.0638541728 * B, 3)
+            let s = pow(L - 0.0894841775 * A - 1.2914855480 * B, 3)
+            return RGBA(enc(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s),
+                        enc(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s),
+                        enc(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s), alpha)
+        }
+        var out: [GradientStop] = []
+        for (a, b) in zip(stops, stops.dropFirst()) {
+            if out.isEmpty { out.append(a) }
+            // A clear end takes the other end's colour, so a fade does not pass through black.
+            let ca = a.color.a > 0 ? a.color : RGBA(b.color.r, b.color.g, b.color.b, 0)
+            let cb = b.color.a > 0 ? b.color : RGBA(ca.r, ca.g, ca.b, 0)
+            let oa = toOklab(ca), ob = toOklab(cb)
+            let n = perceptualSegments
+            for k in 1..<n {
+                let t = Double(k) / Double(n)
+                out.append(GradientStop(color: fromOklab(oa.0 + (ob.0 - oa.0) * t, oa.1 + (ob.1 - oa.1) * t, oa.2 + (ob.2 - oa.2) * t,
+                                                         alpha: ca.a + (cb.a - ca.a) * t),
+                                        location: a.location + (b.location - a.location) * CGFloat(t)))
+            }
+            out.append(b)
+        }
+        return out
     }
     public func _paint(in environment: EnvironmentValues) -> _Paint {
         _Paint(.linear(stops: resolved(environment), start: .top, end: .bottom))
