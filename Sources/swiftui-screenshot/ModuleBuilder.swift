@@ -50,7 +50,7 @@ struct ModuleBuilder {
 
     /// Identity of everything a compiled module depends on besides its own inputs.
     var environmentStamp: [String] {
-        let tool = (try? FileManager.default.destinationOfSymbolicLink(atPath: "/proc/self/exe")) ?? CommandLine.arguments[0]
+        let tool = HostPlatform.executablePath
         return [installation.swiftc, installation.stamp, ModuleBuilder.stamp(tool), "module-builder-2"]
             + ModuleBuilder.extraModuleDirectories.flatMap { directory in
                 [directory] + ((try? FileManager.default.contentsOfDirectory(atPath: directory)) ?? []).sorted().map { $0 + ModuleBuilder.stamp(directory + "/" + $0) }
@@ -82,6 +82,7 @@ struct ModuleBuilder {
     }
 
     func run(_ arguments: [String]) -> (status: Int32, output: String) {
+        let arguments = HostPlatform.compilerFlags + arguments
         if verbose { note(([installation.swiftc] + arguments.map { $0.contains(" ") ? "'\($0)'" : $0 }).joined(separator: " ")) }
         let result = swiftuiScreenshotRun(installation.swiftc, arguments)
         return (result.status, result.stderr + result.stdout)
@@ -110,6 +111,7 @@ struct ModuleBuilder {
         let stripped = sources.map { source in (source.path, source.path == entry ? source.contents : PreviewStripper.strip(source.contents)) }
         var preprocessor = Preprocessor()
         preprocessor.platform = platform
+        preprocessor.hostOS = HostPlatform.osName
         let output = preprocessor.process(stripped.map { (path: $0.0, contents: $0.1) }, viewExpression: viewExpression)
         for warning in output.warnings { note("warning: \(warning)") }
         var files: [CompiledSource] = []
@@ -139,7 +141,7 @@ struct ModuleBuilder {
                        + dependencies.map(\.key) + environmentStamp + [plan.resourceDirectory ?? ""])
         let directory = ModuleBuilder.cacheRoot + "/modules/\(target.moduleName)-\(key)"
         let built = BuiltModule(name: target.moduleName, directory: directory, key: key, resourceDirectory: plan.resourceDirectory)
-        let library = directory + "/lib\(target.moduleName).so"
+        let library = directory + "/" + HostPlatform.sharedLibraryFile(target.moduleName)
         if !noCache, FileManager.default.fileExists(atPath: library), FileManager.default.fileExists(atPath: directory + "/\(target.moduleName).swiftmodule") {
             if verbose { note("module \(target.moduleName): cached") }
             return built
@@ -150,7 +152,7 @@ struct ModuleBuilder {
         if verbose || all.count > 20 { note("compiling module \(target.moduleName) (\(files.count) files)\(sdk ? "" : ", Foundation only")") }
         var arguments = flags + ["-Onone", "-module-name", target.moduleName, "-parse-as-library", "-no-color-diagnostics",
                                  "-emit-library", "-emit-module", "-emit-module-path", directory + "/\(target.moduleName).swiftmodule",
-                                 "-Xlinker", "-soname=lib\(target.moduleName).so", "-j\(ProcessInfo.processInfo.activeProcessorCount)"]
+                                 "-j\(ProcessInfo.processInfo.activeProcessorCount)"] + HostPlatform.libraryIdentityFlags(target.moduleName)
         arguments += linkArguments(dependencies, sdk: sdk)
         arguments += written + ["-o", library]
         let result = run(arguments)
@@ -181,7 +183,7 @@ struct ModuleBuilder {
         let fm = FileManager.default
         let module = installation.sdk + "/\(ModuleBuilder.foundationShim).swiftmodule"
         // The shim's code lives in the engine library (one copy of its types per process); only its module is exposed.
-        let library = installation.sdk + "/libSwiftUIScreenshotEngine.so"
+        let library = installation.sdk + "/" + HostPlatform.sharedLibraryFile(HostPlatform.engineLibrary)
         guard fm.fileExists(atPath: module), fm.fileExists(atPath: library) else { return nil }
         let directory = ModuleBuilder.cacheRoot + "/foundation-shim-" + hash([installation.sdk, ModuleBuilder.stamp(library)])
         if !fm.fileExists(atPath: directory + "/\(ModuleBuilder.foundationShim).swiftmodule") {
@@ -201,16 +203,15 @@ struct ModuleBuilder {
         if sdk {
             arguments += installation.linkFlags
         } else if let shim = foundationShimDirectory {
-            arguments += ["-I", shim, "-L", installation.sdk, "-lSwiftUIScreenshotEngine", "-Xlinker", "-rpath", "-Xlinker", installation.sdk]
+            arguments += ["-I", shim, "-L", installation.sdk, "-l" + HostPlatform.engineLibrary, "-Xlinker", "-rpath", "-Xlinker", installation.sdk]
         }
         if sdk {
             // Extra module directories (SWIFTUI_SCREENSHOT_MODULES, colon-separated): stand-ins for frameworks
-            // the SDK lacks, each a `Name.swiftmodule` with an optional `libName.so`.
+            // the SDK lacks, each a `Name.swiftmodule` with an optional `libName.so` (`libName.dylib` on macOS).
             for directory in ModuleBuilder.extraModuleDirectories {
                 arguments += ["-I", directory, "-L", directory, "-Xlinker", "-rpath", "-Xlinker", directory]
-                for file in ((try? FileManager.default.contentsOfDirectory(atPath: directory)) ?? []).sorted()
-                where file.hasPrefix("lib") && file.hasSuffix(".so") {
-                    arguments.append("-l" + file.dropFirst(3).dropLast(3))
+                for file in ((try? FileManager.default.contentsOfDirectory(atPath: directory)) ?? []).sorted() {
+                    if let name = HostPlatform.libraryName(fromFile: file) { arguments.append("-l" + name) }
                 }
             }
             for module in ModuleBuilder.extraImports { arguments += ["-Xfrontend", "-import-module", "-Xfrontend", module] }

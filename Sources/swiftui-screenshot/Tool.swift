@@ -89,7 +89,7 @@ func note(_ message: String) {
 // MARK: - Installation layout
 
 struct Installation {
-    /// Directory containing SwiftUI.swiftmodule and the engine library (libSwiftUIScreenshotEngine.so).
+    /// Directory containing SwiftUI.swiftmodule and the engine library (HostPlatform.engineLibrary).
     var sdk: String
     var fontDirectories: [String]
     /// Apple's own fonts, if the user installed them. Used ahead of the open substitutes unless `--open-fonts`.
@@ -98,7 +98,7 @@ struct Installation {
 
     static func locate() -> Installation {
         let fm = FileManager.default
-        let executable = (try? fm.destinationOfSymbolicLink(atPath: "/proc/self/exe")) ?? CommandLine.arguments[0]
+        let executable = HostPlatform.executablePath
         let binDir = (executable as NSString).deletingLastPathComponent
         let env = ProcessInfo.processInfo.environment
 
@@ -147,7 +147,7 @@ struct Installation {
         var parts: [String] = []
         for name in ((try? fm.contentsOfDirectory(atPath: sdk)) ?? []).sorted() {
             let path = sdk + "/" + name
-            if name.hasPrefix("lib"), name.hasSuffix(".so") {
+            if HostPlatform.libraryName(fromFile: name) != nil {
                 parts.append(name + fileStamp(path))
             } else if name.hasSuffix(".swiftmodule") {
                 var isDirectory: ObjCBool = false
@@ -167,7 +167,7 @@ struct Installation {
     /// Libraries every compile against the SDK links. The shim frameworks and the Foundation shim need no flag
     /// of their own: their code is in the engine library, which the SwiftUI module also autolinks.
     var linkFlags: [String] {
-        ["-I", sdk, "-L", sdk, "-lSwiftUIScreenshotEngine", "-Xlinker", "-rpath", "-Xlinker", sdk]
+        ["-I", sdk, "-L", sdk, "-l" + HostPlatform.engineLibrary, "-Xlinker", "-rpath", "-Xlinker", sdk]
     }
 }
 
@@ -340,6 +340,7 @@ func build(_ options: Options, _ installation: Installation) -> Build {
 
     var preprocessor = Preprocessor()
     preprocessor.platform = options.platform
+    preprocessor.hostOS = HostPlatform.osName
     let output = preprocessor.process(sources, viewExpression: options.view)
     for warning in output.warnings { note("warning: \(warning)") }
     guard !output.entries.isEmpty else {
@@ -366,7 +367,7 @@ func build(_ options: Options, _ installation: Installation) -> Build {
             written.append(path)
             if index < sources.count { originalPath[path] = sources[index].path }
         }
-        var arguments = ["-swift-version", "5", "-Onone", "-module-name", "App", "-no-color-diagnostics"] + installation.linkFlags
+        var arguments = HostPlatform.compilerFlags + ["-swift-version", "5", "-Onone", "-module-name", "App", "-no-color-diagnostics"] + installation.linkFlags
         arguments += written + ["-o", runner]
         if options.verbose { note(([installation.swiftc] + arguments).joined(separator: " ")) }
         let result = run(installation.swiftc, arguments)

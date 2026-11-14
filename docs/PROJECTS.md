@@ -146,8 +146,8 @@ diagnostic. A failed `render` prints the same summary after the compiler's outpu
 
 To see past a blocking gap without changing this repository, three environment variables add code to a
 project build: `SWIFTUI_SCREENSHOT_MODULES` (colon-separated directories of extra `Name.swiftmodule` +
-`libName.so`, e.g. stand-ins for frameworks), `SWIFTUI_SCREENSHOT_IMPORTS` (modules imported into every
-file compiled against the SDK, to add members to existing types) and `SWIFTUI_SCREENSHOT_EXTRA_SOURCES`
+`libName.so`, `libName.dylib` on macOS, e.g. stand-ins for frameworks), `SWIFTUI_SCREENSHOT_IMPORTS`
+(modules imported into every file compiled against the SDK, to add members to existing types) and `SWIFTUI_SCREENSHOT_EXTRA_SOURCES`
 (Swift files compiled into the entry target). They are part of the cache key.
 
 ## Not supported

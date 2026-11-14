@@ -4,6 +4,13 @@ import PackageDescription
 // Native Skia is fetched by scripts/bootstrap.sh into Vendor/ (not committed).
 let skiaLib = Context.packageDirectory + "/Vendor/skia/lib"
 
+// The directory of the library being loaded, as its rpaths spell it. macOS support is in progress (issue #19).
+#if os(macOS)
+let loaderPath = "@loader_path"
+#else
+let loaderPath = "$ORIGIN"
+#endif
+
 // The engine library: the SwiftUI module and every shim module, in one dynamic library whose file name cannot
 // be mistaken for Apple's SwiftUI (libSwiftUIScreenshotEngine.so / .dylib). The module stays `SwiftUI`.
 let engineLibrary = "SwiftUIScreenshotEngine"
@@ -23,6 +30,8 @@ let shimModules = ["Combine", "UniformTypeIdentifiers", "CoreGraphics", "ImageIO
 
 let package = Package(
     name: "swift-ui-screenshot",
+    // Ignored on Linux. On macOS, the oldest system the engine is built for (HostPlatform.deploymentTarget).
+    platforms: [.macOS(.v15)],
     products: [
         // A Linux reimplementation of the SwiftUI API surface, named `SwiftUI` so unmodified app code
         // (`import SwiftUI`) compiles against it. The shim frameworks (`import UIKit`, `MapKit`, `WidgetKit`, ...)
@@ -43,10 +52,10 @@ let package = Package(
             linkerSettings: [
                 .linkedLibrary("SkiaSharp"),
                 .unsafeFlags(["-L", skiaLib, "-Xlinker", "-rpath", "-Xlinker", skiaLib,
-                              "-Xlinker", "-rpath", "-Xlinker", "$ORIGIN"]),
+                              "-Xlinker", "-rpath", "-Xlinker", loaderPath]),
             ]
         ),
-        .systemLibrary(name: "CHarfBuzz", pkgConfig: "harfbuzz", providers: [.apt(["libharfbuzz-dev"])]),
+        .systemLibrary(name: "CHarfBuzz", pkgConfig: "harfbuzz", providers: [.apt(["libharfbuzz-dev"]), .brew(["harfbuzz"])]),
         .target(name: "Combine", swiftSettings: moduleSettings),
         // No library of its own: its code is in the engine library, so a process has one copy of its types.
         .target(name: "SwiftUIScreenshotFoundation", swiftSettings: moduleSettings + linkEngine),

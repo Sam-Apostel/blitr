@@ -20,7 +20,7 @@ func utilityRunner(_ installation: Installation) -> String {
         try? FileManager.default.createDirectory(atPath: work, withIntermediateDirectories: true)
         let main = work + "/main.swift"
         try? "import SwiftUI\n\nMainActor.assumeIsolated { SwiftUI._ScreenshotRunner.run([]) }\n".write(toFile: main, atomically: true, encoding: .utf8)
-        let result = run(installation.swiftc, ["-swift-version", "5", "-Onone", "-module-name", "App", "-no-color-diagnostics"]
+        let result = run(installation.swiftc, HostPlatform.compilerFlags + ["-swift-version", "5", "-Onone", "-module-name", "App", "-no-color-diagnostics"]
                                                + installation.linkFlags + [main, "-o", runner])
         guard result.status == 0 else {
             FileHandle.standardError.write(Data((result.stderr + result.stdout).utf8))

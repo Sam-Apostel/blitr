@@ -330,7 +330,7 @@ enum CheckCommand {
             try? fm.createDirectory(atPath: store, withIntermediateDirectories: true)
             let source = store + "/\(name).swift"
             try? "// Empty stand-in used by `swiftui-screenshot check`.\n".write(toFile: source, atomically: true, encoding: .utf8)
-            let result = swiftuiScreenshotRun(installation.swiftc, ["-parse-as-library", "-emit-module", "-module-name", name, source, "-emit-module-path", module])
+            let result = swiftuiScreenshotRun(installation.swiftc, HostPlatform.compilerFlags + ["-parse-as-library", "-emit-module", "-module-name", name, source, "-emit-module-path", module])
             guard result.status == 0 else { return false }
         }
         try? fm.createDirectory(atPath: directory, withIntermediateDirectories: true)

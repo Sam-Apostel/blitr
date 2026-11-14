@@ -7,7 +7,8 @@ import Foundation
 ///                                     (widget and Live Activity previews keep their arguments; see docs/WIDGETS.md)
 ///     @Previewable                     ->  (removed)
 ///     @main                            ->  (removed; the generated main.swift is the entry point)
-///     #if os(iOS)                      ->  #if os(Linux)   (for the platform being rendered: its branches are kept)
+///     #if os(iOS)                      ->  #if os(Linux)   (for the platform being rendered: its branches are kept;
+///                                                           os(macOS) when the tool runs on a Mac, see hostOS)
 ///     #if os(Linux)                    ->  #if false       (the code is rendered as an Apple platform)
 ///     #if canImport(UIKit)             ->  #if false       (on platforms without the framework; see frameworkPlatforms)
 ///     import SwiftUI                   ->  import SwiftUI; import UIKit   (iOS, tvOS, visionOS: SwiftUI re-exports UIKit there)
@@ -39,6 +40,10 @@ struct Preprocessor {
     /// The Apple platform being rendered, as Swift spells it in `os(...)` and `#available(...)`:
     /// iOS, tvOS, watchOS, macOS or visionOS. Its branches are the ones kept.
     var platform = "iOS"
+    /// The operating system the code is compiled on, as `os(...)` spells it (HostPlatform.osName in the tool).
+    /// The rendered platform's `os(...)` checks become checks for it, and its own become false. Stays "Linux"
+    /// in the reference-capture driver (scripts/mac/host), which turns `os(Linux)` back into the platform.
+    var hostOS = "Linux"
 
     mutating func process(_ sources: [(path: String, contents: String)], viewExpression: String?) -> Output {
         var files: [(String, String)] = []
@@ -546,14 +551,15 @@ struct Preprocessor {
             }
             // `#if os(<the rendered platform>)` must be the true branch; other Apple platforms stay false.
             if hasToken("os(\(platform))", at: i) {
-                out += Array("os(Linux)".utf8)
+                out += Array("os(\(hostOS))".utf8)
                 i += "os(\(platform))".utf8.count
                 continue
             }
-            // The code is rendered as the Apple platform, so its Linux branches are not taken.
-            if hasToken("os(Linux)", at: i), i == 0 || !Self.isIdentifierByte(bytes[i - 1]) {
+            // The code is rendered as the Apple platform, so the host's own branches (Linux; macOS on a Mac
+            // rendering another platform) are not taken.
+            if hasToken("os(\(hostOS))", at: i), i == 0 || !Self.isIdentifierByte(bytes[i - 1]) {
                 out += Array("false".utf8)
-                i += "os(Linux)".utf8.count
+                i += "os(\(hostOS))".utf8.count
                 continue
             }
             // `canImport` follows the rendered platform too: UIKit only where Apple ships it, and so on
