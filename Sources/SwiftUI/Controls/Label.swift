@@ -49,8 +49,22 @@ struct _DefaultLabelLayout: View {
     /// the icon than with a 6pt gap (heart, star.fill, globe, apple.logo labels in
     /// ControlsButtons and 04_Login).
     static let glassSpacing: CGFloat = 8.33
+    /// In a list row the icon sits in a column, so the titles of rows line up whatever their icons:
+    /// the icon is centred `listIconCenter` from the label's leading edge at the large image scale, and
+    /// the title starts `listTitleInset` from it (where the row's separator starts).
+    /// measured: iOS 27.0 simulator (SplitView tray icons centred at 44pt and titles at 72pt in rows starting at 32pt;
+    /// the same for 10_Agenda's caption-sized mappin labels; icons 1.28x their size outside a list)
+    static let listIconCenter: CGFloat = 12
+    static let listTitleInset: CGFloat = 40
+    @Environment(\.isInListRow) private var inListRow
     var body: some View {
-        HStack(spacing: design.isGlass && platform != .tvOS ? Self.glassSpacing : 6) { icon; title }
+        if design.isGlass && platform != .tvOS && inListRow {
+            // The larger icon does not make the row taller: it is centred on the title's line.
+            title.padding(.leading, Self.listTitleInset)
+                .overlay(alignment: .leading) { icon.imageScale(.large).frame(width: Self.listIconCenter * 2) }
+        } else {
+            HStack(spacing: design.isGlass && platform != .tvOS ? Self.glassSpacing : 6) { icon; title }
+        }
     }
 }
 
