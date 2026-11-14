@@ -20,31 +20,31 @@ package final class RenderedImage: Equatable, @unchecked Sendable {
     package static func == (a: RenderedImage, b: RenderedImage) -> Bool { a === b }
 }
 
-/// A bitmap made by `ImageRenderer.cgImage`. Only what a rendered image needs: its pixel size, and
-/// drawing through `Image(decorative:scale:)`, `Image(_:scale:label:)` or `UIImage(cgImage:)`.
-public final class CGImage: @unchecked Sendable {
-    package let rendered: RenderedImage
-    package init(rendered: RenderedImage) { self.rendered = rendered }
-    public var width: Int { rendered.pixelWidth }
-    public var height: Int { rendered.pixelHeight }
-}
-
-/// Stand-in for the Core Graphics drawing context, which does not exist here
-/// (see `ImageRenderer.render(rasterizationScale:renderer:)`).
-public final class CGContext {
-    init() {}
+extension RenderedImage {
+    /// Shares a Core Graphics image's pixels, read at `scale` pixels per point.
+    package convenience init(cgImage: CGImage, scale: CGFloat) {
+        let s = scale > 0 ? scale : 1
+        sk_image_ref(cgImage.box.image)
+        self.init(bitmap: Bitmap(image: cgImage.box.image, pointSize: CGSize(width: CGFloat(cgImage.width) / s, height: CGFloat(cgImage.height) / s)),
+                  scale: s, pixelWidth: cgImage.width, pixelHeight: cgImage.height)
+    }
+    /// The pixels as a Core Graphics image.
+    package var cgImage: CGImage {
+        sk_image_ref(bitmap.image)
+        return CGImage(box: SkImageBox(adopting: bitmap.image))
+    }
 }
 
 extension Image {
     /// `scale` is how many pixels of the image make one point.
     public init(decorative cgImage: CGImage, scale: CGFloat, orientation: Image.Orientation = .up) {
         self.init("")
-        source = .rendered(cgImage.rendered.rescaled(to: scale))
+        source = .rendered(RenderedImage(cgImage: cgImage.oriented(PixelOrientation(orientation)), scale: scale))
         isDecorative = true
     }
     public init(_ cgImage: CGImage, scale: CGFloat, orientation: Image.Orientation = .up, label: Text) {
         self.init("")
-        source = .rendered(cgImage.rendered.rescaled(to: scale))
+        source = .rendered(RenderedImage(cgImage: cgImage.oriented(PixelOrientation(orientation)), scale: scale))
         accessibilityLabelText = label.plainString
     }
 }
@@ -76,15 +76,22 @@ public final class ImageRenderer<Content: View>: ObservableObject {
     public init(content view: Content) { content = view }
 
     public var cgImage: CGImage? {
-        rendered(scale: scale).map { CGImage(rendered: $0) }
+        rendered(scale: scale)?.cgImage
     }
 
-    /// There is no Core Graphics context here to draw into (a PDF or bitmap context made by the caller),
-    /// so the callback gets the content's size and a drawing function that draws nothing and warns.
+    /// Calls `renderer` with the content's size and a function that draws the content into a Core Graphics
+    /// context (rasterized at `rasterizationScale`), with its top-left at the context's origin in UIKit's
+    /// orientation, as SwiftUI does.
     public func render(rasterizationScale: CGFloat = 1, renderer: (CGSize, (CGContext) -> Void) -> Void) {
         let size = measured()
-        renderer(size) { _ in
-            Runtime.current?.warn("ImageRenderer.render(rasterizationScale:renderer:) draws into a Core Graphics context, which this renderer does not have; nothing was drawn. Use uiImage or cgImage")
+        let image = rendered(scale: rasterizationScale * scale)
+        renderer(size) { context in
+            guard let image else { return }
+            // Pixels to user space: scale down to points, and flip in a y-up (plain bitmap) context.
+            let flip = context.base.d < 0
+            let fit = CGAffineTransform(a: size.width / CGFloat(image.pixelWidth), b: 0, c: 0,
+                                        d: (flip ? -1 : 1) * size.height / CGFloat(image.pixelHeight), tx: 0, ty: flip ? size.height : 0)
+            context.drawImage(image.cgImage.box, transform: fit.concatenating(context.ctm))
         }
     }
 
@@ -173,4 +180,19 @@ extension Image {
 
 extension View {
     public func allowedDynamicRange(_ range: Image.DynamicRange?) -> some View { self }
+}
+
+extension PixelOrientation {
+    package init(_ orientation: Image.Orientation) {
+        switch orientation {
+        case .up: self = .up
+        case .upMirrored: self = .upMirrored
+        case .down: self = .down
+        case .downMirrored: self = .downMirrored
+        case .left: self = .left
+        case .leftMirrored: self = .leftMirrored
+        case .right: self = .right
+        case .rightMirrored: self = .rightMirrored
+        }
+    }
 }

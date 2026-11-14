@@ -2,7 +2,7 @@
 
 public struct Font: Hashable, Sendable {
     public struct Weight: Hashable, Sendable {
-        let value: CGFloat
+        package let value: CGFloat
         public static let ultraLight = Weight(value: 100)
         public static let thin = Weight(value: 200)
         public static let light = Weight(value: 300)
@@ -36,7 +36,7 @@ public struct Font: Hashable, Sendable {
             case .caption2: return (23, .medium)
             }
         }
-        func metrics(for platform: RenderPlatform) -> (size: CGFloat, weight: Weight) {
+        package func metrics(for platform: RenderPlatform) -> (size: CGFloat, weight: Weight) {
             platform == .tvOS ? tvMetrics : metrics
         }
         /// Point size and default weight at the standard Dynamic Type size (Large).
@@ -231,7 +231,7 @@ public enum DynamicTypeSize: Hashable, Comparable, CaseIterable, Sendable {
     }
     var scale: CGFloat { bodySize / 17 }
     /// Smaller styles step in whole points with the body size; large titles scale less.
-    func scale(for style: Font.TextStyle) -> CGFloat {
+    package func scale(for style: Font.TextStyle) -> CGFloat {
         if self == .large { return 1 }
         let base = style.metrics.size
         let delta = bodySize - 17

@@ -4,7 +4,7 @@ internal import CSkia
 
 /// A decoded bitmap (Skia image) with its point size.
 package final class Bitmap: @unchecked Sendable {
-    let image: OpaquePointer
+    package let image: OpaquePointer
     package let pointSize: CGSize
     init?(path: String, scale: CGFloat) {
         guard let data = sk_data_new_from_file(path) else { return nil }

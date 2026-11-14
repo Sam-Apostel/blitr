@@ -53,7 +53,16 @@ package final class Runtime {
 
     package static var current: Runtime?
 
-    init(config: RenderConfiguration) { self.config = config }
+    init(config: RenderConfiguration) {
+        self.config = config
+        // Framework shims below SwiftUI (CoreGraphics, ImageIO, ...) warn through this hook.
+        if ShimDiagnostics.handler == nil {
+            ShimDiagnostics.handler = { message in
+                if Thread.isMainThread { MainActor.assumeIsolated { Runtime.current?.warn(message) } }
+                else { DispatchQueue.main.async { Runtime.current?.warn(message) } }
+            }
+        }
+    }
 
     package func warn(_ message: String) {
         if warningSet.insert(message).inserted { warnings.append(message) }

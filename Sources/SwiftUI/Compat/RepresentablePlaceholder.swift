@@ -4,9 +4,16 @@
 public struct _RepresentablePlaceholder: View, PrimitiveView {
     public typealias Body = Never
     let typeName: String
+    var wrapped: String?
     public init(typeName: String) { self.typeName = typeName }
+    /// `wrapped`: the UIKit (or AppKit) class the representable made, named in the warning.
+    public init(typeName: String, wrapping wrapped: String) { self.typeName = typeName; self.wrapped = wrapped }
     func resolve(_ ctx: ResolveContext, into out: inout [Node]) {
-        ctx.runtime.warn("\(typeName) wraps a UIKit view, which cannot be rendered; showing a placeholder")
+        if let wrapped {
+            ctx.runtime.warn("\(typeName) wraps \(wrapped), which cannot be rendered; showing a placeholder")
+        } else {
+            ctx.runtime.warn("\(typeName) wraps a UIKit view, which cannot be rendered; showing a placeholder")
+        }
         let box = ZStack {
             RoundedRectangle(cornerRadius: 6).strokeBorder(Color.gray, style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
             Text(typeName).font(.caption).foregroundStyle(.secondary).padding(4)

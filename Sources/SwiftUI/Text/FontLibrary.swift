@@ -19,6 +19,14 @@ final class FontFile {
     /// do not put Regular/Semibold/Bold at 400/600/700 on the axis, so the mapping is read from
     /// the font's named instances. Empty means the axis already uses the standard scale.
     private(set) var weightStops: [(weight: Float, axis: Float)] = []
+    /// PostScript and family names, for fonts registered by name at run time (CoreText).
+    var postScriptName: String { FontFile.name(sk_typeface_get_post_script_name(skTypeface)) }
+    var familyName: String { FontFile.name(sk_typeface_get_family_name(skTypeface)) }
+    private static func name(_ s: OpaquePointer?) -> String {
+        guard let s else { return "" }
+        defer { sk_string_destructor(s) }
+        return String(cString: sk_string_get_c_str(s))
+    }
     /// True for Apple's system fonts, which carry a `trak` table (size-dependent tracking).
     private(set) var hasTracking = false
 
@@ -240,10 +248,19 @@ final class FontLibrary {
         return found
     }
 
+    /// Whether `Font.custom(name, ...)` finds a font rather than falling back to the system font.
+    package func hasCustomFont(named name: String) -> Bool { customFile(named: name) != nil }
+
     /// True when the default system font is Apple's SF Pro rather than the open substitute.
     var usesAppleSystemFont: Bool { systemFile(.default, italic: false)?.hasTracking ?? false }
 
     private func customFile(named name: String) -> FontFile? {
+        // Fonts registered at run time (CoreText) win over the font directories.
+        for path in FontRegistry.paths {
+            guard let f = file(path) else { continue }
+            let stem = ((path as NSString).lastPathComponent as NSString).deletingPathExtension
+            if [f.postScriptName, f.familyName, stem].contains(where: { FontLibrary.normalize($0) == FontLibrary.normalize(name) }) { return f }
+        }
         if customIndex == nil {
             var index: [String: String] = [:]
             for dir in directories + ["/usr/share/fonts", "/usr/local/share/fonts"] {

@@ -48,11 +48,13 @@ cp "$bin/swiftui-screenshot" "$stage/bin/"
 
 # Modules (the .swiftmodule directories carry the .swiftdoc next to the binary module) and libraries.
 # The shim frameworks (UIKit, MapKit, WidgetKit, ...) and Combine are modules whose code is in libSwiftUI;
-# CoreText and the Foundation shim have libraries of their own (docs/ARCHITECTURE.md, "Shim modules").
-for m in SwiftUI SwiftUIScreenshotFoundation CoreText Combine UIKit CoreLocation MapKit AppIntents ActivityKit WidgetKit; do
+# the Foundation shim has a library of its own (docs/ARCHITECTURE.md, "Shim modules"). The module list is
+# Package.swift's `shimModules`, so a new shim is one entry there.
+shims="$(sed -n 's/^let shimModules = \[\(.*\)\]/\1/p' Package.swift | tr -d '",')"
+for m in SwiftUI SwiftUIScreenshotFoundation $shims; do
   cp -r "$bin/$m.swiftmodule" "$lib/"
 done
-for m in SwiftUI SwiftUIScreenshotFoundation CoreText; do
+for m in SwiftUI SwiftUIScreenshotFoundation; do
   cp "$bin/lib$m.so" "$lib/"
 done
 

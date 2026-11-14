@@ -8,8 +8,6 @@ public struct FillStyle: Equatable, Sendable {
     public init(eoFill: Bool = false, antialiased: Bool = true) { isEOFilled = eoFill; isAntialiased = antialiased }
 }
 
-public enum CGLineCap: Int32, Sendable { case butt, round, square }
-public enum CGLineJoin: Int32, Sendable { case miter, round, bevel }
 
 public struct StrokeStyle: Equatable, Sendable {
     public var lineWidth: CGFloat

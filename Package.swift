@@ -9,7 +9,7 @@ let skiaLib = Context.packageDirectory + "/Vendor/skia/lib"
 let moduleSettings: [SwiftSetting] = [.swiftLanguageMode(.v5), .unsafeFlags(["-enable-library-evolution"])]
 
 // Modules linked into libSwiftUI next to the SwiftUI module itself (Combine is a dependency of SwiftUI).
-let shimModules = ["Combine", "UIKit", "CoreLocation", "MapKit", "AppIntents", "ActivityKit", "WidgetKit"]
+let shimModules = ["Combine", "CoreGraphics", "ImageIO", "CoreText", "ObjectiveC", "QuartzCore", "UIKit", "CoreLocation", "MapKit", "AppIntents", "ActivityKit", "WidgetKit"]
 
 let package = Package(
     name: "swift-ui-screenshot",
@@ -24,8 +24,6 @@ let package = Package(
         // Foundation's localization API (String(localized:), LocalizedStringResource), which Linux Foundation
         // lacks; SwiftUI re-exports it and project mode imports it into Foundation-only packages.
         .library(name: "SwiftUIScreenshotFoundation", type: .dynamic, targets: ["SwiftUIScreenshotFoundation"]),
-        // `import CoreText`: font registration only, as a harmless success (see docs/PROJECTS.md).
-        .library(name: "CoreText", type: .dynamic, targets: ["CoreText"]),
         // The command-line tool: compiles user sources against the modules above and renders them.
         .executable(name: "swiftui-screenshot", targets: ["swiftui-screenshot"]),
     ],
@@ -42,10 +40,15 @@ let package = Package(
         .target(name: "Combine", swiftSettings: moduleSettings),
         // Autolinked (-module-link-name), so importers need no extra -l flag.
         .target(name: "SwiftUIScreenshotFoundation", swiftSettings: moduleSettings + [.unsafeFlags(["-module-link-name", "SwiftUIScreenshotFoundation"])]),
-        .target(name: "CoreText", swiftSettings: moduleSettings + [.unsafeFlags(["-module-link-name", "CoreText"])]),
-        .target(name: "SwiftUI", dependencies: ["CSkia", "CHarfBuzz", "Combine", "SwiftUIScreenshotFoundation"], swiftSettings: moduleSettings),
+        // Core Graphics sits below SwiftUI (Apple's SwiftUI re-exports it); ImageIO and CoreText build on it.
+        .target(name: "CoreGraphics", dependencies: ["CSkia"], swiftSettings: moduleSettings),
+        .target(name: "ImageIO", dependencies: ["CoreGraphics", "CSkia"], swiftSettings: moduleSettings),
+        .target(name: "CoreText", dependencies: ["CoreGraphics", "CSkia"], swiftSettings: moduleSettings),
+        .target(name: "ObjectiveC", swiftSettings: moduleSettings),
+        .target(name: "QuartzCore", dependencies: ["CoreGraphics", "ObjectiveC"], swiftSettings: moduleSettings),
+        .target(name: "SwiftUI", dependencies: ["CSkia", "CHarfBuzz", "Combine", "CoreGraphics", "SwiftUIScreenshotFoundation"], swiftSettings: moduleSettings),
         // The shim frameworks: each its own module, linked into libSwiftUI (see the SwiftUI product).
-        .target(name: "UIKit", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
+        .target(name: "UIKit", dependencies: ["SwiftUI", "QuartzCore", "ImageIO", "CSkia"], swiftSettings: moduleSettings),
         .target(name: "AppIntents", dependencies: ["SwiftUI", "UIKit"], swiftSettings: moduleSettings),
         .target(name: "ActivityKit", dependencies: ["SwiftUIScreenshotFoundation"], swiftSettings: moduleSettings),
         .target(name: "WidgetKit", dependencies: ["SwiftUI", "AppIntents", "ActivityKit"], swiftSettings: moduleSettings),

@@ -11,6 +11,9 @@ import Foundation
 ///     #if os(Linux)                    ->  #if false       (the code is rendered as an Apple platform)
 ///     #if canImport(UIKit)             ->  #if false       (on platforms without the framework; see frameworkPlatforms)
 ///     import SwiftUI                   ->  import SwiftUI; import UIKit   (iOS, tvOS, visionOS: SwiftUI re-exports UIKit there)
+///     @objc, @IBAction, @IBOutlet      ->  (removed: there is no Objective-C runtime on Linux)
+///     #selector(tap(_:))               ->  Selector("tap(_:)")   (ObjectiveC's Selector, which UIKit re-exports)
+///     import CoreImage.CIFilterBuiltins ->  import CoreImage   (the shims are Swift modules, without submodules)
 ///     @Entry var x: T = v              ->  an explicit EnvironmentKey + computed property
 ///     #available(iOS 26, *)            ->  SwiftUI.RenderedPlatform.isAtLeast(iOS: 26)
 ///     #unavailable(iOS 26)             ->  !SwiftUI.RenderedPlatform.isAtLeast(iOS: 26)
@@ -270,7 +273,26 @@ struct Preprocessor {
         "UIKit": uiKitPlatforms.union(["watchOS"]),
         "ActivityKit": ["iOS"],
         "WidgetKit": ["iOS", "macOS", "watchOS", "visionOS"],
+        "AppKit": ["macOS"],
+        "PhotosUI": ["iOS", "macOS", "tvOS", "visionOS"],
+        "WatchConnectivity": ["iOS", "watchOS"],
+        "EventKitUI": ["iOS", "visionOS"],
+        "ContactsUI": ["iOS", "macOS", "visionOS"],
+        "PassKit": ["iOS", "macOS", "watchOS", "visionOS"],
+        "VisionKit": ["iOS", "macOS", "visionOS"],
+        "PDFKit": ["iOS", "macOS", "visionOS"],
+        "QuickLook": ["iOS", "macOS", "visionOS"],
+        "MessageUI": ["iOS", "visionOS"],
+        "SafariServices": ["iOS", "macOS", "visionOS"],
+        "CoreMotion": ["iOS", "watchOS", "visionOS"],
+        "Translation": ["iOS", "macOS", "visionOS"],
+        "CoreSpotlight": ["iOS", "macOS", "visionOS"],
     ]
+
+    /// Modules of the SDK whose Apple counterparts have submodules (`import CoreImage.CIFilterBuiltins`).
+    static let submoduleParents: Set<String> = ["CoreImage", "UIKit", "AppKit", "CoreGraphics", "QuartzCore", "ImageIO", "CoreText"]
+    /// Attributes that need the Objective-C runtime, which Swift on Linux does not have; they are dropped.
+    static let objCAttributes = ["@objcMembers", "@objc", "@nonobjc", "@IBAction", "@IBOutlet", "@IBInspectable", "@IBDesignable", "@IBSegueAction"]
 
     private static func isIdentifierByte(_ b: UInt8) -> Bool {
         b == UInt8(ascii: "_") || (b >= 48 && b <= 57) || (b >= 65 && b <= 90) || (b >= 97 && b <= 122)
@@ -348,6 +370,43 @@ struct Preprocessor {
                 out += Array("import SwiftUI; \(modifier)import UIKit".utf8)
                 i += "import SwiftUI".utf8.count
                 continue
+            }
+            // No Objective-C runtime: drop its attributes (with an `@objc(name)` argument), and make selectors plain values.
+            if bytes[i] == UInt8(ascii: "@"), i == 0 || !Self.isIdentifierByte(bytes[i - 1]),
+               let attribute = Self.objCAttributes.first(where: { hasToken($0, at: i) }) {
+                var j = i + attribute.utf8.count
+                if j < bytes.count, bytes[j] == UInt8(ascii: "("), let close = bytes[j...].firstIndex(of: UInt8(ascii: ")")) { j = close + 1 }
+                i = j
+                continue
+            }
+            if hasPrefix("#selector(", at: i) {
+                var depth = 0, close = i + "#selector".utf8.count
+                while close < bytes.count {
+                    if bytes[close] == UInt8(ascii: "(") { depth += 1 }
+                    if bytes[close] == UInt8(ascii: ")") { depth -= 1; if depth == 0 { break } }
+                    if bytes[close] == UInt8(ascii: "\n") { break }
+                    close += 1
+                }
+                if close < bytes.count, bytes[close] == UInt8(ascii: ")") {
+                    let inner = String(decoding: bytes[(i + "#selector(".utf8.count)..<close], as: UTF8.self)
+                    out += Array("Selector(\"\(inner.replacingOccurrences(of: "\"", with: ""))\")".utf8)
+                    i = close + 1
+                    continue
+                }
+            }
+            if hasPrefix("import ", at: i), i == 0 || !Self.isIdentifierByte(bytes[i - 1]) {
+                var j = i + "import ".utf8.count
+                while j < bytes.count, bytes[j] == UInt8(ascii: " ") { j += 1 }
+                var k = j
+                while k < bytes.count, Self.isIdentifierByte(bytes[k]) { k += 1 }
+                let module = String(decoding: bytes[j..<k], as: UTF8.self)
+                if k < bytes.count, bytes[k] == UInt8(ascii: "."), Self.submoduleParents.contains(module) {
+                    var end = k + 1
+                    while end < bytes.count, Self.isIdentifierByte(bytes[end]) || bytes[end] == UInt8(ascii: ".") { end += 1 }
+                    out += Array("import \(module)".utf8)
+                    i = end
+                    continue
+                }
             }
             // `#if os(<the rendered platform>)` must be the true branch; other Apple platforms stay false.
             if hasToken("os(\(platform))", at: i) {

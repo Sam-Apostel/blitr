@@ -7,3 +7,4 @@
 // `UIViewRepresentable`, `UIHostingController`, `@UIApplicationDelegateAdaptor`, `keyboardType(_:)`,
 // `ImageRenderer.uiImage`) is declared here, next to those types, because this module builds on SwiftUI.
 @_exported import Foundation
+@_exported import QuartzCore

@@ -88,6 +88,7 @@ open class MKAnnotationView: UIView {
         self.reuseIdentifier = reuseIdentifier
         super.init(frame: .zero)
     }
+    public required init?(coder: NSCoder) { super.init(coder: coder) }
     open func prepareForReuse() {}
     open func prepareForDisplay() {}
     open func setSelected(_ selected: Bool, animated: Bool) { isSelected = selected }
@@ -219,10 +220,8 @@ open class MKMapView: UIView {
     open private(set) var annotations: [MKAnnotation] = []
     open private(set) var overlays: [MKOverlay] = []
     open var selectedAnnotations: [MKAnnotation] = []
-    open var layoutMargins: UIEdgeInsets = .zero
-
     public override init(frame: CGRect) { super.init(frame: frame) }
-    public override init() { super.init() }
+    public required init?(coder: NSCoder) { super.init(coder: coder) }
 
     open func setRegion(_ region: MKCoordinateRegion, animated: Bool) { self.region = region }
     open func setCenter(_ coordinate: CLLocationCoordinate2D, animated: Bool) { centerCoordinate = coordinate }
