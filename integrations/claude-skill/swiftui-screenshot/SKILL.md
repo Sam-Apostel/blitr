@@ -30,13 +30,17 @@ a whole module; pass the directory (or all files) that the view depends on, not 
 
 ## Choosing what to render
 
-- Device: `--device iphone-16` (default), `iphone-se` for small screens, `iphone-16-pro-max`, `ipad`.
-  `swiftui-screenshot devices` lists them.
+- Device: `--device iphone-16` (default), `iphone-se` for small screens, `iphone-16-pro-max`, `ipad`, `apple-tv-4k`
+  (tvOS, early support; `--platform tvos` also picks the `#if os(tvOS)` code). `swiftui-screenshot devices` lists them.
+- Design: the default look is the latest iOS (`--ios 27`, Liquid Glass). `--ios 26` and `--ios 18` (flat) draw the older
+  looks; use one of them when the app targets that release. Glass geometry is estimated, not measured.
 - Appearance: `--scheme light|dark|both`. Check dark mode for anything with colours.
 - Layout: `device` (full screen with status bar, default), `fit` (just the view, good for components,
   with `--width <pt>` to propose a width), `fixed` with `--width`/`--height`.
 - Text size: `--dynamic-type xxxLarge` or `accessibility3` to find truncation and overlap.
 - Images and fonts: `--assets <dir>` for `.xcassets`, `--fonts <dir>` for custom fonts.
+- Structure instead of pixels: `--accessibility-outline` (text), `--accessibility-tree f.json`, `--tap-targets f.png`
+  (hit areas under 44pt in red). They do not change the PNG.
 - Slow or odd output: `--no-cache` recompiles, `-v` shows the compiler command.
 
 ## Reading the result
@@ -45,8 +49,8 @@ a whole module; pass the directory (or all files) that the view depends on, not 
 - Warnings are lines starting with `warning:` on stderr (or the `warnings` array in `--json`). They name
   anything not rendered faithfully: an SF Symbol with no open equivalent (drawn as a placeholder),
   a missing asset, a UIKit-backed view. Mention relevant ones to the user.
-- Fonts are open substitutes (Inter for SF Pro) unless Apple's fonts are installed, so line breaks
-  and widths can differ slightly. Compare structure, not exact glyph shapes.
+- Fonts are open substitutes (Inter with SF Pro's advance widths, so line breaks match to about 1%) unless Apple's
+  fonts are installed (`--open-fonts` forces the substitutes). Glyph shapes differ. Compare structure, not exact glyph shapes.
 - Animations, gestures, scrolling position and real data are not simulated: you see a first frame.
   `.task` closures get a short budget (`--task-budget <s>`) before the frame is taken.
 
