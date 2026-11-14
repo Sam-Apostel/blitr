@@ -1,0 +1,594 @@
+{
+  "colorScheme": "light",
+  "device": "Apple TV 4K (3rd generation)",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 57.5,
+        "width": 242.5,
+        "x": 80,
+        "y": 305.5
+      },
+      "label": "Top Results",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 170,
+        "width": 300,
+        "x": 80,
+        "y": 423
+      },
+      "label": "",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 170,
+        "width": 300,
+        "x": 420,
+        "y": 423
+      },
+      "label": "",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 170,
+        "width": 300,
+        "x": 760,
+        "y": 423
+      },
+      "label": "",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 170,
+        "width": 300,
+        "x": 1100,
+        "y": 423
+      },
+      "label": "",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 170,
+        "width": 300,
+        "x": 1440,
+        "y": 423
+      },
+      "label": "",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 170,
+        "width": 300,
+        "x": 1780,
+        "y": 423
+      },
+      "label": "",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "UISearchBarTextField",
+      "frame": {
+        "height": 70,
+        "width": 1219,
+        "x": 80,
+        "y": 60
+      },
+      "label": "Movies, shows and more",
+      "role": "searchField",
+      "traits": [
+        "searchField"
+      ],
+      "value": "Movies, shows and more, Press \ufffc to change keyboards"
+    },
+    {
+      "class": "UILabel",
+      "frame": {
+        "height": 46,
+        "width": 503,
+        "x": 1337,
+        "y": 72
+      },
+      "label": "Press \ufffc to change keyboards",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 89,
+        "x": 117,
+        "y": 164.5
+      },
+      "label": "Numbers",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 119,
+        "x": 206,
+        "y": 164.5
+      },
+      "label": "SPACE",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 80,
+        "width": 70,
+        "x": 317,
+        "y": 156.5
+      },
+      "label": "a",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 379,
+        "y": 164.5
+      },
+      "label": "b",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 433,
+        "y": 164.5
+      },
+      "label": "c",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 487,
+        "y": 164.5
+      },
+      "label": "d",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 541,
+        "y": 164.5
+      },
+      "label": "e",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 595,
+        "y": 164.5
+      },
+      "label": "f",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 649,
+        "y": 164.5
+      },
+      "label": "g",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 703,
+        "y": 164.5
+      },
+      "label": "h",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 757,
+        "y": 164.5
+      },
+      "label": "i",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 811,
+        "y": 164.5
+      },
+      "label": "j",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 865,
+        "y": 164.5
+      },
+      "label": "k",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 919,
+        "y": 164.5
+      },
+      "label": "l",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 973,
+        "y": 164.5
+      },
+      "label": "m",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 1027,
+        "y": 164.5
+      },
+      "label": "n",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 1081,
+        "y": 164.5
+      },
+      "label": "o",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 1135,
+        "y": 164.5
+      },
+      "label": "p",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 1189,
+        "y": 164.5
+      },
+      "label": "q",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 1243,
+        "y": 164.5
+      },
+      "label": "r",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 1297,
+        "y": 164.5
+      },
+      "label": "s",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 1351,
+        "y": 164.5
+      },
+      "label": "t",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 1405,
+        "y": 164.5
+      },
+      "label": "u",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 1459,
+        "y": 164.5
+      },
+      "label": "v",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 1513,
+        "y": 164.5
+      },
+      "label": "w",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 1567,
+        "y": 164.5
+      },
+      "label": "x",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 1621,
+        "y": 164.5
+      },
+      "label": "y",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 54,
+        "x": 1675,
+        "y": 164.5
+      },
+      "label": "z",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    },
+    {
+      "class": "UIAccessibilityElementKBKey",
+      "frame": {
+        "height": 64,
+        "width": 74,
+        "x": 1729,
+        "y": 164.5
+      },
+      "label": "delete",
+      "role": "group",
+      "traits": [
+        "playsSound",
+        "keyboardKey"
+      ]
+    }
+  ],
+  "focused": {
+    "frame": {
+      "height": 66,
+      "width": 1760,
+      "x": 80,
+      "y": 164.5
+    },
+    "label": "Keyboard"
+  },
+  "model": "AppleTV14,1",
+  "presses": [],
+  "preview": 7,
+  "safeArea": {
+    "bottom": 60,
+    "left": 80,
+    "right": 80,
+    "top": 60
+  },
+  "scale": 2,
+  "screen": "TVControls",
+  "size": {
+    "height": 1080,
+    "width": 1920
+  },
+  "systemVersion": "26.5",
+  "version": 1
+}
