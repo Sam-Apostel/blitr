@@ -98,13 +98,29 @@ enum TabBarMetrics {
         /// iOS 26 draws the pill as a small raised glass platter (lighter than the bar, with a soft shadow);
         /// iOS 27 as a flat, darker fill.
         var pillIsRaised = false
+        /// iOS 27 dark: the pill darkens the bar's glass without hiding the colours behind it (a black pill
+        /// would): 76.5% of the bar, -10 levels, then saturation 1.75. measured: iOS 27.0 simulator (least-squares
+        /// fit of the pills of GlassTabsAndSheets-0/1 and the flat 32 -> 10 of NavigationTabs-Tabs)
+        var pillDarkGlass: (tint: RGBA, brightness: Float, saturation: Float)? = nil
 
         func pill(_ scheme: ColorScheme) -> RGBA { scheme == .dark ? pillDark : pillLight }
 
         /// Draws the selection pill.
         @MainActor func drawPill(_ rect: CGRect, scheme: ColorScheme, design: DesignLanguage, in p: Painter) {
             guard rect.width > 0 else { return }
-            if pillIsRaised {
+            if scheme == .dark, let g = pillDarkGlass {
+                var a = GlassAppearance.system(.regular, scheme: scheme, design: design)
+                a.blurRadius = 0
+                a.tint = g.tint
+                a.brightness = g.brightness
+                a.saturation = g.saturation
+                a.lensWidth = 0.001
+                a.lensStrength = 0
+                a.highlight = (0, 0)
+                a.edge = .clear
+                a.shadow = (.clear, 0, 0)
+                p.fillGlass(.roundedRect(rect, radius: rect.height / 2), appearance: a)
+            } else if pillIsRaised {
                 var a = GlassAppearance.system(.regular, scheme: scheme, design: design)
                 a.tint = pill(scheme)
                 a.lensStrength = 4
@@ -121,7 +137,9 @@ enum TabBarMetrics {
         case .liquidGlass27:
             // iOS 27: the selection pill is darker than the bar.
             // measured: iOS 27.0 simulator (pill 235 on a 249 bar in light, 10 on 32 in dark)
-            return Glass(pillLight: RGBA(0, 0, 0, 0.056), pillDark: RGBA(0, 0, 0, 0.69))
+            var g = Glass(pillLight: RGBA(0, 0, 0, 0.056), pillDark: RGBA(0, 0, 0, 0.69))
+            g.pillDarkGlass = (RGBA(0, 0, 0, 0.235), -0.039, 1.75)
+            return g
         default:
             // iOS 26: a flat fill, darker than the bar in light mode and lighter in dark mode.
             // measured: iOS 26.5 simulator (pill 235 on a 253 bar in light, 53 on 19 in dark)
