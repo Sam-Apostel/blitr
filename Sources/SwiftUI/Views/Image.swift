@@ -428,6 +428,13 @@ final class SymbolLibrary {
             guard let art = lookup(candidate) else { continue }
             // SF Symbols are drawn roughly 1.2x the point size tall at medium scale.
             let height = font.size * 1.2 * factor
+            // Next to real SF Symbols, a hand-drawn (SF-proportioned) stand-in takes the size of its ink, as they
+            // do (iOS 26+; iOS 18 keeps its look). Open-icon artwork keeps its square: its ink is not SF-sized.
+            if provider == nil, AppleSymbols.shared.isAvailable, _currentConfiguration().osVersion >= 26,
+               HandDrawnSymbols.make(candidate, weight: font.weight) != nil,
+               let cropped = SymbolGlyph.inkCropped(viewBox: art.viewBox, layers: art.layers, unit: height / max(art.viewBox.height, 1)) {
+                return cropped
+            }
             let width = height * art.viewBox.width / max(art.viewBox.height, 1)
             return SymbolGlyph(size: CGSize(width: width, height: height), viewBox: art.viewBox, layers: art.layers)
         }

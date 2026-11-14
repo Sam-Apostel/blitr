@@ -197,8 +197,16 @@ extension View {
 // MARK: - Text helpers shared by the controls
 
 extension AXTrait {
+    /// The label VoiceOver reads for an unlabelled `Image(systemName:)`: Apple's own label where the system has
+    /// one (`SymbolAccessibilityLabels`), else the name's words without the `fill` variant ("tortoise.fill" -> "Tortoise").
     static func humanized(symbol name: String) -> String {
-        name.replacingOccurrences(of: ".", with: " ")
+        if _currentConfiguration().osVersion == 26 {
+            if SymbolAccessibilityLabels.unlabelledOnIOS26.contains(name) { return name }
+            if let label = SymbolAccessibilityLabels.ios26Labels[name] { return label }
+        }
+        if let label = SymbolAccessibilityLabels.labels[name] { return label }
+        let words = name.split(separator: ".").filter { $0 != "fill" }.map { $0.prefix(1).uppercased() + $0.dropFirst() }
+        return words.isEmpty ? name : words.joined(separator: " ")
     }
 }
 
