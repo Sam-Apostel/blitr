@@ -65,6 +65,9 @@ final class AssetCatalog {
         // Prefer the highest-resolution variant.
         func scale(_ path: String) -> CGFloat { path.contains("@3x") ? 3 : path.contains("@2x") ? 2 : 1 }
         let best = candidates.max { scale($0) < scale($1) }
+        if best == nil, (index?[name] ?? index?[stem] ?? []).contains(where: { ["pdf", "svg"].contains(($0 as NSString).pathExtension.lowercased()) }) {
+            Runtime.current?.warn("Image asset \"\(name)\" is a vector image (PDF/SVG), which is not supported yet")
+        }
         let bitmap = best.flatMap { Bitmap(path: $0, scale: scale($0)) }
         bitmaps[key] = bitmap
         return bitmap
@@ -79,8 +82,19 @@ final class AssetCatalog {
         func isDark(_ entry: [String: Any]) -> Bool {
             ((entry["appearances"] as? [[String: Any]]) ?? []).contains { ($0["value"] as? String) == "dark" }
         }
-        let entry = colors.first { isDark($0) == (scheme == .dark) } ?? colors.first { !isDark($0) } ?? colors.first
-        guard let components = (entry?["color"] as? [String: Any])?["components"] as? [String: Any] else { return nil }
+        // High-contrast variants are only for "Increase Contrast"; the standard look skips them.
+        func isHighContrast(_ entry: [String: Any]) -> Bool {
+            ((entry["appearances"] as? [[String: Any]]) ?? []).contains { ($0["appearance"] as? String) == "contrast" }
+        }
+        let standard = colors.filter { !isHighContrast($0) }
+        let candidates = standard.isEmpty ? colors : standard
+        let entry = candidates.first { isDark($0) == (scheme == .dark) } ?? candidates.first { !isDark($0) } ?? candidates.first
+        guard let color = entry?["color"] as? [String: Any] else { return nil }
+        if let reference = color["reference"] as? String {
+            Runtime.current?.warn("Color \"\(name)\" refers to the system color \(reference), which asset catalogs are not resolved for; it renders magenta")
+            return nil
+        }
+        guard let components = color["components"] as? [String: Any] else { return nil }
         func component(_ key: String) -> Double {
             guard let raw = components[key] else { return 0 }
             if let n = raw as? NSNumber { return n.doubleValue }
@@ -89,7 +103,28 @@ final class AssetCatalog {
             let v = Double(s) ?? 0
             return v > 1 ? v / 255 : v
         }
-        return RGBA(component("red"), component("green"), component("blue"), components["alpha"] == nil ? 1 : component("alpha"))
+        let alpha = components["alpha"] == nil ? 1 : component("alpha")
+        // Gray color spaces store one "white" component.
+        if components["white"] != nil, components["red"] == nil {
+            let w = component("white")
+            return RGBA(w, w, w, alpha)
+        }
+        var (r, g, b) = (component("red"), component("green"), component("blue"))
+        if (color["color-space"] as? String) == "display-p3" { (r, g, b) = AssetCatalog.displayP3ToSRGB(r, g, b) }
+        return RGBA(r, g, b, alpha)
+    }
+
+    /// Display P3 to sRGB (both with the sRGB transfer curve): linearize, convert primaries, re-encode, clamp.
+    static func displayP3ToSRGB(_ r: Double, _ g: Double, _ b: Double) -> (Double, Double, Double) {
+        func linear(_ v: Double) -> Double { v <= 0.04045 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4) }
+        func encoded(_ v: Double) -> Double {
+            let c = min(max(v, 0), 1)
+            return c <= 0.0031308 ? c * 12.92 : 1.055 * pow(c, 1 / 2.4) - 0.055
+        }
+        let (lr, lg, lb) = (linear(r), linear(g), linear(b))
+        return (encoded(1.2249401 * lr - 0.2249404 * lg + 0.0000001 * lb),
+                encoded(-0.0420569 * lr + 1.0420571 * lg - 0.0000002 * lb),
+                encoded(-0.0196376 * lr - 0.0786361 * lg + 1.0982735 * lb))
     }
 }
 

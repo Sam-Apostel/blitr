@@ -7,23 +7,31 @@ public struct LocalizedStringKey: Equatable, ExpressibleByStringInterpolation, S
         case text(Text)
     }
     var segments: [Segment]
+    /// Format specifiers Xcode puts in the key for interpolations that are not `%@`, by segment index.
+    var specifiers: [Int: String] = [:]
 
     public init(_ value: String) { segments = [.literal(value)] }
     public init(stringLiteral value: String) { segments = [.literal(value)] }
-    public init(stringInterpolation: StringInterpolation) { segments = stringInterpolation.segments }
+    public init(stringInterpolation: StringInterpolation) { segments = stringInterpolation.segments; specifiers = stringInterpolation.specifiers }
 
     public static func == (l: LocalizedStringKey, r: LocalizedStringKey) -> Bool { l.plainString == r.plainString }
 
     public struct StringInterpolation: StringInterpolationProtocol {
         var segments: [Segment] = []
+        var specifiers: [Int: String] = [:]
         public init(literalCapacity: Int, interpolationCount: Int) {}
         public mutating func appendLiteral(_ literal: String) { segments.append(.literal(literal)) }
         public mutating func appendInterpolation(_ string: String) { segments.append(.string(string)) }
         public mutating func appendInterpolation(_ text: Text) { segments.append(.text(text)) }
         public mutating func appendInterpolation(_ image: Image) { segments.append(.text(Text(image))) }
         public mutating func appendInterpolation(_ attributed: AttributedString) { segments.append(.string(String(attributed.characters))) }
-        public mutating func appendInterpolation<T>(_ value: T) { segments.append(.string("\(value)")) }
+        public mutating func appendInterpolation<T>(_ value: T) {
+            let specifier = ScreenshotStrings.specifier(for: value)
+            if specifier != "%@" { specifiers[segments.count] = specifier }
+            segments.append(.string("\(value)"))
+        }
         public mutating func appendInterpolation<T: CVarArg>(_ value: T, specifier: String) {
+            specifiers[segments.count] = specifier
             segments.append(.string(String(format: specifier, value)))
         }
         public mutating func appendInterpolation<F: FormatStyle>(_ input: F.FormatInput, format: F) where F.FormatOutput == String {
@@ -43,13 +51,33 @@ public struct LocalizedStringKey: Equatable, ExpressibleByStringInterpolation, S
     private func runsSource() -> [InlineMarkdown.Span] {
         var source = ""
         var inserts: [Segment] = []
-        for segment in segments {
+        var key = ""
+        for (index, segment) in segments.enumerated() {
             switch segment {
-            case .literal(let s): source += s
+            case .literal(let s):
+                source += s
+                key += s.replacingOccurrences(of: "%", with: "%%")
             default:
                 source.unicodeScalars.append(Unicode.Scalar(UInt32(0xE000 + inserts.count))!)
                 inserts.append(segment)
+                key += specifiers[index] ?? "%@"
             }
+        }
+        // A translation from the project's string table replaces the literal text; its placeholders
+        // ("%@", "%lld", "%2$@") take the interpolated values.
+        if !ScreenshotStrings.table.isEmpty, let template = ScreenshotStrings.template(key, arguments: inserts.map { insert in
+            if case .string(let s) = insert { return s }
+            return ""
+        }) {
+            let chars = Array(template)
+            source = ""
+            var i = 0
+            for placeholder in ScreenshotStrings.placeholders(template) {
+                source += String(chars[i..<placeholder.range.lowerBound]).replacingOccurrences(of: "%%", with: "%")
+                if placeholder.argument < inserts.count { source.unicodeScalars.append(Unicode.Scalar(UInt32(0xE000 + placeholder.argument))!) }
+                i = placeholder.range.upperBound
+            }
+            source += String(chars[i...]).replacingOccurrences(of: "%%", with: "%")
         }
         var spans: [InlineMarkdown.Span] = []
         for span in InlineMarkdown.parse(source) {

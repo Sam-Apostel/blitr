@@ -219,13 +219,13 @@ struct Preprocessor {
             if owner == "FocusedValues" {
                 if let type {
                     let value = type.hasSuffix("?") ? String(type.dropLast()) : type
-                    replacement = "struct \(key): FocusedValueKey { typealias Value = \(value) }\n    \(mods)var \(name): \(type) \(accessor)"
+                    replacement = "struct \(key): FocusedValueKey { typealias Value = \(value) }; \(mods)var \(name): \(type) \(accessor)"
                 }
             } else {
                 if defaultValue == nil, let type, type.hasSuffix("?") { defaultValue = "nil" }
                 if let defaultValue {
                     let annotation = type.map { ": " + $0 } ?? ""
-                    replacement = "struct \(key): EnvironmentKey { static let defaultValue\(annotation) = \(defaultValue) }\n    \(mods)var \(name): \(type ?? key + ".Value") \(accessor)"
+                    replacement = "struct \(key): EnvironmentKey { static let defaultValue\(annotation) = \(defaultValue) }; \(mods)var \(name): \(type ?? key + ".Value") \(accessor)"
                 }
             }
             guard let replacement else { scan += 1; continue }
@@ -326,6 +326,8 @@ struct Preprocessor {
                 var j = i + "#Preview".utf8.count
                 var name = "nil"
                 var traits = ""
+                // Newlines in a multi-line argument list are kept, so later lines keep their numbers.
+                var lineBreaks = ""
                 var k = j
                 while k < bytes.count, bytes[k] == UInt8(ascii: " ") || bytes[k] == UInt8(ascii: "\t") { k += 1 }
                 if k < bytes.count, bytes[k] == UInt8(ascii: "(") {
@@ -362,11 +364,12 @@ struct Preprocessor {
                         }
                     }
                     j = close + 1
+                    lineBreaks = String(repeating: "\n", count: bytes[k..<min(close, bytes.count)].filter { $0 == UInt8(ascii: "\n") }.count)
                 }
                 let identifier = "__preview_\(counter)"
                 counter += 1
                 names.append(identifier)
-                out += Array("@MainActor let \(identifier) = SwiftUI._PreviewEntry(\(name)\(traits))".utf8)
+                out += Array("@MainActor let \(identifier) = SwiftUI._PreviewEntry(\(name)\(traits)\(lineBreaks))".utf8)
                 i = j
                 continue
             }

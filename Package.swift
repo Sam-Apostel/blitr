@@ -21,6 +21,11 @@ let package = Package(
         .library(name: "AppIntents", type: .dynamic, targets: ["AppIntents"]),
         .library(name: "ActivityKit", type: .dynamic, targets: ["ActivityKit"]),
         .library(name: "WidgetKit", type: .dynamic, targets: ["WidgetKit"]),
+        // Foundation's localization API (String(localized:), LocalizedStringResource), which Linux Foundation
+        // lacks; SwiftUI re-exports it and project mode imports it into Foundation-only packages.
+        .library(name: "SwiftUIScreenshotFoundation", type: .dynamic, targets: ["SwiftUIScreenshotFoundation"]),
+        // `import CoreText`: font registration only, as a harmless success (see docs/PROJECTS.md).
+        .library(name: "CoreText", type: .dynamic, targets: ["CoreText"]),
         // The command-line tool: compiles user sources against the modules above and renders them.
         .executable(name: "swiftui-screenshot", targets: ["swiftui-screenshot"]),
     ],
@@ -35,7 +40,10 @@ let package = Package(
         ),
         .systemLibrary(name: "CHarfBuzz", pkgConfig: "harfbuzz", providers: [.apt(["libharfbuzz-dev"])]),
         .target(name: "Combine", swiftSettings: moduleSettings),
-        .target(name: "SwiftUI", dependencies: ["CSkia", "CHarfBuzz", "Combine"], swiftSettings: moduleSettings),
+        // Autolinked (-module-link-name), so importers need no extra -l flag.
+        .target(name: "SwiftUIScreenshotFoundation", swiftSettings: moduleSettings + [.unsafeFlags(["-module-link-name", "SwiftUIScreenshotFoundation"])]),
+        .target(name: "CoreText", swiftSettings: moduleSettings + [.unsafeFlags(["-module-link-name", "CoreText"])]),
+        .target(name: "SwiftUI", dependencies: ["CSkia", "CHarfBuzz", "Combine", "SwiftUIScreenshotFoundation"], swiftSettings: moduleSettings),
         .target(name: "UIKit", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
         .target(name: "AppIntents", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
         .target(name: "ActivityKit", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),

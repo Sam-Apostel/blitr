@@ -1,0 +1,400 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B10000000000000000000001 /* Formatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000001 /* Formatting.swift */; };
+		B10000000000000000000002 /* SeasonEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000002 /* SeasonEnvironment.swift */; };
+		B10000000000000000000003 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000003 /* Localizable.xcstrings */; };
+		B10000000000000000000004 /* Formatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000001 /* Formatting.swift */; };
+		B10000000000000000000005 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000003 /* Localizable.xcstrings */; };
+		B10000000000000000000006 /* OrchardKit in Frameworks */ = {isa = PBXBuildFile; productRef = D10000000000000000000001 /* OrchardKit */; };
+		B10000000000000000000007 /* OrchardUI in Frameworks */ = {isa = PBXBuildFile; productRef = D10000000000000000000002 /* OrchardUI */; };
+		B10000000000000000000008 /* SunCalc in Frameworks */ = {isa = PBXBuildFile; productRef = D10000000000000000000003 /* SunCalc */; };
+		B10000000000000000000009 /* OrchardKit in Frameworks */ = {isa = PBXBuildFile; productRef = D10000000000000000000004 /* OrchardKit */; };
+		B1000000000000000000000A /* OrchardUI in Frameworks */ = {isa = PBXBuildFile; productRef = D10000000000000000000005 /* OrchardUI */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		F10000000000000000000001 /* Formatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Formatting.swift; sourceTree = "<group>"; };
+		F10000000000000000000002 /* SeasonEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonEnvironment.swift; sourceTree = "<group>"; };
+		F10000000000000000000003 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		F10000000000000000000004 /* Orchard.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Orchard.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F10000000000000000000005 /* OrchardTV.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OrchardTV.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		E10000000000000000000001 /* Exceptions for "App" folder in "Orchard" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Sources/Experiments/Scratchpad.swift,
+			);
+			target = A10000000000000000000001 /* Orchard */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		C10000000000000000000001 /* App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E10000000000000000000001 /* Exceptions for "App" folder in "Orchard" target */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		C10000000000000000000002 /* TV */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TV;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		910000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B10000000000000000000006 /* OrchardKit in Frameworks */,
+				B10000000000000000000007 /* OrchardUI in Frameworks */,
+				B10000000000000000000008 /* SunCalc in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		910000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B10000000000000000000009 /* OrchardKit in Frameworks */,
+				B1000000000000000000000A /* OrchardUI in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		810000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				C10000000000000000000001 /* App */,
+				C10000000000000000000002 /* TV */,
+				810000000000000000000002 /* Shared */,
+				810000000000000000000003 /* Localization */,
+				810000000000000000000004 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		810000000000000000000002 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				F10000000000000000000001 /* Formatting.swift */,
+				F10000000000000000000002 /* SeasonEnvironment.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		810000000000000000000003 /* Localization */ = {
+			isa = PBXGroup;
+			children = (
+				F10000000000000000000003 /* Localizable.xcstrings */,
+			);
+			path = Localization;
+			sourceTree = "<group>";
+		};
+		810000000000000000000004 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F10000000000000000000004 /* Orchard.app */,
+				F10000000000000000000005 /* OrchardTV.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A10000000000000000000001 /* Orchard */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 710000000000000000000002 /* Build configuration list for PBXNativeTarget "Orchard" */;
+			buildPhases = (
+				610000000000000000000001 /* Sources */,
+				910000000000000000000001 /* Frameworks */,
+				510000000000000000000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				C10000000000000000000001 /* App */,
+			);
+			name = Orchard;
+			packageProductDependencies = (
+				D10000000000000000000001 /* OrchardKit */,
+				D10000000000000000000002 /* OrchardUI */,
+				D10000000000000000000003 /* SunCalc */,
+			);
+			productName = Orchard;
+			productReference = F10000000000000000000004 /* Orchard.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A10000000000000000000002 /* OrchardTV */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 710000000000000000000003 /* Build configuration list for PBXNativeTarget "OrchardTV" */;
+			buildPhases = (
+				610000000000000000000002 /* Sources */,
+				910000000000000000000002 /* Frameworks */,
+				510000000000000000000002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				C10000000000000000000002 /* TV */,
+			);
+			name = OrchardTV;
+			packageProductDependencies = (
+				D10000000000000000000004 /* OrchardKit */,
+				D10000000000000000000005 /* OrchardUI */,
+			);
+			productName = OrchardTV;
+			productReference = F10000000000000000000005 /* OrchardTV.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		010000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1600;
+			};
+			buildConfigurationList = 710000000000000000000001 /* Build configuration list for PBXProject "Orchard" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				nl,
+				Base,
+			);
+			mainGroup = 810000000000000000000001;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				410000000000000000000001 /* XCLocalSwiftPackageReference "OrchardKit" */,
+				410000000000000000000002 /* XCLocalSwiftPackageReference "OrchardUI" */,
+				410000000000000000000003 /* XCRemoteSwiftPackageReference "suncalc" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 810000000000000000000004 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A10000000000000000000001 /* Orchard */,
+				A10000000000000000000002 /* OrchardTV */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		510000000000000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B10000000000000000000003 /* Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		510000000000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B10000000000000000000005 /* Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		610000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B10000000000000000000001 /* Formatting.swift in Sources */,
+				B10000000000000000000002 /* SeasonEnvironment.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		610000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B10000000000000000000004 /* Formatting.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		310000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		310000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		310000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = example.orchard.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG ORCHARD_APP";
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		310000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = example.orchard.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = ORCHARD_APP;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		310000000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = example.orchard.tv;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				TARGETED_DEVICE_FAMILY = 3;
+				TVOS_DEPLOYMENT_TARGET = 17.0;
+			};
+			name = Debug;
+		};
+		310000000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = example.orchard.tv;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				TARGETED_DEVICE_FAMILY = 3;
+				TVOS_DEPLOYMENT_TARGET = 17.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		710000000000000000000001 /* Build configuration list for PBXProject "Orchard" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				310000000000000000000001 /* Debug */,
+				310000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		710000000000000000000002 /* Build configuration list for PBXNativeTarget "Orchard" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				310000000000000000000003 /* Debug */,
+				310000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		710000000000000000000003 /* Build configuration list for PBXNativeTarget "OrchardTV" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				310000000000000000000005 /* Debug */,
+				310000000000000000000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		410000000000000000000001 /* XCLocalSwiftPackageReference "OrchardKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = OrchardKit;
+		};
+		410000000000000000000002 /* XCLocalSwiftPackageReference "OrchardUI" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = OrchardUI;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		410000000000000000000003 /* XCRemoteSwiftPackageReference "suncalc" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://example.com/orchard/suncalc.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D10000000000000000000001 /* OrchardKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = OrchardKit;
+		};
+		D10000000000000000000002 /* OrchardUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 410000000000000000000002 /* XCLocalSwiftPackageReference "OrchardUI" */;
+			productName = OrchardUI;
+		};
+		D10000000000000000000003 /* SunCalc */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 410000000000000000000003 /* XCRemoteSwiftPackageReference "suncalc" */;
+			productName = SunCalc;
+		};
+		D10000000000000000000004 /* OrchardKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = OrchardKit;
+		};
+		D10000000000000000000005 /* OrchardUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 410000000000000000000002 /* XCLocalSwiftPackageReference "OrchardUI" */;
+			productName = OrchardUI;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 010000000000000000000001 /* Project object */;
+}

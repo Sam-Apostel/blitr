@@ -1,0 +1,59 @@
+# XcodeGen spec for the Orchard fixture: an iPhone app and a TV app over two local packages.
+# Orchard.xcodeproj describes the same project by hand, so both readers are tested on one tree.
+name: Orchard
+options:
+  bundleIdPrefix: example.orchard
+  deploymentTarget:
+    iOS: '17.0'
+    tvOS: '17.0'
+  developmentLanguage: en
+
+packages:
+  OrchardKit:
+    path: OrchardKit
+  OrchardUI:
+    path: OrchardUI
+  # A remote package: cannot be fetched by the renderer. Only SunlightView imports it.
+  SunCalc:
+    url: https://example.com/orchard/suncalc.git
+    from: 1.2.0
+
+targets:
+  Orchard:
+    type: application
+    platform: iOS
+    sources:
+      - path: App/Sources
+        excludes:
+          - Experiments/**
+      - Shared
+      - path: App/Resources/Assets.xcassets
+        buildPhase: resources
+      - path: Localization/Localizable.xcstrings
+        buildPhase: resources
+    dependencies:
+      - package: OrchardKit
+      - package: OrchardUI
+      - package: SunCalc
+      - sdk: ARKit.framework
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: example.orchard.app
+        SWIFT_VERSION: '5.9'
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) ORCHARD_APP
+
+  OrchardTV:
+    type: application
+    platform: tvOS
+    sources:
+      - TV/Sources
+      - path: Shared/Formatting.swift
+      - path: Localization/Localizable.xcstrings
+        buildPhase: resources
+    dependencies:
+      - package: OrchardKit
+      - package: OrchardUI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: example.orchard.tv
+        SWIFT_VERSION: '5.9'
