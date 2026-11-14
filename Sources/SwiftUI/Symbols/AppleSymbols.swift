@@ -36,14 +36,18 @@ final class AppleSymbols {
             }
             break
         }
-        guard !codePoints.isEmpty else { return }
+        let hasMap = !codePoints.isEmpty
+        // Symbols at documented code points need no map: the Apple logo is U+F8FF in every Apple font.
+        for (name, codePoint) in AppleSymbols.wellKnown where codePoints[name] == nil { codePoints[name] = codePoint }
         font = FontLibrary.shared.fontFile(named: "SF-Pro.ttf")
-        if font == nil {
+        if font == nil, hasMap {
             Runtime.current?.warn("sf-symbols-map.json found but SF-Pro.ttf is not installed; using the open icon set")
         }
     }
 
-    /// True when both the name map and the font are available.
+    private static let wellKnown: [String: UInt32] = ["apple.logo": 0xF8FF, "applelogo": 0xF8FF]
+
+    /// True when the font is available (the name map decides which names resolve).
     var isAvailable: Bool {
         load()
         return font != nil

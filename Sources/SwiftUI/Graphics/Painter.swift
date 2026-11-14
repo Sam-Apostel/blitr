@@ -13,6 +13,10 @@ final class Painter {
     /// what has been drawn is not yet in the surface, so effects that read the surface fall back.
     private var saveStack: [Bool] = []
     var isInsideLayer: Bool { saveStack.contains(true) }
+    /// Widget accented rendering (Widgets/WidgetHost.swift): the pass being drawn, and whether
+    /// shapes, text and images are currently left out. Both are inactive outside widgets.
+    var widgetPass: WidgetPass?
+    var suppressesDrawing = false
 
     init(canvas: OpaquePointer, scale: CGFloat, surface: OpaquePointer? = nil) {
         self.canvas = canvas
@@ -116,6 +120,7 @@ final class Painter {
 
     private func draw(_ path: Path, kind: _Paint.Kind, bounds: CGRect, opacity: Double, evenOdd: Bool,
                       configure: (OpaquePointer) -> Void) {
+        if suppressesDrawing { return }
         switch kind {
         case .opacity(let inner, let o):
             draw(path, kind: inner, bounds: bounds, opacity: opacity * o, evenOdd: evenOdd, configure: configure)

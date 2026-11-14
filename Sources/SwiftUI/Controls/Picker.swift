@@ -76,6 +76,19 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
         func options(_ tweak: @escaping (inout EnvironmentValues) -> Void, key: String) -> [Node] {
             resolveNodes(content, ctx.child(key).with(tweak))
         }
+        /// Remote `select` on an option of a segmented / inline picker selects it.
+        let binding = selection
+        func selector(_ nodes: [Node]) -> @MainActor (Int) -> Void {
+            let tags = nodes.map { $0.traits[TagTraitKey.self] ?? $0.traits[IDTraitKey.self] }
+            return { i in
+                guard tags.indices.contains(i), let tag = tags[i], let value = tag.base as? SelectionValue else {
+                    Runtime.current?.warn("Picker option \(i + 1) has no tag matching the selection type; select does nothing")
+                    return
+                }
+                binding.wrappedValue = value
+                Runtime.current?.needsAnotherPass = true
+            }
+        }
 
         let view: AnyView
         var valueText: String?
@@ -107,7 +120,7 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
             let normal = options({ $0.font = .system(size: size) }, key: "seg")
             let bold = options({ $0.font = .system(size: size, weight: glass ? .semibold : .medium) }, key: "seg")
             let sel = selectedIndex(normal)
-            view = AnyView(SegmentedBody(nodes: normal, selectedNode: sel.map { bold[$0] }, selected: sel))
+            view = AnyView(SegmentedBody(nodes: normal, selectedNode: sel.map { bold[$0] }, selected: sel, select: selector(normal)))
         case .inline:
             let nodes = options({ _ in }, key: "inline")
             let sel = selectedIndex(nodes)
@@ -126,6 +139,7 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
                             $0.children = .combine
                             $0.isTapTarget = true
                         }
+                        .focusElement(role: "option", activate: { [select = selector(nodes)] in select(pair.offset) })
                         if pair.offset < nodes.count - 1 { Divider() }
                     }
                 }
@@ -158,7 +172,16 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
                 $0.children = .contain
             }
         }
-        resolveView(result.modifier(AXModifier(shared: true) { _ in info }), ctx.child("picker"), into: &out)
+        let described = result.modifier(AXModifier(shared: true) { _ in info })
+        switch kind {
+        case .segmented, .inline:
+            // Each option is focusable on its own.
+            resolveView(described, ctx.child("picker"), into: &out)
+        case .menu, .navigationLink, .wheel:
+            resolveView(described.focusElement(role: "picker", activate: {
+                Runtime.current?.warn("select on a Picker would open its options; choosing an option is not simulated")
+            }), ctx.child("picker"), into: &out)
+        }
     }
 }
 
@@ -166,6 +189,7 @@ struct SegmentedBody: View {
     let nodes: [Node]
     let selectedNode: Node?
     let selected: Int?
+    let select: @MainActor (Int) -> Void
     @Environment(\.designLanguage) private var design
 
     var body: some View {
@@ -196,6 +220,7 @@ struct SegmentedBody: View {
                     $0.isTapTarget = true
                     $0.systemHitSlop = true
                 }
+                .focusElement(role: "segment", activate: { [select] in select(pair.offset) })
                 .background {
                     if isSel {
                         Capsule()
@@ -232,6 +257,7 @@ struct SegmentedBody: View {
                     $0.isTapTarget = true
                     $0.systemHitSlop = true
                 }
+                .focusElement(role: "segment", activate: { [select] in select(pair.offset) })
                 .background {
                     if isSel {
                         RoundedRectangle(cornerRadius: 7)

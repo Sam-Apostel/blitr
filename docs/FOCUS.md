@@ -1,0 +1,159 @@
+# tvOS focus
+
+`swiftui-screenshot` models the tvOS focus engine: which element has focus, where each Siri Remote
+press moves it, and how to reach every element. Nothing needs a simulator; everything is computed from
+the laid-out frame.
+
+```
+swiftui-screenshot render Home.swift --device apple-tv -o out/home.png \
+    --focus-map out/home-focus.json --focus-overlay out/home-focus.png
+
+swiftui-screenshot render Home.swift --device apple-tv -o out/after.png --press down,down,right,select
+swiftui-screenshot render Home.swift --device apple-tv -o out/x.png --focus "Top Movies" --press right
+```
+
+`Examples/TVFocus.swift` shows the common layouts (poster grid, shelves, a layout that needs
+`.focusSection()`, a TabView with settings, `@FocusState` + `defaultFocus`).
+
+## Flags
+
+| Flag | |
+|---|---|
+| `--focus-map <file.json>` | The focus map of the final state (after any presses). A summary is printed on stderr. |
+| `--focus-overlay <file.png>` | The frame, dimmed, with every focusable element outlined and numbered and an arrow for every move. |
+| `--press <list>` | Comma-separated presses applied in order once the first frame has settled: `up`, `down`, `left`, `right`, `select`, `menu`, `playpause`. Repeatable. The PNG shows the state after the last press. |
+| `--focus <selector>` | Start with focus on an element: its `id`, `#index`, or its label (exact match first, then case-insensitive substring). An ambiguous or unknown selector is an error that lists the candidates. |
+
+With `--all` / `--scheme both`, the map and overlay names get the same suffix as the PNGs.
+
+## What is focusable
+
+`Button` (and `Menu`), `NavigationLink`, `Toggle`, `Picker` (one element; each option for segmented and
+inline pickers), `Link`, `TextField` / `SecureField`, the search field, tab bar items, alert and
+confirmation-dialog buttons, and views with `.focusable()`.
+
+Not focusable: disabled controls, anything inside `.focusable(false)`, zero-size views, and everything
+under a presented sheet, full-screen cover, alert or dialog (the topmost presentation owns focus).
+Elements scrolled out of view are focusable (`"visible": false`).
+
+`.focusable()` on a view that already contains a focusable control does nothing (the control stays the
+element); with several controls inside it warns.
+
+## Focus state
+
+- `@Environment(\.isFocused)` is true inside the focused element (a control's label, a custom
+  `ButtonStyle`, the content of a `.focusable()` view).
+- `@FocusState` with `.focused(_:)` / `.focused(_:equals:)` works both ways: focus moving writes the
+  state; setting the state (in `onAppear`, an action, or as the initial value) moves focus to the first
+  element in the bound region. Setting it to `false` / `nil` while focused keeps focus where it is and
+  warns (tvOS would move focus elsewhere).
+- Initial focus, tvOS only (other platforms render exactly as before): a `@FocusState` set in
+  `onAppear`, else `defaultFocus`, else `prefersDefaultFocus(in:)` inside a matching `focusScope`, else
+  the selected tab of a tab bar, else the first element in reading order.
+- When the focused element goes away (a sheet is dismissed, a screen popped), focus returns to the most
+  recently focused element that is still on screen; otherwise the initial-focus rule picks one.
+- `.onMoveCommand`, `.onExitCommand`, `.onPlayPauseCommand` on the focused element or an ancestor
+  (the innermost one) are called by the matching press. A move still moves focus.
+- `.focusEffectDisabled()` turns off the default focus effect.
+- On tvOS renders `onChange(of:)` fires when a value differs from the previous pass, so UI that follows
+  focus (`onChange(of: focusState)`, a top bar that switches pages as focus moves) updates after each
+  move. Other platforms keep the one-shot `initial:` behaviour.
+- `.buttonStyle(.card)` exists and draws like `.plain` until tvOS control styles land.
+- Not modelled: `ScrollViewReader.scrollTo` and `scrollPosition` (scrolling follows focus only),
+  `hoverEffect`, long presses on select.
+
+## Movement rules
+
+From the focused element's frame, a press in a direction considers elements that lie beyond the
+frame's edge in that direction (1pt tolerance) and overlap the beam the frame sweeps in that direction.
+The nearest one along the axis wins; ties go to the larger overlap with the beam, then to the nearest
+centre. An element outside the beam cannot be reached by that press.
+
+Focus sections are targets in their own right. If the beam reaches a section's frame before (strictly
+nearer than) any element, focus enters the section at its element nearest to the origin element. The
+static map uses this history-free rule for presses too. Sections:
+
+- `.focusSection()`: the frame of the modified view.
+- The tab bar, spanning the full screen width. Entering it lands on the selected tab, and it also wins
+  a tie with its own items.
+- Every `List` / `Form`.
+
+Lazy stacks, grids, their rows and scroll views are not sections: plain geometry decides.
+
+When focus lands on an element outside the visible part of a `ScrollView` or `List`, the enclosing
+scroll views scroll (innermost first) by the least amount that shows it with a 40pt margin, clamped to
+the content. The offsets are kept per scroll view across passes. The map is computed for the current
+offsets.
+
+## Presses
+
+| Press | Effect |
+|---|---|
+| `up` `down` `left` `right` | `onMoveCommand`, then focus moves when there is a target. |
+| `select` | Activates the focused element: runs a `Button`'s action, flips a `Toggle`, selects a tab or a segmented/inline picker option, runs an alert button's action and dismisses the alert, pushes a `NavigationLink`'s destination (closure or `value:` through `navigationDestination(for:)`). Menu pickers, text fields and `Link`s warn: opening a picker, typing and opening URLs are not simulated. A `.focusable()` view runs its tap gesture. |
+| `menu` | `onExitCommand` if there is one; else dismisses the topmost sheet / cover / alert / dialog; else pops a screen pushed by `select`. Screens on a `NavigationStack(path:)` binding are not popped (warning). |
+| `playpause` | `onPlayPauseCommand`, or a warning. |
+
+After each press the resolve/layout passes run again, so state changes, pushed screens and dismissed
+presentations show up in the next press and in the PNG.
+
+## The map JSON
+
+```json
+{
+  "version": 1,
+  "platform": "tvOS",
+  "device": "Apple TV 4K",
+  "size": {"width": 1920, "height": 1080},
+  "modal": null,
+  "initialFocus": "button-1199a3",
+  "focused": "button-1199a3",
+  "presses": [{"press": "down", "from": "button-1199a3", "to": "button-5d0e1a", "note": "focus #1 \"Movie 1\" -> #9 \"Movie 21\""}],
+  "elements": [
+    {
+      "id": "button-1199a3",
+      "index": 1,
+      "label": "Movie 1",
+      "role": "button",
+      "frame": [80, 140, 480, 270],
+      "visible": true,
+      "section": null,
+      "moves": {"up": null, "down": "button-5d0e1a", "left": null, "right": "button-7f31c2"},
+      "path": []
+    }
+  ],
+  "sections": [{"id": "focusSection-02aa4f", "kind": "focusSection", "frame": [0, 0, 960, 1080], "elements": ["..."]}],
+  "summary": {"elementCount": 30, "visibleCount": 11, "unreachableCount": 0, "issuesByKind": {"oneWay": 8}},
+  "issues": [{"kind": "oneWay", "elements": ["...", "..."], "message": "..."}]
+}
+```
+
+- `id` is `<role>-<hash of the view's structural identity>`: stable across runs of the same source
+  (a `-2` suffix disambiguates rare collisions). `index` is the reading order (document order, tab bar
+  first), the number drawn on the overlay and usable as `--focus "#3"`.
+- `frame` is `[x, y, width, height]` in points, screen coordinates. A list row with one control is the
+  whole row.
+- `section` is the innermost section around the element.
+- `moves` gives the target of each press; `path` is the shortest press sequence from `initialFocus`
+  (null when unreachable).
+- `initialFocus` is where focus started on the current screen (also `--focus`); `focused` is where it
+  is after the presses (marked `"focused": true` on its element).
+- Issue kinds: `noFocusableElements`; `unreachable` (no press path from the initial focus); `trap`
+  (a group that can be entered but has no press leading back out); `oneWay` (A goes to B but the
+  opposite press from B does not return to A; information, common with items of different sizes).
+
+## Focused appearance
+
+`Focus/FocusEffect.swift` holds the one default focus effect: the focused control is scaled 1.06 over
+a rounded platter (white in light mode, translucent in dark mode) with a soft shadow. Chrome without a
+view of its own (tab items, alert buttons, the search field) gets a white outline instead. It is meant
+to be replaced by real tvOS control styles that read `isFocused`.
+
+## Known differences from tvOS
+
+- The renderer still draws iOS chrome on tvOS (a bottom tab bar, iOS-sized controls); moves are
+  computed from what is drawn, so they follow the real layout once the tvOS styles land.
+- UIKit remembers the last focused element of a section and returns to it; the map always uses the
+  nearest element. UIKit also prefers items it scrolled to, uses focus guides with their own preferred
+  environments, and animates scrolling; none of that is modelled.
+- Focus effect geometry (the 1.06 scale, parallax) does not change the frames used for movement.

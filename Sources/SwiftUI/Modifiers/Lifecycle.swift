@@ -33,13 +33,48 @@ extension View {
     }
 
     public func onChange<V: Equatable>(of value: V, initial: Bool = false, _ action: @escaping (V, V) -> Void) -> some View {
-        modifier(LifecycleModifier(key: "onChange") { _ in if initial { action(value, value) } })
+        modifier(OnChangeModifier(value: value, initial: initial, action: action))
     }
     public func onChange<V: Equatable>(of value: V, initial: Bool = false, _ action: @escaping () -> Void) -> some View {
-        modifier(LifecycleModifier(key: "onChange") { _ in if initial { action() } })
+        modifier(OnChangeModifier(value: value, initial: initial) { _, _ in action() })
     }
     @_disfavoredOverload
-    public func onChange<V: Equatable>(of value: V, perform action: @escaping (V) -> Void) -> some View { self }
+    public func onChange<V: Equatable>(of value: V, perform action: @escaping (V) -> Void) -> some View {
+        modifier(OnChangeModifier(value: value, initial: false, runsInitially: false) { _, new in action(new) })
+    }
+}
+
+/// `onChange`: the `initial` call runs once like `onAppear`. A value that differs from the previous pass
+/// (state set in `onAppear` or `.task`, focus moving, a simulated press) calls the action with old and new.
+final class OnChangeBox<V> {
+    var value: V
+    init(_ value: V) { self.value = value }
+}
+
+struct OnChangeModifier<V: Equatable>: ViewModifier, PrimitiveModifier {
+    let value: V
+    let initial: Bool
+    var runsInitially = true
+    let action: (V, V) -> Void
+
+    func resolve(content: ModifierContent, _ ctx: ResolveContext, into out: inout [Node]) {
+        let identity = ctx.path.appending("onChange")
+        let runtime = ctx.runtime
+        let value = self.value, action = self.action, initial = self.initial
+        if runsInitially, runtime.performedActions.insert(identity).inserted {
+            runtime.pendingActions.append { if initial { action(value, value) } }
+        }
+        if let box = runtime.changeValues[identity] as? OnChangeBox<V> {
+            if box.value != value {
+                let old = box.value
+                box.value = value
+                runtime.pendingActions.append { action(old, value) }
+            }
+        } else {
+            runtime.changeValues[identity] = OnChangeBox(value)
+        }
+        content.resolve(ctx.child("onChange"), into: &out)
+    }
 }
 
 extension Runtime {

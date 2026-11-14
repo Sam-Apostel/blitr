@@ -42,8 +42,13 @@ values written during layout (inside a `GeometryReader`) reach `onPreferenceChan
 | `Sources/SwiftUI/Chrome` | navigation and tab bars, lists, sheets, alerts (hand-drawn system UI) |
 | `Sources/SwiftUI/Symbols` | SF Symbol stand-ins (generated from Phosphor Icons by `scripts/generate-symbols.py`) |
 | `Sources/SwiftUI/Compat` | `ObservableObject`-era wrappers, `App`/`Scene`, UIKit types |
-| `Sources/SwiftUI/Inert` | APIs with no effect on a static frame: gestures, animation, accessibility |
-| `Sources/Combine`, `Sources/UIKit` | shim modules so those imports resolve |
+| `Sources/SwiftUI/Glass` | iOS design language (`--ios 18/26/27`), `glassEffect` and glass painting |
+| `Sources/SwiftUI/Accessibility` | accessibility tree, tap targets and issues (`--accessibility-*`) |
+| `Sources/SwiftUI/Focus` | tvOS focus engine: focus records on nodes, movement, `@FocusState`, remote presses, focus map (docs/FOCUS.md) |
+| `Sources/SwiftUI/Widgets` | widget and Live Activity canvases; `Kits/` holds the WidgetKit, ActivityKit and AppIntents API (docs/WIDGETS.md) |
+| `Sources/SwiftUI/Render` | `Renderer`, runner entry point, device profiles and chrome, image comparison for `compare` |
+| `Sources/SwiftUI/Inert` | APIs with no effect on a static frame: gestures, animation; accessibility modifiers record into the tree |
+| `Sources/Combine`, `Sources/UIKit`, `Sources/WidgetKit`, `Sources/ActivityKit`, `Sources/AppIntents` | shim modules so those imports resolve |
 | `Sources/swiftui-screenshot` | the command-line tool and source preprocessor |
 | `Tests/Corpus` | realistic screens rendered in CI as acceptance tests |
 
@@ -98,8 +103,10 @@ node; nodes do not see the environment later.
   appearance. Resolve with `env.colorScheme`.
 - **Unsupported input** must not render silently wrong: call `Runtime.current?.warn(...)`
   (shown to the user once) or leave the API out so compilation fails clearly.
-- **Inert APIs**: animation, gestures, accessibility and similar have no visual effect in a
-  static frame. They exist for source compatibility and return `self`.
+- **Inert APIs**: animation, gestures and similar have no visual effect in a static frame. They exist for
+  source compatibility and return `self`. Accessibility modifiers never change the picture either, but they
+  record into `AccessibilityInfo` for the accessibility outputs.
+- **Design language**: system chrome branches on `env.platformVersion` / `DesignLanguage` (flat, glass 26, glass 27).
 - The module is built with library evolution so `CSkia`/`CHarfBuzz` stay private
   (`internal import`). Do not expose their types in public API.
 - Text is LTR only. `View` is `@MainActor`; engine types are `@MainActor` too.

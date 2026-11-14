@@ -23,6 +23,8 @@ class Node {
     final var traits = Traits()
     /// Accessibility information recorded by modifiers and controls (see Accessibility/).
     final var ax: AXBox?
+    /// Focus information recorded by controls and focus modifiers (see Focus/).
+    final var focusRecords: [FocusRecord] = []
     /// Preference values written on this node itself; they replace what its children report.
     final var ownPreferences = PreferenceStore()
     private var blockedPreferences: Set<ObjectIdentifier> = []

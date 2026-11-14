@@ -201,6 +201,7 @@ enum ImageContent {
     @MainActor func draw(_ p: Painter, in rect: CGRect) {
         switch self {
         case .bitmap(let bitmap, let template):
+            if p.suppressesDrawing { return }
             var dst = Painter.skRect(rect)
             var sampling = sk_sampling_options_t(fMaxAniso: 0, fUseCubic: false, fCubic: sk_cubic_resampler_t(fB: 0, fC: 0),
                                                  fFilter: LINEAR_SK_FILTER_MODE, fMipmap: LINEAR_SK_MIPMAP_MODE)

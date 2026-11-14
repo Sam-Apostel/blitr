@@ -3,6 +3,8 @@ import Foundation
 /// Rewrites SwiftUI sources so they can be compiled into a headless runner:
 ///
 ///     #Preview("Name", ...) { body }  ->  @MainActor let __preview_N = SwiftUI._PreviewEntry("Name") { body }
+///     #Preview(as: .systemSmall) { W() } timeline: { ... }  ->  ... = SwiftUI._WidgetPreview(as: .systemSmall) { W() } timeline: { ... }
+///                                     (widget and Live Activity previews keep their arguments; see docs/WIDGETS.md)
 ///     @Previewable                     ->  (removed)
 ///     @main                            ->  (removed; the generated main.swift is the entry point)
 ///     #if os(iOS)                      ->  #if os(Linux)   (for the platform being rendered: its branches are kept)
@@ -19,6 +21,8 @@ struct Preprocessor {
     }
 
     private var counter = 0
+    /// Set when a widget preview was rewritten: main.swift then expands preview groups.
+    private var hasWidgetPreviews = false
     /// The Apple platform being rendered, as Swift spells it in `os(...)` and `#available(...)`:
     /// iOS, tvOS, watchOS, macOS or visionOS. Its branches are the ones kept.
     var platform = "iOS"
@@ -27,6 +31,7 @@ struct Preprocessor {
         var files: [(String, String)] = []
         var entries: [String] = []
         var appTypes: [String] = []
+        var widgetTypes: [String] = [], bundleTypes: [String] = []
         var usedNames: Set<String> = ["main.swift"]
 
         for (index, source) in sources.enumerated() {
@@ -37,6 +42,8 @@ struct Preprocessor {
                 entries.append("SwiftUI._PreviewEntry(\"\(type)\") { \(type).previews }")
             }
             appTypes += Self.matches(of: #"struct\s+(\w+)\s*:\s*(?:[^{\n]*,\s*)?(?:SwiftUI\.)?App\b"#, in: rewritten)
+            widgetTypes += Self.matches(of: #"struct\s+(\w+)\s*:\s*(?:[^{\n]*,\s*)?(?:WidgetKit\.)?Widget\b"#, in: rewritten)
+            bundleTypes += Self.matches(of: #"struct\s+(\w+)\s*:\s*(?:[^{\n]*,\s*)?(?:WidgetKit\.)?WidgetBundle\b"#, in: rewritten)
             var name = (source.path as NSString).lastPathComponent
             if usedNames.contains(name) { name = "\(index)_\(name)" }
             usedNames.insert(name)
@@ -48,11 +55,20 @@ struct Preprocessor {
         } else if entries.isEmpty, let app = appTypes.first {
             // No previews: launch the app instead (its first WindowGroup is rendered).
             entries = ["SwiftUI._PreviewEntry(app: \(app)())"]
+        } else if entries.isEmpty, !bundleTypes.isEmpty || !widgetTypes.isEmpty {
+            // A widget extension without previews: render its widgets from their providers.
+            entries = bundleTypes.first.map { ["SwiftUI._WidgetPreview(bundle: \($0)())"] }
+                ?? widgetTypes.map { "SwiftUI._WidgetPreview(widget: \($0)())" }
+            hasWidgetPreviews = true
         }
 
         var main = "import SwiftUI\n\nMainActor.assumeIsolated {\n    SwiftUI._ScreenshotRunner.run([\n"
+        if hasWidgetPreviews {
+            // Widget previews expand to one image per family, timeline entry or content state.
+            main = "import SwiftUI\n\nMainActor.assumeIsolated {\n    SwiftUI._ScreenshotRunner.run(([\n"
+        }
         for entry in entries { main += "        \(entry),\n" }
-        main += "    ])\n}\n"
+        main += hasWidgetPreviews ? "    ] as [any SwiftUI._PreviewEntryGroup]).flatMap { $0._previewEntries })\n}\n" : "    ])\n}\n"
         files.append(("main.swift", main))
         return Output(files: files, entries: entries)
     }
@@ -333,6 +349,17 @@ struct Preprocessor {
                     if close > k {
                         let arguments = String(decoding: bytes[(k + 1)..<close], as: UTF8.self)
                         if let range = arguments.range(of: "traits:") { traits = Self.traitArguments(String(arguments[range.upperBound...])) }
+                        // Widget and Live Activity previews (`as: <family or kind>`) keep their arguments.
+                        let code = String(decoding: bytes[(k + 1)..<close].enumerated().map { mask[k + 1 + $0.offset] ? $0.element : UInt8(ascii: " ") }, as: UTF8.self)
+                        if code.range(of: #"(^|,)\s*as\s*:"#, options: .regularExpression) != nil {
+                            let identifier = "__preview_\(counter)"
+                            counter += 1
+                            names.append(identifier)
+                            hasWidgetPreviews = true
+                            out += Array("@MainActor let \(identifier) = SwiftUI._WidgetPreview(\(arguments))".utf8)
+                            i = close + 1
+                            continue
+                        }
                     }
                     j = close + 1
                 }

@@ -65,6 +65,7 @@ public struct TextField<Label: View>: View {
     public var body: some View {
         _FieldBody(text: text, placeholder: placeholder)
             .axInfo(context: { ctx in .textInput(role: "textField", text: text, placeholder: placeholder, ctx) })
+            .focusElement(role: "textField", activate: { Runtime.current?.warn("select on a text field would open the tvOS keyboard; text entry is not simulated") })
     }
 }
 
@@ -127,6 +128,7 @@ public struct SecureField<Label: View>: View {
     public var body: some View {
         _FieldBody(text: text, placeholder: placeholder, secure: true)
             .axInfo(context: { ctx in .textInput(role: "secureTextField", text: text, placeholder: placeholder, ctx) })
+            .focusElement(role: "secureField", activate: { Runtime.current?.warn("select on a text field would open the tvOS keyboard; text entry is not simulated") })
     }
 }
 
@@ -163,5 +165,6 @@ public struct TextEditor: View {
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .axInfo(context: { ctx in .textInput(role: "textEditor", text: text, placeholder: nil, ctx) })
+            .focusElement(role: "textEditor", activate: { Runtime.current?.warn("select on a text field would open the tvOS keyboard; text entry is not simulated") })
     }
 }

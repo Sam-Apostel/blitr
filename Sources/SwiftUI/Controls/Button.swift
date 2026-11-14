@@ -161,6 +161,16 @@ public struct BorderedProminentButtonStyle: PrimitiveButtonStyle {
     }
 }
 
+/// tvOS card buttons. Drawn like `.plain` for now (the label as is); the focused lift comes from the
+/// default focus effect (Focus/FocusEffect.swift) until tvOS controls get their own styles.
+public struct CardButtonStyle: PrimitiveButtonStyle {
+    public init() {}
+    public func makeBody(configuration: PrimitiveButtonStyleConfiguration) -> some View {
+        _ButtonVisual(kind: .plain, label: AnyView(configuration.label), role: configuration.role)
+    }
+}
+extension PrimitiveButtonStyle where Self == CardButtonStyle { public static var card: CardButtonStyle { CardButtonStyle() } }
+
 extension PrimitiveButtonStyle where Self == DefaultButtonStyle { public static var automatic: DefaultButtonStyle { DefaultButtonStyle() } }
 extension PrimitiveButtonStyle where Self == BorderlessButtonStyle { public static var borderless: BorderlessButtonStyle { BorderlessButtonStyle() } }
 extension PrimitiveButtonStyle where Self == PlainButtonStyle { public static var plain: PlainButtonStyle { PlainButtonStyle() } }
@@ -350,6 +360,7 @@ public struct Button<Label: View>: View {
     public var body: some View {
         let styled = styleBox.make(AnyView(label), role, action)
             .axInfo(shared: true, context: { ctx in .button(enabled: ctx.env.isEnabled, activate: action) })
+            .focusElement(role: "button", activate: action)
         // Alerts and confirmation dialogs read the role off the action's nodes.
         if role == .cancel {
             styled.trait(PresentationActionRoleTraitKey.self, .cancel)
@@ -410,6 +421,9 @@ public struct Link<Label: View>: View {
                     $0.isTapTarget = true
                     $0.isEnabled = ctx.env.isEnabled
                 }
+            })
+            .focusElement(role: "link", activate: { [destination] in
+                Runtime.current?.warn("select on Link(\(destination.absoluteString)) would open the URL; nothing to show here")
             })
     }
 }

@@ -28,6 +28,9 @@ struct AXIssue {
 indirect enum AXJSON {
     case bool(Bool), int(Int), number(Double), string(String)
     case array([AXJSON]), object([(String, AXJSON)])
+    /// Used by the focus map: `null`, and a short object kept on one line.
+    case null
+    case inlineObject([(String, AXJSON)])
 
     static func num(_ v: CGFloat) -> AXJSON {
         let d = (Double(v) * 100).rounded() / 100
@@ -44,9 +47,13 @@ indirect enum AXJSON {
         case .int(let i): return String(i)
         case .number(let d): return String(d)
         case .string(let s): return AXJSON.quote(s)
+        case .null: return "null"
+        case .inlineObject(let pairs):
+            return "{" + pairs.map { AXJSON.quote($0.0) + ": " + $0.1.render() }.joined(separator: ", ") + "}"
         case .array(let items):
             if items.isEmpty { return "[]" }
-            if items.allSatisfy({ if case .string = $0 { return true }; return false }) {
+            if items.allSatisfy({ if case .string = $0 { return true }; return false })
+                || items.allSatisfy({ if case .int = $0 { return true }; if case .number = $0 { return true }; return false }) {
                 return "[" + items.map { $0.render() }.joined(separator: ", ") + "]"
             }
             return "[\n" + items.map { pad + $0.render(indent + 1) }.joined(separator: ",\n") + "\n" + close + "]"

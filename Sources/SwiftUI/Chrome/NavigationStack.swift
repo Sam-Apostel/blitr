@@ -264,7 +264,7 @@ extension EnvironmentValues {
 @MainActor
 func makeNavigationStack(_ ctx: ResolveContext, path: [AnyHashable], root: (ResolveContext) -> Node) -> Node {
     let outerSearch = ctx.env.navigationSearch
-    let contentCtx = ctx.with { $0.navigationSearch = nil }
+    let contentCtx = ctx.with { $0.navigationSearch = nil; $0.navigationStackIdentity = ctx.path }
 
     // Root, then each path element through its registered destination, then presented destinations.
     var pages: [(node: Node, chrome: NavigationChrome)] = []
@@ -286,6 +286,22 @@ func makeNavigationStack(_ ctx: ResolveContext, path: [AnyHashable], root: (Reso
         let node = resolveSingle(view, contentCtx.child("presented\(depth)"))
         pages.append((node, node.preferences[NavigationChromeKey.self]))
         depth += 1
+    }
+    // Screens pushed by remote `select` on a NavigationLink (focus engine), on top of everything else.
+    for (i, push) in (ctx.runtime.focus.pushes[ctx.path] ?? []).enumerated() {
+        let view: AnyView
+        switch push {
+        case .view(let v): view = v
+        case .value(let value):
+            for page in pages { destinations.merge(page.chrome.destinations) { mine, _ in mine } }
+            guard let make = destinations[ObjectIdentifier(type(of: value.base))], let v = make(value) else {
+                ctx.runtime.warn("NavigationLink value of type \(type(of: value.base)) has no matching navigationDestination; select cannot push it")
+                continue
+            }
+            view = v
+        }
+        let node = resolveSingle(view, contentCtx.child("pushed\(i)"))
+        pages.append((node, node.preferences[NavigationChromeKey.self]))
     }
 
     // The title display mode is inherited down the stack; `.automatic` at the root means large.
