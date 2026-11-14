@@ -29,9 +29,11 @@ enum SheetMetrics {
         /// Below the large detent the sheet floats: inset from the screen's sides and bottom.
         var floatingInset: CGFloat = 8              // measured: iOS 27.0 simulator
         /// The medium detent's card top sits this far above the middle of the screen. measured: iOS 27.0 simulator (403.7pt)
-        /// (The simulator also lays the floating sheet's content out at screen width and scales it by
-        /// (width - 2 x inset) / width, 0.959 on iPhone 16; not modelled.)
         var mediumDetentRaise: CGFloat = 22.33
+        /// The floating sheet lays its content out at screen width and scales it down to the card, about the card's
+        /// top-left corner: (width - 2 x inset) / width, 0.959 on iPhone 16. measured: iOS 27.0 simulator
+        /// (text and buttons 24pt from the card's edge land 23pt from it; rows 56pt tall come out 53.7pt)
+        var floatingContentScales = true
         /// Floating corners are concentric with the display corners, but never tighter than this.
         var floatingMinCornerRadius: CGFloat = 34   // (est.)
         /// Large detent (attached, opaque) and iPad form sheet.
@@ -281,6 +283,16 @@ final class SheetLayerNode: PresentationLayerNode {
     /// Glass, below the large detent: a card inset from the screen edges with glass behind the content.
     private(set) var isFloating = false
     private var isLarge = false
+    /// Glass floating sheets draw their content scaled by this about the card's top-left corner (1 otherwise).
+    private(set) var contentScale: CGFloat = 1
+
+    /// A rect in the content's layout coordinates (absolute) as it appears on screen.
+    func contentToScreen(_ r: CGRect) -> CGRect {
+        guard contentScale != 1 else { return r }
+        let o = CGPoint(x: absoluteOrigin.x + cardRect.minX, y: absoluteOrigin.y + cardRect.minY)
+        return CGRect(x: o.x + (r.minX - o.x) * contentScale, y: o.y + (r.minY - o.y) * contentScale,
+                      width: r.width * contentScale, height: r.height * contentScale)
+    }
 
     init(content: Node, env: EnvironmentValues) {
         self.content = content
@@ -346,11 +358,23 @@ final class SheetLayerNode: PresentationLayerNode {
         } else {
             cardRect = CGRect(x: 0, y: cardTop, width: size.width, height: size.height - cardTop)
         }
-        let absCard = cardRect.offsetBy(dx: ctx.origin.x, dy: ctx.origin.y)
+        contentScale = 1
+        if isFloating, SheetMetrics.forDesign(env.designLanguage).floatingContentScales, size.width > 0 {
+            contentScale = cardRect.width / size.width
+        }
+        // The rect the content is laid out in: the card, or for a scaled sheet the card before scaling
+        // (same top-left corner); `drawContent` scales it down onto the card.
+        let layoutRect = CGRect(origin: cardRect.origin, size: CGSize(width: cardRect.width / contentScale,
+                                                                      height: cardRect.height / contentScale))
+        if contentScale != 1 {
+            safeInsets = EdgeInsets(top: 0, leading: safeInsets.leading / contentScale, bottom: safeInsets.bottom / contentScale,
+                                    trailing: safeInsets.trailing / contentScale)
+        }
+        let absCard = layoutRect.offsetBy(dx: ctx.origin.x, dy: ctx.origin.y)
         var inner = ctx
         inner.container = absCard
         inner.safeRect = absCard.inset(by: safeInsets)
-        options.backgroundNode?.place(at: cardRect.origin, size: cardRect.size, inner)
+        options.backgroundNode?.place(at: layoutRect.origin, size: layoutRect.size, inner)
         let safeLocal = inner.safeRect.offsetBy(dx: -ctx.origin.x, dy: -ctx.origin.y)
         let c = content.sizeThatFits(ProposedViewSize(safeLocal.size))
         content.place(at: CGPoint(x: safeLocal.midX - c.width / 2, y: safeLocal.midY - c.height / 2), size: c, inner)
@@ -395,15 +419,17 @@ final class SheetLayerNode: PresentationLayerNode {
         }
         p.save()
         p.clip(shape)
-        if let bg = options.backgroundNode {
-            bg.draw(p)
-        } else if glassBackground {
-            // drawn above
-        } else {
+        if options.backgroundNode == nil && !glassBackground {
             let paint = options.backgroundPaint ?? .color(env.colorScheme == .dark
                 ? SheetMetrics.elevatedDarkBackground.resolve(.dark) : SystemColor.background.resolve(.light))
             p.fill(shape, with: paint, in: cardRect)
         }
+        if contentScale != 1 {
+            p.translate(cardRect.minX, cardRect.minY)
+            p.scale(contentScale, contentScale)
+            p.translate(-cardRect.minX, -cardRect.minY)
+        }
+        options.backgroundNode?.draw(p)
         content.draw(p)
         p.restore()
         if showsGrabber {
