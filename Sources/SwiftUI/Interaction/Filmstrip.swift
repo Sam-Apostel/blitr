@@ -74,10 +74,74 @@ enum Filmstrip {
     }
 }
 
-/// `--full-content`: implemented with the scroll capture (ScrollCapture.swift).
+/// `--full-content <file.png>`: the first scroll view's whole content in one tall image. The screen is
+/// captured at successive scroll offsets (each laid out anew, so lazy rows are realised and pinned headers
+/// sit where they would) and the slices of the scroll view's visible part are stacked; what is above the
+/// scroll view (bars) comes from the first capture and what is below it from the last, drawn once.
 @MainActor
 enum FullContent {
     static func render(host: RenderHost, to path: String) throws {
-        throw RenderError("--full-content is not available yet")
+        let runtime = host.runtime
+        let index = ElementIndex(root: host.root(), screen: CGRect(origin: .zero, size: host.canvasSize()), runtime: runtime)
+        guard let target = index.scrollables().first(where: { $0.axes.contains(.vertical) }) else {
+            throw RenderError("--full-content: there is no vertical scroll view, List or Form on screen")
+        }
+        let saved = runtime.focus.scrollOffsets[target.path]
+        defer {
+            runtime.focus.scrollOffsets[target.path] = saved
+            runtime.needsAnotherPass = true
+            host.settle()
+            host.draw()
+        }
+        let s = Double(host.scale)
+        let size = host.canvasSize()
+        let viewTop = max(0, Int((Double(target.viewport.minY) * s).rounded()))
+        let viewBottom = min(Int((Double(size.height) * s).rounded()), Int((Double(target.viewport.maxY) * s).rounded()))
+        let viewHeight = viewBottom - viewTop
+        guard viewHeight > 0 else { throw RenderError("--full-content: the scroll view is not visible") }
+        let maxOffset = Double(target.maxOffset.y)
+        var offsets: [Double] = [0]
+        let step = Double(viewHeight) / s
+        while let last = offsets.last, last < maxOffset - 0.01 { offsets.append(min(maxOffset, last + step)) }
+        var slices: [(image: FrameImage, from: Int, to: Int)] = []
+        var first: FrameImage?, last: FrameImage?
+        for (i, offset) in offsets.enumerated() {
+            runtime.focus.scrollOffsets[target.path] = CGPoint(x: target.maxOffset.x > 0 ? (saved?.x ?? 0) : 0, y: offset)
+            runtime.needsAnotherPass = true
+            host.settle()
+            Tweener.active = nil
+            host.draw()
+            let image = try FramePixels.grab(surface: host.surface)
+            if first == nil { first = image }
+            last = image
+            // The part of this capture not already covered by the previous one.
+            let previous = i == 0 ? 0 : offsets[i - 1]
+            let fresh = i == 0 ? viewHeight : Int(((offset - previous) * s).rounded())
+            slices.append((image, viewBottom - min(viewHeight, fresh), viewBottom))
+        }
+        guard let top = first, let bottom = last else { return }
+        let width = top.width
+        let tail = top.height - viewBottom
+        let totalHeight = viewTop + slices.reduce(0) { $0 + ($1.to - $1.from) } + tail
+        guard totalHeight <= 32767 else { throw RenderError("--full-content: the content is \(totalHeight) pixels tall, which is too large; use --scale 1") }
+        var pixels = [UInt8](repeating: 0, count: width * totalHeight * 4)
+        var y = 0
+        func copy(_ image: FrameImage, _ from: Int, _ to: Int) {
+            guard to > from else { return }
+            let rowBytes = width * 4
+            pixels.withUnsafeMutableBufferPointer { dst in
+                image.pixels.withUnsafeBufferPointer { src in
+                    for row in from..<to {
+                        let d = (y + row - from) * rowBytes, o = row * rowBytes
+                        for k in 0..<rowBytes { dst[d + k] = src[o + k] }
+                    }
+                }
+            }
+            y += to - from
+        }
+        copy(top, 0, viewTop)
+        for slice in slices { copy(slice.image, slice.from, slice.to) }
+        copy(bottom, viewBottom, bottom.height)
+        try FramePixels.write(try FramePixels.encodePNG(FrameImage(width: width, height: totalHeight, pixels: pixels)), to: path)
     }
 }
