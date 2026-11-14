@@ -67,6 +67,8 @@ extension GlassAppearance {
             // Tinted glass: the color replaces the neutral tint and stays translucent.
             let color = tint.rgba(in: env)
             appearance.tint = RGBA(color.r, color.g, color.b, 0.78 * color.a)
+            appearance.brightness = 0
+            appearance.saturation = 1
         }
         return appearance
     }

@@ -785,7 +785,9 @@ extension NavigationStackNode {
     -> (leading: [Node], trailing: [Node], principal: Node?, status: Node?, bottom: ToolbarGlassRowNode?) {
         let neutral = GlassAppearance.system(.regular, scheme: env.colorScheme, design: env.designLanguage)
         // Prominent glass takes the app's accent color (the bar's own environment made labels monochrome).
-        let prominent = GlassAppearance.resolve(Glass.regular.tint(Color.accentColor), in: env)
+        // An opaque accent fill. measured: iOS 27.0 simulator (confirm button (0,134,251) light, (0,145,255) dark)
+        var prominent = GlassAppearance.resolve(Glass.regular.tint(Color.accentColor), in: env)
+        prominent.tint.a = 1
         var lead: [ToolbarGlassToken] = [], trail: [ToolbarGlassToken] = [], pinned: [ToolbarGlassToken] = [], bottom: [ToolbarGlassToken] = []
         var principal: Node?, status: Node?, hasSecondary = false
         func add(_ token: ToolbarGlassToken, _ placement: ToolbarItemPlacement.Kind) {
