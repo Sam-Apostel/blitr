@@ -257,7 +257,9 @@ open class UIAlertAction: NSObject {
 
 /// Hosts SwiftUI content. As a representable's controller it is drawn as its root view.
 open class UIHostingController<Content: View>: UIViewController {
-    public var rootView: Content
+    public var rootView: Content {
+        didSet { (viewIfLoaded as? _HostingControllerView)?.content = AnyView(rootView) }
+    }
     public var sizingOptions: UIHostingControllerSizingOptions = []
     public var safeAreaRegions: SafeAreaRegions = .all
     public init(rootView: Content) {
@@ -267,6 +269,17 @@ open class UIHostingController<Content: View>: UIViewController {
     public required init?(coder: NSCoder) { fatalError("UIHostingController(coder:) is not available") }
     public func sizeThatFits(in size: CGSize) -> CGSize { size }
     var anyRootView: AnyView { AnyView(rootView) }
+    /// The view keeps the content, so a container that keeps only the view (not the controller) still
+    /// shows it, as in UIKit.
+    open override func loadView() {
+        view = _HostingControllerView(content: AnyView(rootView), frame: CGRect(origin: .zero, size: _currentCanvasSize()))
+    }
+}
+/// A hosting controller's view: the SwiftUI it hosts, for representables that add it to a container.
+final class _HostingControllerView: UIView {
+    var content: AnyView
+    init(content: AnyView, frame: CGRect) { self.content = content; super.init(frame: frame) }
+    required init?(coder: NSCoder) { fatalError("not available") }
 }
 public struct UIHostingControllerSizingOptions: OptionSet, Sendable {
     public let rawValue: Int
