@@ -23,6 +23,9 @@ public struct List<SelectionValue: Hashable, Content: View>: View, PrimitiveView
 
     func resolve(_ ctx: ResolveContext, into out: inout [Node]) {
         let style = forcedStyle ?? ctx.env.listStyleKind ?? .insetGrouped
+        if ctx.env.scrollRequest != nil {
+            Runtime.current?.warn("scrollPosition on a List is not applied: the list is drawn from its top")
+        }
         let rowCtx = ctx.child("list").with {
             $0.isInListRow = true
             $0.stackAxis = nil
