@@ -45,6 +45,7 @@ Render options:
       --background <hex> Background color, or "clear"
       --dynamic-type <s> xSmall ... xxxLarge, accessibility1 ... accessibility5
       --no-chrome        Omit the status bar and home indicator
+      --show-tips        Display TipKit tips (as Tips.showAllTipsForTesting() does); hidden by default
       --assets <dir>     Extra directory with images / .xcassets (repeatable)
       --fonts <dir>      Extra font directory, searched first (repeatable)
       --open-fonts       Use the open substitute fonts even if Apple's fonts are installed
@@ -286,7 +287,7 @@ func parse(_ arguments: [String]) -> Options {
         case "--device", "--layout", "--width", "--height", "--scale", "--padding", "--background", "--dynamic-type", "--task-budget", "--ios":
             options.runnerArguments += [arg, value(arg)]
         case "--os": options.runnerArguments += ["--ios", value(arg)]
-        case "--no-chrome": options.runnerArguments.append(arg)
+        case "--no-chrome", "--show-tips": options.runnerArguments.append(arg)
         case "--orientation": options.runnerArguments += [arg, value(arg)]
         case "--rounded-corners", "--show-island": options.runnerArguments.append(arg)
         case "--widget-family", "--widget-rendering-mode": options.runnerArguments += [arg, value(arg)]

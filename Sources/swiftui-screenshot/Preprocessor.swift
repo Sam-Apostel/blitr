@@ -12,6 +12,7 @@ import Foundation
 ///     #if canImport(UIKit)             ->  #if false       (on platforms without the framework; see frameworkPlatforms)
 ///     import SwiftUI                   ->  import SwiftUI; import UIKit   (iOS, tvOS, visionOS: SwiftUI re-exports UIKit there)
 ///     @objc, @IBAction, @IBOutlet      ->  (removed: there is no Objective-C runtime on Linux)
+///     #Rule(Self.$x) { ... }           ->  TipKit.Tips.Rule(Self.$x) { ... }   (TipKit's macro)
 ///     #selector(tap(_:))               ->  Selector("tap(_:)")   (ObjectiveC's Selector, which UIKit re-exports)
 ///     import CoreImage.CIFilterBuiltins ->  import CoreImage   (the shims are Swift modules, without submodules)
 ///     @Entry var x: T = v              ->  an explicit EnvironmentKey + computed property
@@ -377,6 +378,12 @@ struct Preprocessor {
                 var j = i + attribute.utf8.count
                 if j < bytes.count, bytes[j] == UInt8(ascii: "("), let close = bytes[j...].firstIndex(of: UInt8(ascii: ")")) { j = close + 1 }
                 i = j
+                continue
+            }
+            // TipKit's `#Rule(...)` macro: the same arguments make a `Tips.Rule` here.
+            if hasPrefix("#Rule(", at: i) {
+                out += Array("TipKit.Tips.Rule(".utf8)
+                i += "#Rule(".utf8.count
                 continue
             }
             if hasPrefix("#selector(", at: i) {

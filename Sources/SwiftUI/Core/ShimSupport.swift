@@ -150,3 +150,10 @@ package struct _AppleLogo: Shape {
         return path
     }
 }
+
+/// Identifies the render in progress, so shim state meant to last one app launch (TipKit's testing
+/// overrides) starts fresh for every preview rendered in the same process.
+package func _currentRenderID() -> ObjectIdentifier? {
+    guard Thread.isMainThread else { return nil }
+    return MainActor.assumeIsolated { Runtime.current.map { ObjectIdentifier($0) } }
+}

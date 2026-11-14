@@ -9,7 +9,7 @@ let skiaLib = Context.packageDirectory + "/Vendor/skia/lib"
 let moduleSettings: [SwiftSetting] = [.swiftLanguageMode(.v5), .unsafeFlags(["-enable-library-evolution"])]
 
 // Modules linked into libSwiftUI next to the SwiftUI module itself (Combine is a dependency of SwiftUI).
-let shimModules = ["Combine", "UniformTypeIdentifiers", "CoreGraphics", "ImageIO", "CoreImage", "CoreText", "ObjectiveC", "QuartzCore", "UIKit", "CoreLocation", "MapKit", "AppIntents", "ActivityKit", "WidgetKit", "CryptoKit", "Security", "Network", "CoreSpotlight", "UserNotifications", "EventKit", "WatchConnectivity", "Contacts", "PhotosUI", "AuthenticationServices", "PassKit", "PDFKit", "Vision", "VisionKit", "EventKitUI", "ContactsUI", "Translation", "QuickLook", "AppKit", "StoreKit", "AVFoundation", "AVKit", "SafariServices", "MessageUI", "CoreMotion", "CoreHaptics"]
+let shimModules = ["Combine", "UniformTypeIdentifiers", "CoreGraphics", "ImageIO", "CoreImage", "CoreText", "ObjectiveC", "QuartzCore", "UIKit", "CoreLocation", "MapKit", "AppIntents", "ActivityKit", "WidgetKit", "CryptoKit", "Security", "Network", "CoreSpotlight", "UserNotifications", "EventKit", "WatchConnectivity", "Contacts", "PhotosUI", "AuthenticationServices", "PassKit", "PDFKit", "Vision", "VisionKit", "EventKitUI", "ContactsUI", "Translation", "QuickLook", "AppKit", "StoreKit", "AVFoundation", "AVKit", "SafariServices", "MessageUI", "CoreMotion", "CoreHaptics", "TipKit"]
 
 let package = Package(
     name: "swift-ui-screenshot",
@@ -63,6 +63,7 @@ let package = Package(
         .target(name: "UserNotifications", swiftSettings: moduleSettings),
         .target(name: "EventKit", dependencies: ["CoreGraphics", "CoreLocation"], swiftSettings: moduleSettings),
         .target(name: "WatchConnectivity", swiftSettings: moduleSettings),
+        .target(name: "TipKit", dependencies: ["SwiftUI"], swiftSettings: moduleSettings),
         .target(name: "Contacts", swiftSettings: moduleSettings),
         .target(name: "PhotosUI", dependencies: ["SwiftUI", "UIKit", "UniformTypeIdentifiers"], swiftSettings: moduleSettings),
         .target(name: "AuthenticationServices", dependencies: ["SwiftUI", "UIKit", "Security"], swiftSettings: moduleSettings),

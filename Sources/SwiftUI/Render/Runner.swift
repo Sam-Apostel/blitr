@@ -106,6 +106,7 @@ public enum _ScreenshotRunner {
                 }
                 config.osVersion = major
             case "--no-chrome": config.showsDeviceChrome = false
+            case "--show-tips": config.showsTips = true
             case "--background":
                 let hex = value(flag).trimmingCharacters(in: CharacterSet(charactersIn: "#"))
                 if hex == "clear" || hex == "transparent" { config.background = .clear }

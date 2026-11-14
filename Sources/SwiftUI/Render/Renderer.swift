@@ -13,6 +13,8 @@ package struct RenderConfiguration {
     package var colorScheme: ColorScheme = .light
     var dynamicTypeSize: DynamicTypeSize = .large
     var showsDeviceChrome = true
+    /// TipKit tips display (`--show-tips`); otherwise only after `Tips.showAllTipsForTesting()` and friends.
+    package var showsTips = false
     /// Clip the image to the device's rounded display, corners transparent.
     var roundedCorners = false
     /// Draw the notch / Dynamic Island on top of the content.
