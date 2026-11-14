@@ -31,6 +31,7 @@ public struct Text: Equatable, Sendable {
         case localized(LocalizedStringKey)
         case concatenated(Text, Text)
         case image(Image)
+        case attributed(AttributedString)
     }
     enum Modifier: @unchecked Sendable {
         case font(Font?), weight(Font.Weight?), bold(Bool), italic(Bool), style(AnyShapeStyle?)
@@ -59,7 +60,7 @@ public struct Text: Equatable, Sendable {
         storage = .verbatim(format.format(input))
     }
     @_disfavoredOverload
-    public init(_ attributedContent: AttributedString) { storage = .verbatim(String(attributedContent.characters)) }
+    public init(_ attributedContent: AttributedString) { storage = .attributed(attributedContent) }
     init(storage: Storage) { self.storage = storage }
 
     static func format(_ date: Date, _ style: DateStyle) -> String {
@@ -91,6 +92,7 @@ public struct Text: Equatable, Sendable {
         case .localized(let key): return key.plainString
         case .concatenated(let a, let b): return a.plainString + b.plainString
         case .image: return ""
+        case .attributed(let a): return String(a.characters)
         }
     }
 
@@ -160,6 +162,7 @@ struct TextAttributes {
     var scale: CGFloat = 1
     var isLink = false
     var isCode = false
+    var background: Color?
 }
 
 extension Text {
@@ -195,7 +198,46 @@ extension Text {
             var run = Text.makeRun("\u{FFFC}", attrs, env)
             run.attachment = image.inlineAttachment(font: run.font, paint: run.paint, env: env)
             return [run]
+        case .attributed(let string):
+            return Text.attributedRuns(string, attrs, env)
         }
+    }
+
+    /// The inline presentation intent, read by name: libSwiftUI links its own copy of SwiftUIScreenshotFoundation,
+    /// so a value app code stored (through the autolinked library) is another `InlinePresentationIntent` type
+    /// than the one here, and a typed read would fail its cast.
+    private enum InlineIntentKey: AttributedStringKey {
+        typealias Value = AnyHashable
+        static let name = AttributeScopes.FoundationAttributes.InlinePresentationIntentAttribute.name
+    }
+
+    /// An AttributedString's runs: its SwiftUI attributes take precedence over the Text's modifiers, as on
+    /// Apple platforms; Markdown's inline presentation intents and links are drawn as in a Markdown literal.
+    @MainActor
+    static func attributedRuns(_ string: AttributedString, _ inherited: TextAttributes, _ env: EnvironmentValues) -> [TextRun] {
+        typealias S = AttributeScopes.SwiftUIAttributes
+        var result: [TextRun] = []
+        for run in string.runs {
+            var a = inherited
+            if let font = run[S.FontAttribute.self] { a.font = font }
+            if let color = run[S.ForegroundColorAttribute.self] { a.paint = AnyShapeStyle(color)._paint(in: env) }
+            if let color = run[S.BackgroundColorAttribute.self] { a.background = color }
+            if let raw = (run[InlineIntentKey.self]?.base as? any RawRepresentable)?.rawValue as? UInt {
+                let intent = InlinePresentationIntent(rawValue: raw)
+                if intent.contains(.stronglyEmphasized) { a.bold = true }
+                if intent.contains(.emphasized) { a.italic = true }
+                if intent.contains(.code) { a.isCode = true }
+                if intent.contains(.strikethrough) { a.strikethrough = (true, nil) }
+            }
+            if let style = run[S.StrikethroughStyleAttribute.self] { a.strikethrough = (true, style.color) }
+            if let style = run[S.UnderlineStyleAttribute.self] { a.underline = (true, style.color) }
+            if let kern = run[S.KerningAttribute.self] { a.kerning = kern }
+            if let tracking = run[S.TrackingAttribute.self] { a.kerning = tracking }
+            if let offset = run[S.BaselineOffsetAttribute.self] { a.baselineOffset = offset }
+            if run.link != nil { a.isLink = true }
+            result.append(Text.makeRun(String(string[run.range].characters), a, env))
+        }
+        return result.isEmpty ? [Text.makeRun("", inherited, env)] : result
     }
 
     @MainActor
@@ -223,6 +265,7 @@ extension Text {
         if let (on, color) = attrs.strikethrough ?? env.textStrikethrough, on { run.strikethrough = color?.rgba(in: env) ?? base }
         run.kerning = attrs.kerning != 0 ? attrs.kerning : env.textKerning
         run.baselineOffset = attrs.baselineOffset
+        run.background = attrs.background?.rgba(in: env)
         return run
     }
 }

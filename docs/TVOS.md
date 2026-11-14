@@ -9,7 +9,7 @@ full screens.
 
 ## Research: what tvOS draws, and where the numbers come from
 
-Every constant is in `TVMetrics` / `TVColors` and marked there as **measured** (from a source below) or
+Every constant is in `TVMetrics` / `TVColors` and marked there as **measured** (the tvOS 26.5 simulator or a source below) or
 **est.** (estimated from reference images or general knowledge; check against a simulator).
 
 ### Sources
@@ -67,57 +67,88 @@ Every constant is in `TVMetrics` / `TVColors` and marked there as **measured** (
 - Not reachable: Apple's tvOS Figma/Sketch kits (no metrics could be read without the design apps), and
   the HIG pages give no button, list row or navigation title sizes. Those are estimated.
 
-### What is drawn, by area
+### Measured against the tvOS 26.5 simulator
+
+`Tests/Reference/tvos-26.5` (on the `data/references` branch) holds screenshots (3840 x 2160, 2 px/pt) and
+element frames of every preview of `Examples/TVControls.swift`, `13_TVHome` and `14_TVSettings` on an Apple
+TV 4K, plus four press variants. Compare with
+
+```
+scripts/calibrate.py --platform tvos --device apple-tv-4k --set tvos-26.5 [--scheme dark]
+```
+
+Constants marked **measured** in `TVMetrics` / `TVColors` come from that set (pixel sampling and the element
+frames); **est.** marks what the set does not show (tvOS 18, dark-mode colors other than list rows, titles
+and the backdrop, mini/extra-large controls, collapsed sidebar). The set's `dark/` captures are byte-identical
+to `light/` (the simulator's appearance was not switched during capture), so dark mode is calibrated from the
+two previews that set `.preferredColorScheme(.dark)` (`13_TVHome-1`, `14_TVSettings-1`).
+
+Pixels that differ, light, `--os 26` (threshold 0.1), before and after calibration:
+
+| Screen | before | after |
+|---|---|---|
+| Buttons (`TVControls-0`, `-0-right-right`) | 62.1%, 61.1% | 0.3%, 0.3% |
+| Inputs (`-1`) | 54.8% | 4.2% |
+| Inline Picker (`-2`) | 69.5% | 1.2% |
+| Tab Bar (`-3`, `-3-down`) | 63.9%, 63.2% | 0.5%, 0.4% |
+| Sidebar (`-4`) | 81.5% | 0.3% |
+| Pages (`-5`) | 0.1% | 0.1% |
+| Settings List (`-6`, `-6-down-down`) | 67.3%, 65.9% | 0.5%, 0.6% |
+| Search (`-7`) | 73.6% | 0.8% |
+| Alert (`-8`, `-8-down`) | 81.4% | 0.4% |
+| Dialog (`-9`) | 79.9% | 0.2% |
+| Sheet (`-10`) | 85.6% | 0.8% |
+| Focus Visuals (`-11`) | 65.5% | 0.1% |
+| `13_TVHome` light, dark | 25.2%, 33.2% | 1.2%, 1.3% |
+| `14_TVSettings` light, dark | 67.2%, 85.7% | 1.6%, 1.0% |
+
+### What is drawn, by area (tvOS 26 / 27 unless noted)
 
 | Area | Drawn | Fidelity |
 |---|---|---|
-| Focus lift | Focused control scaled 1.1 about its centre with a drop shadow; list rows 1.03; tab items and segments 1.06. Drawn only: frames (and the focus engine) use the unscaled layout. | scale est. (1.05–1.1 in community measurements); shadow est. |
-| Bordered (default) button | tvOS 18: rounded-rect platter (12 pt radius est.), grey translucent; focused: white, dark label, lifted. tvOS 26/27: glass capsule; focused: white capsule with a glassy rim. Height 66 pt. | height measured; colors sampled; padding, radius est. |
-| `.borderedProminent` | Accent platter, white label; focused: lifted, slightly brighter. | est. |
-| `.plain`, `.borderless` | No platter; the label lifts; its artwork (largest image or shape) gets the shadow and, for borderless, a specular highlight. The title is lifted with it (tvOS moves it down instead). | est. |
-| `.card` | Content clipped to a 12 pt rounded rect on a faint platter; focused: lifted with shadow and specular highlight (glass platter on 26/27). | est. |
-| destructive / disabled / `controlSize` / `buttonBorderShape` | Red label; 50% opacity and not focusable; heights 44/54/66/80/92; capsule, circle, rounded rect. | est. |
-| Custom `ButtonStyle`, `.focusable()` | No system effect (read `isFocused`). `isPressed` is false. | per WWDC20 |
-| `hoverEffect(.highlight / .lift)` | Inside a focused view: `.highlight` = small lift + specular, `.lift` = scale + shadow. `focusEffectDisabled` / `hoverEffectDisabled` turn them off. | est. |
-| Tab bar | tvOS 18: titles centred at the top (top 46, height 68) on a translucent capsule; selected tab on an opaque pill; focused tab white, lifted, dark title. tvOS 26/27: same in a glass capsule. Content's safe area starts below the bar. | position measured; rest est. |
-| `.sidebarAdaptable` | Floating sidebar at the leading edge: compact column of icons while focus is in the content, expanded panel (icons and titles, content dimmed) while a tab has focus. | est. |
+| Backdrop | Behind every screen, the system's soft blurred gradient (light blue top left, warm grey bottom), not a flat color: a 16 x 9 grid of the measured backdrop, drawn with cubic filtering. Dark is the light one at half brightness (`0.5 x - 61`, per channel). tvOS 18 keeps the flat window color. | measured (rmse 4/255 light, < 1/255 dark fit) |
+| Focus lift | Buttons, toggles, pickers, text fields, list rows, tab items and alert actions do not scale: the platter grows by 4 pt on every side and turns white, with a shadow (gaussian sigma 10, 50% black, 12 pt down, 8 pt narrower than the platter). `.card` scales so its longer side grows by 40 pt. Labels do not move. Drawn only: frames and the focus engine use the unfocused layout. tvOS 18: scale 1.1 / 1.03 / 1.06 (est.). | measured |
+| Bordered (default) button | Capsule, 66 pt, labels 30 pt in from the ends, body text; unfocused a flat film (the backdrop at 91%), focused white. Small 50 pt with caption text, large 85 pt with callout text. | measured (mini, extra large est.) |
+| `.borderedProminent` | Same as bordered on tvOS 26 (grey film, primary label). tvOS 18: accent platter (est.). | measured |
+| destructive / disabled | Destructive: a red platter (237, 40, 48) with a red label. Disabled: the same film, secondary label, not focusable. | measured |
+| `.plain`, `.borderless` | No platter; the label lifts; its artwork gets the shadow and, for borderless, a specular highlight. | est. (unfocused look measured) |
+| `.card` | Content clipped to a 12 pt rounded rect on a light film (white 28%); focused: scaled (longer side + 40 pt) with the focus shadow and a specular highlight. | measured (highlight est.) |
+| Custom `ButtonStyle`, `.focusable()` | No system effect (read `isFocused`). | measured (matches) |
+| Tab bar | A light capsule (white 80%; dark: black 13%), 68 pt high, 46 pt from the top; each tab is its icon and a semibold 29 pt title in the label color; contents 62 pt apart, 39 pt from the ends; the selected tab a black 10% pill (27 pt beyond its content, 14 pt inside the bar), the focused one a white pill grown 4 pt. Content starts 43 pt below the bar. tvOS 18: title-only tabs, HIG position (est.). | measured |
+| `.sidebarAdaptable` | While a tab has focus: a glass panel at (35, 35), 340 pt wide, fitted to its 66 pt rows (10 apart, 19 pt in, 25 pt top, 21 pt bottom); the screen dimmed by 30% black; unselected titles secondary. The content keeps its place, 60 pt below the safe area's top. Collapsed sidebar est. | measured (collapsed est.) |
 | `.page` | Content full screen; page dots twice the iOS size. | est. |
-| NavigationStack | No bar background and no back button; title centred at the top of the safe area (48 pt medium, est.); toolbar items beside it as tvOS buttons. Bottom-bar items are not drawn (warning). | est. |
-| List / Form / Section | No cards, no separators, no background; rows 70 pt min with 30 pt insets; focused row a white, lifted, rounded platter with dark content; secondary sentence-case headers and footers; chevrons on navigation rows; `LabeledContent` value trailing. Lists take the width they are given (tvOS Settings' half-width layout is an app layout, not a List default). | est. |
-| Toggle | Full-width row: label + "On"/"Off" (docs); `.switch` draws a switch. In a List the row draws the platter. | layout per docs; sizes est. |
-| Picker | automatic: segmented outside lists (docs), value row inside lists (est.); `.menu` / `.navigationLink`: value row; `.inline`: a focusable row per option with a checkmark; `.segmented`: segments on a track, the focused one white and lifted, the selected one marked. | est. |
-| Menu, Link | Bordered buttons. | est. |
-| TextField / SecureField | Rounded platter (capsule on 26/27) with text or placeholder; focused: white, lifted. The full-screen keyboard is not drawn. | est. |
-| searchable | A wide field below the title with a large magnifier and prompt (keyboard not drawn; warning). | est. from HIG image |
-| ProgressView | 60 pt spinner / ring, 8 pt bar. | est. |
-| Alerts, confirmation dialogs | tvOS 18: full-screen blurred, dimmed backdrop; centred title and message; stacked 560 x 66 platters, cancel last. tvOS 26/27: the glass card of the HIG image. The focused action is white and lifted. | 26 card measured; 18 est. |
-| `sheet` | Content over a blurred, dimmed copy of the presenter, full screen. | est. |
+| NavigationStack | No bar background, no back button; the title (57 pt medium, dimmed: black 42% / white 30%) 4 pt below the safe area's top, content 91 pt below it; toolbar items beside it as buttons. | measured (toolbar item look est.) |
+| List / Form / Section | Every row a capsule with a light film (white 15% light, 10% dark), 66 pt high on an 80 pt pitch, full width, labels 20 pt in; the focused row white and grown 4 pt; uppercase 29 pt headers in the dimmed title color, 6 pt above the first row; 29 pt secondary footers 20 pt below the last row; 26 pt between sections; values black 57% / white 55%. | measured |
+| Toggle | Label and "On" / "Off" (also with `.switch`, which tvOS 26 draws the same way); outside a list a button-like capsule, labels 30 pt in. | measured |
+| Picker | Automatic and `.segmented` outside lists: equal segments across the width offered, 84 pt high, on a light track (white 60%); the selected segment a black 18% pill, the focused one a white lifted pill; semibold labels. `.inline` outside a list: the same segmented control. `.menu` outside a list: a bordered button showing only the value. Automatic in a `List`: the segmented control, a focus element per option; in a `Form`, and `.navigationLink`: a value row. | measured |
+| Menu, Link | Bordered buttons. | measured |
+| TextField / SecureField | Capsule, 70 pt, white 55% film, text headline size (secure text as large dots), placeholder body size; focused white. The keyboard is not drawn. | measured approx. |
+| searchable | The tvOS 26 search screen: a 52 pt magnifier and the prompt (57 pt bold, dimmed), the "Press ⏯ to change keyboards" hint, the keyboard row (123, SPACE, a-z, delete; the first key white while the keyboard has focus), a hairline, results 245.5 pt below the safe area's top. Typing and suggestions are not simulated (warning). | measured |
+| ProgressView | 60 pt spinner / ring, 8 pt bar. | est. (tvOS 26: 40 pt spinner, label below, 10 pt white bar) |
+| Alerts | The screen dimmed by 45% black; a glass card (radius 62): 586 pt wide for an alert with two actions, which sit side by side (250 pt, 24 apart) with cancel first and focused; centered bold title and message (46 pt top, 17.5 / 37.5 pt gaps); buttons 66 pt, 31 pt from the edges; unfocused actions black 10%, destructive ones red 20% with a red label; the focused one white, grown 4 pt. tvOS 18: full-screen, est. | measured |
+| Confirmation dialogs | As alerts, 502 pt wide, 440 pt buttons stacked 16 apart, cancel added last, the first action focused; 83.5 pt from the title to the buttons. | measured |
+| `sheet` | A glass card (radius 62) fitted to the content (5 pt above and below), centered, over the presenter dimmed by 20% black (no blur). tvOS 18: blurred full screen, est. | measured |
 | `fullScreenCover` | Opaque system background, as on iOS. | as iOS |
-| Materials, colors, separators | Unchanged (iOS values); list separators are not drawn on tvOS. Light stays the default appearance. | iOS values |
 
 ### Not covered
 
 - Parallax tilt, motion, and the "highlighted" (pressed) state: a still frame shows none.
-- The tvOS keyboard, search suggestions, and picker option lists that open on select.
+- Typing on the tvOS keyboard, search suggestions, and picker option lists that open on select.
 - Top Shelf, the TV app's `.tabViewStyle(.sidebarAdaptable)` sections (`TabSection`) are flattened.
-- tvOS system colors and the default window background are the iOS ones (white / black); a tvOS
-  simulator's light background may be a light grey.
 
 ## Checklist for a real tvOS simulator
 
-Things estimated here that should be measured against tvOS 18 and tvOS 26 simulators:
+Measured on tvOS 26.5 (Apple TV 4K): button sizes, padding and colors, the focus growth and shadow, card
+scale, tab bar, expanded sidebar, navigation title, list rows, headers and footers, toggles (also `.switch`),
+segmented / inline / menu pickers, text fields, the search screen, alerts, dialogs, sheets, the backdrop.
+Still to measure:
 
-1. Bordered button (tvOS 18): corner radius, horizontal padding, unfocused platter color in light and dark, focused scale and shadow.
-2. `.card` and `.borderless`: focused scale, shadow, whether the borderless title moves down by the image growth.
-3. `.plain` on tvOS: does a focused plain button scale its label?
-4. Tab bar (18): is there a full-width translucent background or a capsule? Title font size, pill insets, selected-tab color when the bar is not focused.
-5. Tab bar (26/27): glass capsule size and position.
-6. `.sidebarAdaptable` on tvOS: compact and expanded sizes, whether content is dimmed.
-7. Navigation title font and position; where toolbar items go.
-8. List rows: height, insets, spacing, focused-row scale; header and footer fonts; chevrons on navigation rows (shown here).
-9. Picker in a Form with the automatic style: value row or segmented?
-10. Toggle `.switch` look on tvOS.
-11. Alerts (18): layout, button width; confirmation dialogs (18 and 26).
-12. `sheet` presentation on 18 and 26.
-13. What a `.focusable()` custom view shows on focus (here: nothing).
-14. Light-mode window background color.
+1. Everything on tvOS 18 (all tvOS 18 values are estimates).
+2. Dark appearance of controls outside lists, alerts, dialogs, sheets and the tab bar's selected pill
+   (re-capture `dark/` with the simulator's appearance switched).
+3. `.plain` and `.borderless` focused: scale, shadow, whether the borderless title moves down.
+4. The collapsed `.sidebarAdaptable` sidebar (focus in the content).
+5. Toolbar items next to the navigation title (tvOS 26 draws them 70 pt high, light film, white label).
+6. ProgressView (spinner size, label below, bar colors) and `Label` icon spacing.
+7. A disabled toggle (tvOS 26 keeps its label in the primary color).
+8. What a `.focusable()` custom view shows on focus (here: nothing).

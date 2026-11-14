@@ -71,25 +71,22 @@ struct _TVButtonVisual: View {
         let accent = (explicitAccent ?? Color.accentColor)
         let disabledLabel = Color(SystemColor.tertiaryLabel)
         var content = label
-        switch size {
-        case .mini: content = AnyView(content.font(userFont ?? .caption))
-        case .small: content = AnyView(content.font(userFont ?? .callout))
-        case .large, .extraLarge: content = AnyView(content.font(userFont ?? .headline))
-        case .regular: break
-        }
+        if let font = TVMetrics.buttonFont(size) { content = AnyView(content.font(userFont ?? font)) }
         content = AnyView(content.lineLimit(1))
+        // tvOS 26 draws a prominent button like a bordered one (measured: grey platter, primary label).
+        let accentPlatter = prominent && !design.isGlass
 
         // Label color: primary (or red) on the translucent platter; dark (or red) on the focused white one;
         // white on the accent platter of a prominent button.
         let foreground: Color
-        if !isEnabled { foreground = disabledLabel }
-        else if prominent { foreground = .white }
+        if !isEnabled { foreground = design.isGlass ? Color(SystemColor.secondaryLabel) : disabledLabel }
+        else if accentPlatter { foreground = .white }
         else if destructive { foreground = Color(SystemColor.red) }
         else if focused { foreground = Color(TVColors.focusedLabel) }
         else { foreground = Color(SystemColor.label) }
         // An explicit foreground style of the surroundings colors the label until the platter turns white.
-        let keepsExplicit = explicitForeground != nil && !focused && !prominent && !destructive && isEnabled
-        let styledLabel = (keepsExplicit ? content : AnyView(content.foregroundStyle(foreground))).tvOnWhitePlatter(focused && !prominent)
+        let keepsExplicit = explicitForeground != nil && !focused && !accentPlatter && !destructive && isEnabled
+        let styledLabel = (keepsExplicit ? content : AnyView(content.foregroundStyle(foreground))).tvOnWhitePlatter(focused && !accentPlatter)
 
         let circle = borderShape.kind == .circle
         let padded: AnyView
@@ -104,18 +101,19 @@ struct _TVButtonVisual: View {
         style.cornerRadius = cornerRadius
         style.lifted = focused
         let accentRGBA = accent.rgba(in: currentEnv)
-        if prominent {
+        if accentPlatter {
             let fill = isEnabled ? (focused ? accentRGBA.mix(.white, 0.12) : accentRGBA) : TVColors.platter(scheme)
             style.platter = .color(fill)
         } else if focused {
             style.platter = design.isGlass ? .focusedGlass : .color(TVColors.focusedPlatter)
+            if design.isGlass { style.useGlassFocus() }
         } else if design.isGlass {
-            style.platter = .glass(TVColors.glass(scheme, design: design))
+            style.platter = .color(destructive && isEnabled ? TVColors.glassDestructivePlatter : TVColors.glassPlatter(scheme))
         } else {
             style.platter = .color(TVColors.platter(scheme))
         }
         return padded
-            .opacity(isEnabled ? 1 : 0.5)
+            .opacity(isEnabled || design.isGlass ? 1 : 0.5)
             .modifier(TVLiftModifier(style: style))
     }
 
@@ -149,8 +147,12 @@ struct _TVButtonVisual: View {
         style.lifted = focused
         style.specular = true
         if design.isGlass {
-            style.platter = focused ? .glass(GlassAppearance.system(.regular, scheme: scheme, design: design))
-                                    : .color(TVColors.cardPlatter(scheme))
+            // measured: tvOS 26.5, a focused card grows its longer side by 40 pt; its platter is a light film.
+            style.scaleGrowth = TVMetrics.glassCardLiftGrowth
+            style.shadowOpacity = TVMetrics.glassShadowOpacity
+            style.shadowRadius = TVMetrics.glassShadowRadius
+            style.shadowY = TVMetrics.glassShadowY
+            style.platter = .color(TVColors.glassCardPlatter(scheme))
         } else {
             style.platter = .color(focused ? TVColors.cardPlatter(scheme).opacity(1.6) : TVColors.cardPlatter(scheme))
         }

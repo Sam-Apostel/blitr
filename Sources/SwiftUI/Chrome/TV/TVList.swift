@@ -2,15 +2,17 @@
 // focusable control is that control (as the focus engine already treats it); while it has focus the row
 // is a raised white platter with dark content (HIG Lists and tables, tvOS: "each row highlights and
 // slightly increases in size when it becomes focused. A focused row's corners can also become rounded").
-// Sizes are estimates (TVMetrics). Lists take the full width they are given: tvOS Settings-style
+// tvOS 26 rows are capsules with a light film, measured on the tvOS 26.5 simulator (TVMetrics). Lists take the
+// full width they are given: tvOS Settings-style
 // half-width layouts are an app's own layout, not a List default.
 
 extension ListNode {
-    static func markTVFocus(_ rows: [ListRowNode], glass: Bool) {
+    static func markTVFocus(_ rows: [ListRowNode], glass: Bool, scheme: ColorScheme) {
         let focused = Runtime.current?.focus.focusedPath
         for row in rows {
             row.tvRow = true
             row.tvGlass = glass
+            row.tvScheme = scheme
             let elements = row.containsFocusElements()
             guard elements.count == 1, let element = elements.first else { continue }
             row.tvSingleElement = true
@@ -43,7 +45,7 @@ extension ListNode {
                 y += s.height
             }
             if let footer = section.footer {
-                y += 12
+                y += TVMetrics.footerTopGap
                 let f = footer.sizeThatFits(ProposedViewSize(width: width - textInset * 2, height: nil))
                 footer.place(at: CGPoint(x: x0 + textInset, y: y), size: f, inner)
                 y += f.height
@@ -56,9 +58,25 @@ extension ListNode {
 extension ListRowNode {
     func drawTV(_ p: Painter) {
         let bounds = CGRect(origin: .zero, size: frame.size)
-        let radius = tvGlass ? 22 : TVMetrics.rowCornerRadius
+        let radius = tvGlass ? bounds.height / 2 : TVMetrics.rowCornerRadius
         p.save()
-        if tvFocused {
+        if tvGlass {
+            // tvOS 26 (measured: tvOS 26.5): every row is a capsule with a light film; the focused one is white,
+            // 4 pt larger on every side, with the focus shadow. The content does not scale.
+            let g = tvFocused ? TVMetrics.glassFocusGrowth : 0
+            let plate = bounds.insetBy(dx: -g, dy: -g)
+            let path = Path(roundedRect: plate, cornerRadius: plate.height / 2, style: .circular)
+            if tvFocused {
+                let shadow = plate.insetBy(dx: TVMetrics.glassShadowInset, dy: 0).offsetBy(dx: 0, dy: TVMetrics.glassShadowY)
+                p.saveLayer(.init(imageFilter: Painter.blurFilter(radius: TVMetrics.glassShadowRadius, scale: p.scale)))
+                p.fill(Path(roundedRect: shadow, cornerRadius: shadow.height / 2, style: .circular),
+                       with: .color(RGBA(0, 0, 0, TVMetrics.glassShadowOpacity)), in: shadow)
+                p.restore()
+                p.fill(path, with: .color(TVColors.focusedPlatter), in: plate)
+            } else {
+                p.fill(path, with: .color(TVColors.glassRow(tvScheme)), in: plate)
+            }
+        } else if tvFocused {
             let s = TVMetrics.rowLiftScale
             p.translate(bounds.midX, bounds.midY); p.scale(s, s); p.translate(-bounds.midX, -bounds.midY)
             let path = Path(roundedRect: bounds, cornerRadius: radius, style: .continuous)

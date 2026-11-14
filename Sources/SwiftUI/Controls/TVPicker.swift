@@ -5,6 +5,27 @@
 // value; `.inline` lists every option as a focusable row with a checkmark. `.wheel` and `.palette` do not
 // exist on tvOS.
 
+/// A tvOS 26 menu picker outside a list: the selected value on a bordered button platter.
+struct _TVValueButton: View {
+    let normal: [Node]
+    let onPlatter: [Node]
+    @Environment(\.isFocused) private var isFocused
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.focusEffectDisabled) private var effectDisabled
+    @Environment(\.designLanguage) private var design
+    @Environment(\.colorScheme) private var scheme
+    var body: some View {
+        let focused = isFocused && isEnabled && !effectDisabled
+        return _TVFocusVariant(normal: normal, onPlatter: onPlatter)
+            .lineLimit(1)
+            .foregroundStyle(isEnabled ? Color(SystemColor.label) : Color(SystemColor.secondaryLabel))
+            .tvOnWhitePlatter(focused)
+            .padding(.horizontal, TVMetrics.buttonHorizontalPadding)
+            .frame(minHeight: TVMetrics.buttonHeight)
+            .modifier(TVLiftModifier(style: .platter(focused: focused, design: design, scheme: scheme, cornerRadius: nil)))
+    }
+}
+
 /// Shows one of two resolutions of the same option: the normal one, or the one resolved for a focused
 /// white platter (dark colors), depending on focus.
 struct _TVFocusVariant: View {
@@ -24,7 +45,13 @@ extension Picker {
         if env[PickerPaletteKey.self] {
             ctx.runtime.warn("PickerStyle.palette is not available on tvOS: a real tvOS build fails to compile. Drawn as a segmented picker")
         }
-        if !env[PickerKindExplicitKey.self] { kind = env.isInListRow ? .navigationLink : .segmented }
+        // tvOS 26: in a List the automatic picker is a segmented control with focusable segments; in a Form it is
+        // a row showing the value (measured: tvOS 26.5).
+        if !env[PickerKindExplicitKey.self] {
+            kind = env.isInListRow && (!env.designLanguage.isGlass || env[TVInFormKey.self]) ? .navigationLink : .segmented
+        }
+        // tvOS 26 draws an inline picker outside a list as a segmented control (measured: tvOS 26.5).
+        if kind == .inline && env.designLanguage.isGlass && !env.isInListRow { kind = .segmented }
         if kind == .wheel {
             ctx.runtime.warn("PickerStyle.wheel is not available on tvOS: a real tvOS build fails to compile. Drawn as a navigation-link row")
             kind = .navigationLink
@@ -76,6 +103,26 @@ extension Picker {
                 }
             }
             .opacity(enabled ? 1 : 0.4)
+            resolveView(view, ctx.child("picker"), into: &out)
+        case .menu where env.designLanguage.isGlass && !env.isInListRow:
+            // tvOS 26: a menu picker outside a list is a bordered button showing the value (measured: tvOS 26.5).
+            let normal = options("value")
+            let dark = options("value", onPlatter)
+            let sel = selectedIndex(normal)
+            let valueText = sel.map { axText([normal[$0]]) }
+            let view = _TVValueButton(normal: sel.map { [normal[$0]] } ?? [], onPlatter: sel.map { [dark[$0]] } ?? [])
+                .axInfo {
+                    $0.isElement = true
+                    $0.role = "picker"
+                    $0.label = labelText.isEmpty ? nil : labelText
+                    $0.value = valueText
+                    $0.addTraits = [.button, .hasPopup]
+                    $0.children = .ignore
+                    $0.isEnabled = enabled
+                }
+                .focusElement(role: "picker", activate: {
+                    Runtime.current?.warn("select on a Picker would open its options; choosing an option is not simulated")
+                })
             resolveView(view, ctx.child("picker"), into: &out)
         case .menu, .navigationLink:
             let secondary: (inout EnvironmentValues) -> Void = { $0.foregroundStyle = AnyShapeStyle(Color(SystemColor.secondaryLabel)) }

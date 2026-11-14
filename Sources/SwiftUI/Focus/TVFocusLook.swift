@@ -10,8 +10,9 @@
 // The scale of a focused control is drawn only: frames, and so the focus engine's geometry, stay
 // those of the unscaled layout (as on tvOS, where focus movement uses the unfocused frames).
 //
-// Sources for the numbers are in docs/TVOS.md. "measured" values come from Apple's HIG; "est." are
-// estimates from reference images and should be checked against a tvOS simulator.
+// Sources for the numbers are in docs/TVOS.md. "measured" values come from the tvOS 26.5 simulator
+// (Tests/Reference/tvos-26.5, scripts/calibrate.py --platform tvos) or Apple's HIG where noted; "est." are
+// estimates (tvOS 18, and states the reference set does not show).
 
 enum TVMetrics {
     // MARK: Focus lift
@@ -22,7 +23,20 @@ enum TVMetrics {
     static let rowLiftScale: CGFloat = 1.03
     /// Tab bar items and segments grow a little when focused (est.).
     static let smallLiftScale: CGFloat = 1.06
-    /// Drop shadow under a lifted element (est.).
+    /// tvOS 26: a focused button, toggle, text field or list row does not scale; its platter grows by 4 pt on
+    /// every side and turns white (measured: 170.5 x 66 -> 178.5 x 74, a 1760 x 66 row -> 1768 x 74).
+    static let glassFocusGrowth: CGFloat = 4
+    /// tvOS 26: a focused `.card` button scales so that its longer side grows by 40 pt (measured: 300 x 170 ->
+    /// 340 x 192.7, 300 x 420 -> 328.6 x 460, 480 x 270 -> 520 x 292.5, 200 x 200 -> 240 x 240).
+    static let glassCardLiftGrowth: CGFloat = 40
+    /// tvOS 26 shadow under a focused platter (measured from its falloff: 39% darker 3 pt below the
+    /// platter, 26% at 11 pt, 15% at 19 pt, gone by 35 pt; 9% at 1 pt beside it, 5% at 1 pt above): a
+    /// gaussian of sigma 10 (radius 20) at 50% black, 12 pt down, 8 pt narrower than the platter on each side.
+    static let glassShadowRadius: CGFloat = 20
+    static let glassShadowY: CGFloat = 12
+    static let glassShadowOpacity: Double = 0.5
+    static let glassShadowInset: CGFloat = 8
+    /// Drop shadow under a lifted element (tvOS 18, est.).
     static let liftShadowRadius: CGFloat = 30
     static let liftShadowY: CGFloat = 18
     static let liftShadowOpacity: Double = 0.35
@@ -33,28 +47,37 @@ enum TVMetrics {
     /// Height of a regular bordered button (measured from the tvOS 26 media player image in the HIG
     /// Materials page: 44 px at 1280 px wide = 66 pt).
     static let buttonHeight: CGFloat = 66
-    static let buttonHorizontalPadding: CGFloat = 40      // est. (HIG images: 45 to 52 pt incl. a minimum width)
-    static let buttonIconSpacing: CGFloat = 14            // est.
+    /// measured: tvOS 26.5, every control size (label ink starts 31-33 pt in, incl. side bearing).
+    static let buttonHorizontalPadding: CGFloat = 30
+    static let buttonIconSpacing: CGFloat = 20            // measured approx. ("Play" with play.fill: 153 pt wide)
     /// tvOS 18 bordered buttons are rounded rectangles (est. radius); tvOS 26 buttons are capsules (HIG images).
     static let buttonCornerRadius: CGFloat = 12
     static let cardCornerRadius: CGFloat = 12             // est.
 
+    /// Small 50 and large 85 are measured (tvOS 26.5); mini and extra large est.
     static func buttonHeight(_ size: ControlSize) -> CGFloat {
         switch size {
-        case .mini: return 44
-        case .small: return 54
+        case .mini: return 42
+        case .small: return 50
         case .regular: return buttonHeight
-        case .large: return 80
-        case .extraLarge: return 92
+        case .large: return 85
+        case .extraLarge: return 96
         }
     }
     static func buttonPadding(_ size: ControlSize) -> CGFloat {
         switch size {
         case .mini: return 22
-        case .small: return 30
-        case .regular: return buttonHorizontalPadding
-        case .large: return 48
-        case .extraLarge: return 56
+        case .small, .regular, .large: return buttonHorizontalPadding
+        case .extraLarge: return 36
+        }
+    }
+    /// Label font by control size (measured: small labels are caption size, large ones callout size).
+    static func buttonFont(_ size: ControlSize) -> Font? {
+        switch size {
+        case .mini: return .caption2
+        case .small: return .caption
+        case .regular: return nil
+        case .large, .extraLarge: return .callout
         }
     }
 
@@ -75,38 +98,55 @@ enum TVMetrics {
     static let sidebarRowHeight: CGFloat = 66             // est.
     static let sidebarInset: CGFloat = 40                 // est.
 
-    // MARK: Lists
-    static let rowMinHeight: CGFloat = 70                 // est.
-    static let rowHorizontalInset: CGFloat = 30           // est.
-    static let rowVerticalInset: CGFloat = 16             // est.
-    static let rowSpacing: CGFloat = 6                    // est.
-    static let rowCornerRadius: CGFloat = 12              // est.
-    static let sectionSpacing: CGFloat = 40               // est.
-    static let headerBottomGap: CGFloat = 14              // est.
+    // MARK: Lists (measured: tvOS 26.5 Form, rows 66 pt on an 80 pt pitch, labels 20 pt in)
+    static let rowMinHeight: CGFloat = 66
+    static let rowHorizontalInset: CGFloat = 20
+    static let rowVerticalInset: CGFloat = 15.5
+    static let rowSpacing: CGFloat = 14
+    static let rowCornerRadius: CGFloat = 12              // est. (tvOS 18); tvOS 26 rows are capsules
+    /// From the last row (or footer) of a section to the next header.
+    static let sectionSpacing: CGFloat = 26
+    static let headerBottomGap: CGFloat = 6
+    /// From the last row to the footer.
+    static let footerTopGap: CGFloat = 20
     static let chevronSize = CGSize(width: 12, height: 22) // est.
-    static let headerFontSize: CGFloat = 29               // est. (body size, semibold, secondary color)
-    static let footerFontSize: CGFloat = 25               // est. (caption 1)
+    /// Headers: uppercase on tvOS 26, 29 pt (35 pt line), the dimmed title color; footers 29 pt secondary.
+    static let headerFontSize: CGFloat = 29
+    static let footerFontSize: CGFloat = 29
 
     // MARK: Navigation
-    /// Title row at the top of a NavigationStack (est.).
-    static let navigationTitleHeight: CGFloat = 110
+    /// Title row at the top of a NavigationStack: content starts 91 pt below the safe area's top, the title
+    /// (title 2, 57 pt) 4 pt below it (measured: tvOS 26.5).
+    static let navigationTitleHeight: CGFloat = 91
     static let toolbarItemSpacing: CGFloat = 24           // est.
 
     // MARK: Search and text fields
-    static let fieldHeight: CGFloat = 66                  // est.
+    static let fieldHeight: CGFloat = 70                  // measured approx. (69.5 to 71 pt, tvOS 26.5)
     static let fieldCornerRadius: CGFloat = 12            // est.
     static let searchFieldHeight: CGFloat = 88            // est.
 
     // MARK: Alerts
     static let alertButtonWidth: CGFloat = 560            // est. (tvOS 18 full-screen alert)
     static let alertButtonSpacing: CGFloat = 20           // est.
-    /// tvOS 26 alert card (measured from the HIG Alerts image: 385 x 178 px at 1280 px = 578 x 267 pt).
-    static let glassAlertWidth: CGFloat = 578
-    static let glassAlertCornerRadius: CGFloat = 52       // est. from the same image
-    static let glassAlertPadding: CGFloat = 48            // measured approx. (33 px)
-    static let glassAlertButtonHeight: CGFloat = 72       // measured approx. (48 px)
-    static let glassAlertButtonGap: CGFloat = 21          // measured approx. (14 px)
-    static let glassAlertButtonInset: CGFloat = 28        // measured approx. (19 px)
+    /// tvOS 26 alert and confirmation dialog cards (measured: tvOS 26.5). An alert with two actions is
+    /// 586 pt wide with the buttons side by side (250 pt each, 24 apart, cancel first); a dialog is 502 pt
+    /// wide with 440 pt buttons stacked 16 apart. Title 46 pt below the top, buttons 31 pt from the edges.
+    static let glassAlertWidth: CGFloat = 586
+    static let glassDialogWidth: CGFloat = 502
+    static let glassAlertCornerRadius: CGFloat = 62
+    static let glassAlertPadding: CGFloat = 46
+    static let glassAlertButtonHeight: CGFloat = 66
+    static let glassAlertButtonGap: CGFloat = 24
+    static let glassDialogButtonGap: CGFloat = 16
+    static let glassAlertButtonInset: CGFloat = 31
+    static let glassAlertTitleGap: CGFloat = 17.5         // title to message
+    static let glassAlertMessageGap: CGFloat = 37.5       // message to buttons
+    static let glassDialogTitleGap: CGFloat = 83.5        // dialog title (no message) to buttons
+    /// Black over the screen behind an alert or dialog (measured: the backdrop at 55%), and behind a sheet (80%).
+    static let glassAlertDim: Double = 0.45
+    static let glassSheetDim: Double = 0.2
+    /// A tvOS 26 sheet is a glass card fitted to its content, 5 pt above and below it (measured).
+    static let glassSheetVerticalPadding: CGFloat = 5
 
     // MARK: Switch (`.toggleStyle(.switch)`)
     static let switchSize = CGSize(width: 76, height: 44) // est.
@@ -135,12 +175,54 @@ enum TVColors {
     static func selectedTab(_ scheme: ColorScheme) -> RGBA {
         scheme == .dark ? RGBA(1, 1, 1, 0.24) : RGBA(1, 1, 1, 0.85)
     }
-    /// Unfocused Liquid Glass control (tvOS 26/27): the system glass, tinted grey so it reads on light
-    /// backgrounds (HIG Alerts image: the unfocused button is darker than the card it sits on; est.).
-    @MainActor static func glass(_ scheme: ColorScheme, design: DesignLanguage) -> GlassAppearance {
+    /// Unfocused tvOS 26 button, toggle or picker platter: a flat, slightly dark film over what is behind
+    /// (measured, light: the backdrop at 91%; dark est.).
+    static func glassPlatter(_ scheme: ColorScheme) -> RGBA {
+        scheme == .dark ? RGBA(1, 1, 1, 0.12) : RGBA(0, 0, 0, 0.09)
+    }
+    /// Unfocused tvOS 26 list row: a light film (measured: white at 15% in light, 10% in dark).
+    static func glassRow(_ scheme: ColorScheme) -> RGBA {
+        scheme == .dark ? RGBA(1, 1, 1, 0.10) : RGBA(1, 1, 1, 0.15)
+    }
+    /// Unfocused tvOS 26 text field (measured, light: white at 55%; dark est.).
+    static func glassField(_ scheme: ColorScheme) -> RGBA {
+        scheme == .dark ? RGBA(1, 1, 1, 0.16) : RGBA(1, 1, 1, 0.55)
+    }
+    /// tvOS 26 segmented control track (measured, light: white at 60%) and its selected segment while focus
+    /// is elsewhere (black at 18% over the track).
+    static func glassSegmentTrack(_ scheme: ColorScheme) -> RGBA {
+        scheme == .dark ? RGBA(1, 1, 1, 0.16) : RGBA(1, 1, 1, 0.6)
+    }
+    static func glassSelectedSegment(_ scheme: ColorScheme) -> RGBA {
+        scheme == .dark ? RGBA(1, 1, 1, 0.24) : RGBA(0, 0, 0, 0.18)
+    }
+    /// A destructive bordered button on tvOS 26 is a red platter (measured: (237, 40, 48)).
+    static let glassDestructivePlatter = RGBA(237 / 255.0, 40 / 255.0, 48 / 255.0, 1)
+    /// Destructive actions in alerts and dialogs: red at 20% over the card (measured).
+    static let glassDestructiveAction = RGBA(1, 0.23, 0.19, 0.2)
+    /// Unfocused actions in alerts and dialogs: black at 10% over the card (measured).
+    static func glassAction(_ scheme: ColorScheme) -> RGBA {
+        scheme == .dark ? RGBA(1, 1, 1, 0.12) : RGBA(0, 0, 0, 0.1)
+    }
+    /// Navigation titles and section headers on tvOS 26 (measured: light (130, 135, 144) over the backdrop,
+    /// black at about 42%; dark (103, 107, 111), white at about 27%).
+    static func dimmedTitle(_ scheme: ColorScheme) -> RGBA {
+        scheme == .dark ? RGBA(1, 1, 1, 0.3) : RGBA(0, 0, 0, 0.42)
+    }
+    /// Trailing values of rows (measured: black at about 57%, white at about 55%).
+    static func rowValue(_ scheme: ColorScheme) -> RGBA {
+        scheme == .dark ? RGBA(1, 1, 1, 0.55) : RGBA(0, 0, 0, 0.57)
+    }
+    /// The glass card of a tvOS 26 alert, dialog or sheet (measured, light: the dimmed screen behind, 107,
+    /// turns into 194 inside the card, about 60% white; dark est.).
+    @MainActor static func glassCard(_ scheme: ColorScheme, design: DesignLanguage) -> GlassAppearance {
         var a = GlassAppearance.system(.regular, scheme: scheme, design: design)
-        a.tint = scheme == .dark ? RGBA(1, 1, 1, 0.14) : RGBA(0.42, 0.42, 0.45, 0.22)
+        a.tint = scheme == .dark ? RGBA(0.16, 0.16, 0.17, 0.6) : RGBA(1, 1, 1, 0.6)
         return a
+    }
+    /// A `.card` button's platter on tvOS 26 (measured, light: white at about 28%; dark est.).
+    static func glassCardPlatter(_ scheme: ColorScheme) -> RGBA {
+        scheme == .dark ? RGBA(1, 1, 1, 0.12) : RGBA(1, 1, 1, 0.28)
     }
     static func dim(_ scheme: ColorScheme) -> RGBA {
         scheme == .dark ? RGBA(0, 0, 0, 0.7) : RGBA(0.94, 0.94, 0.95, 0.75)
@@ -151,6 +233,8 @@ enum TVColors {
 enum TVInListRowKey: EnvironmentKey { static let defaultValue = false }
 /// True for content resolved on a focused white platter: label colors become the dark ones.
 enum TVOnFocusedPlatterKey: EnvironmentKey { static let defaultValue = false }
+/// Rows of a `Form` (not a plain `List`): tvOS 26 draws an automatic picker there as a value row.
+enum TVInFormKey: EnvironmentKey { static let defaultValue = false }
 /// `.hoverEffect(_:)` written on a view.
 enum TVHoverEffectKey: EnvironmentKey { static let defaultValue: HoverEffect? = nil }
 
@@ -185,8 +269,16 @@ enum TVPlatter {
 
 struct TVLiftStyle {
     var scale: CGFloat = TVMetrics.liftScale
+    /// Points the platter grows by on every side while lifted (tvOS 26 focus).
+    var growth: CGFloat = 0
+    /// When set, the scale is chosen so that the longer side grows by this many points (tvOS 26 cards).
+    var scaleGrowth: CGFloat?
     var shadow = true
     var shadowOpacity = TVMetrics.liftShadowOpacity
+    var shadowRadius = TVMetrics.liftShadowRadius
+    var shadowY = TVMetrics.liftShadowY
+    /// The shadow is this much narrower than the platter on each side.
+    var shadowInset: CGFloat = 0
     var platter: TVPlatter = .none
     /// Platter shape: corner radius (nil: capsule), and how far it extends beyond the content.
     var cornerRadius: CGFloat? = TVMetrics.buttonCornerRadius
@@ -209,9 +301,10 @@ final class TVLiftNode: WrapperNode {
     }
 
     private func platterRect(_ bounds: CGRect) -> CGRect {
-        CGRect(x: bounds.minX - style.outset.leading, y: bounds.minY - style.outset.top,
-               width: bounds.width + style.outset.leading + style.outset.trailing,
-               height: bounds.height + style.outset.top + style.outset.bottom)
+        let g = style.lifted ? style.growth : 0
+        return CGRect(x: bounds.minX - style.outset.leading - g, y: bounds.minY - style.outset.top - g,
+                      width: bounds.width + style.outset.leading + style.outset.trailing + g * 2,
+                      height: bounds.height + style.outset.top + style.outset.bottom + g * 2)
     }
 
     private func shape(_ rect: CGRect) -> Path {
@@ -241,8 +334,9 @@ final class TVLiftNode: WrapperNode {
         let plate = platterRect(bounds)
         let body = style.followsArtwork ? (artworkRect() ?? bounds) : plate
         p.save()
-        if style.lifted {
-            let s = style.scale
+        let scale = style.scaleGrowth.map { 1 + $0 / max(1, bounds.width, bounds.height) } ?? style.scale
+        if style.lifted && scale != 1 {
+            let s = scale
             p.translate(bounds.midX, bounds.midY)
             p.scale(s, s)
             p.translate(-bounds.midX, -bounds.midY)
@@ -251,12 +345,20 @@ final class TVLiftNode: WrapperNode {
         if case .none = style.platter { hasPlatter = false } else { hasPlatter = true }
         if style.lifted && style.shadow {
             // The shadow follows what is drawn: the platter, or the artwork's own shape.
-            let shadow = Painter.shadowFilter(color: RGBA(0, 0, 0, style.shadowOpacity), radius: TVMetrics.liftShadowRadius,
-                                              x: 0, y: TVMetrics.liftShadowY, scale: p.scale)
+            let shadow = Painter.shadowFilter(color: RGBA(0, 0, 0, style.shadowOpacity), radius: style.shadowRadius,
+                                              x: 0, y: style.shadowY, scale: p.scale)
             if hasPlatter {
-                p.saveLayer(.init(imageFilter: shadow))
-                p.fill(shape(plate), with: .color(.black), in: plate)
-                p.restore()
+                if style.shadowInset > 0 {
+                    // The shadow alone, from a narrower shape (the platter covers the rest of it).
+                    let moved = plate.insetBy(dx: style.shadowInset, dy: 0).offsetBy(dx: 0, dy: style.shadowY)
+                    p.saveLayer(.init(imageFilter: Painter.blurFilter(radius: style.shadowRadius, scale: p.scale)))
+                    p.fill(shape(moved), with: .color(RGBA(0, 0, 0, style.shadowOpacity)), in: moved)
+                    p.restore()
+                } else {
+                    p.saveLayer(.init(imageFilter: shadow))
+                    p.fill(shape(plate), with: .color(.black), in: plate)
+                    p.restore()
+                }
                 drawPlatter(p, plate)
                 drawChildren(p)
             } else {
@@ -290,16 +392,21 @@ final class TVLiftNode: WrapperNode {
             let radius = min(style.cornerRadius ?? rect.height / 2, min(rect.width, rect.height) / 2)
             p.fillGlass(.roundedRect(rect, radius: radius), appearance: a)
         case .focusedGlass:
-            let path = shape(rect)
-            p.fill(path, with: .color(RGBA(1, 1, 1, 0.96)), in: rect)
-            // Liquid Glass rim: a bright top edge fading down (est.).
-            p.save()
-            p.clip(path)
-            let stops = [GradientStop(color: RGBA(1, 1, 1, 0), location: 0.6), GradientStop(color: RGBA(0.86, 0.87, 0.9, 1), location: 1)]
-            p.fill(Path(rect), with: _Paint(.linear(stops: stops, start: .top, end: .bottom)), in: rect)
-            p.restore()
-            p.stroke(path, with: .color(RGBA(1, 1, 1, 0.9)), style: StrokeStyle(lineWidth: 1.5), in: rect)
+            // measured: tvOS 26.5, a flat white platter (253-255 throughout, no rim).
+            p.fill(shape(rect), with: .color(RGBA(1, 1, 1, 1)), in: rect)
         }
+    }
+}
+
+extension TVLiftStyle {
+    /// A tvOS 26 platter while focused: white, grown by 4 pt, with the measured shadow; not scaled.
+    mutating func useGlassFocus() {
+        scale = 1
+        growth = TVMetrics.glassFocusGrowth
+        shadowOpacity = TVMetrics.glassShadowOpacity
+        shadowRadius = TVMetrics.glassShadowRadius
+        shadowY = TVMetrics.glassShadowY
+        shadowInset = TVMetrics.glassShadowInset
     }
 }
 

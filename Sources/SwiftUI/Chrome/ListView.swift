@@ -30,6 +30,7 @@ public struct List<SelectionValue: Hashable, Content: View>: View, PrimitiveView
             $0.isInListRow = true
             $0.stackAxis = nil
             $0.listContentStyle = style
+            $0[TVInFormKey.self] = forcedStyle != nil
         }
         let nodes = resolveNodes(content, rowCtx)
         let list = ListNode(items: nodes, style: style, env: ctx.env)

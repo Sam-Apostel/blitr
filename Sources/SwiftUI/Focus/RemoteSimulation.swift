@@ -32,6 +32,8 @@ struct PressLog {
     var from: String?
     var to: String?
     var note: String
+    var fromLabel: String?
+    var toLabel: String?
 }
 
 extension FocusEngine {
@@ -52,7 +54,8 @@ extension FocusEngine {
     func press(_ press: RemotePress, runtime: Runtime) -> PressLog {
         let f = snapshot.index(of: focusedPath)
         let fromID = f.map { snapshot.elements[$0].id }
-        var log = PressLog(press: press.rawValue, from: fromID, to: fromID, note: "")
+        let fromLabel = f.map { snapshot.elements[$0].label }
+        var log = PressLog(press: press.rawValue, from: fromID, to: fromID, note: "", fromLabel: fromLabel, toLabel: fromLabel)
         runtime.needsAnotherPass = true
 
         if let direction = press.direction {
@@ -70,6 +73,7 @@ extension FocusEngine {
                 requestedPath = snapshot.elements[t].path
                 userMoved = true
                 log.to = snapshot.elements[t].id
+                log.toLabel = snapshot.elements[t].label
                 notes.append("focus \(describe(f)) -> \(describe(t))")
             } else {
                 notes.append("no element \(press.rawValue) of \(describe(f)); focus stays")
@@ -100,6 +104,12 @@ extension FocusEngine {
             } else if let dismiss = snapshot.dismissTop {
                 dismiss()
                 log.note = "dismissed the \(snapshot.modalKind ?? "presentation")"
+            } else if let f, snapshot.elements[f].isTab {
+                // Menu on the tab bar leaves the app; it does not pop the tab's screens (measured: tvOS 26.5).
+                log.to = nil
+                log.toLabel = nil
+                log.note = "focus is on the tab bar: tvOS would leave the app"
+                runtime.warn("--press menu: focus is on the tab bar, where tvOS leaves the app (screens pushed in the tab are not popped)")
             } else if let stack = popTarget() {
                 pushes[stack]?.removeLast()
                 log.note = "popped a screen pushed by select"

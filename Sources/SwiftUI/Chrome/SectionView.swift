@@ -57,8 +57,12 @@ extension Section: View, PrimitiveView where Parent: View, Content: View, Footer
             let secondary = AnyShapeStyle(Color(SystemColor.secondaryLabel.resolve(scheme)))
             if env.renderPlatform == .tvOS {
                 // tvOS: sentence-case secondary headers and footers (est. sizes, TVMetrics).
-                env.font = isHeader ? .system(size: TVMetrics.headerFontSize, weight: .semibold) : .system(size: TVMetrics.footerFontSize)
-                env.foregroundStyle = isHeader && env.headerProminence == .increased ? AnyShapeStyle(Color(SystemColor.label.resolve(scheme))) : secondary
+                // tvOS 26 (measured: tvOS 26.5): uppercase headers in the dimmed title color, regular weight.
+                let glass = env.designLanguage.isGlass
+                env.font = isHeader ? .system(size: TVMetrics.headerFontSize, weight: glass ? .medium : .semibold) : .system(size: TVMetrics.footerFontSize)
+                env.foregroundStyle = isHeader && env.headerProminence == .increased ? AnyShapeStyle(Color(SystemColor.label.resolve(scheme)))
+                    : isHeader && glass ? AnyShapeStyle(Color(TVColors.dimmedTitle(scheme))) : secondary
+                if isHeader && glass { env.textCase = .uppercase }
                 env.foregroundStyleLevels = nil
                 return
             }

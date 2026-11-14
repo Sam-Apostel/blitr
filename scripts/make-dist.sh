@@ -48,15 +48,13 @@ cp "$bin/swiftui-screenshot" "$stage/bin/"
 
 # Modules (the .swiftmodule directories carry the .swiftdoc next to the binary module) and libraries.
 # The shim frameworks (UIKit, MapKit, WidgetKit, ...) and Combine are modules whose code is in libSwiftUI;
-# the Foundation shim has a library of its own (docs/ARCHITECTURE.md, "Shim modules"). The module list is
+# so is the Foundation shim (docs/ARCHITECTURE.md, "Shim modules"). The module list is
 # Package.swift's `shimModules`, so a new shim is one entry there.
 shims="$(sed -n 's/^let shimModules = \[\(.*\)\]/\1/p' Package.swift | tr -d '",')"
 for m in SwiftUI SwiftUIScreenshotFoundation $shims; do
   cp -r "$bin/$m.swiftmodule" "$lib/"
 done
-for m in SwiftUI SwiftUIScreenshotFoundation; do
-  cp "$bin/lib$m.so" "$lib/"
-done
+cp "$bin/libSwiftUI.so" "$lib/"
 
 # Skia, plus the symlink named after its SONAME (the loader looks that name up).
 cp -L Vendor/skia/lib/libSkiaSharp.so "$lib/"

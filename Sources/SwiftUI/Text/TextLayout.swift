@@ -10,6 +10,7 @@ struct TextRun {
     var paint: _Paint
     var underline: RGBA? = nil
     var strikethrough: RGBA? = nil
+    var background: RGBA? = nil
     var kerning: CGFloat = 0
     var baselineOffset: CGFloat = 0
     /// Inline attachment (an image in text): occupies `size` on the baseline and draws itself.
@@ -435,6 +436,12 @@ final class TextLayout {
                     end += 1
                 }
                 let baseline = line.baseline - run.baselineOffset
+                if let color = run.background {
+                    let metrics = FontLibrary.shared.instance(for: run.font)
+                    let rect = CGRect(x: x, y: baseline - metrics.ascent * first.size, width: batchWidth,
+                                      height: (metrics.ascent + metrics.descent) * first.size)
+                    p.fill(Path(rect), with: .color(color), in: rect)
+                }
                 if let attachment = run.attachment {
                     let s = first.size / max(run.font.size, 0.001)
                     let rect = CGRect(x: x, y: baseline + attachment.descent * s - attachment.size.height * s,

@@ -2,10 +2,14 @@
 """Render every screen that has a simulator reference and compare the two.
 
     scripts/calibrate.py [--ios 27.0] [--device iphone-16] [--scheme light] [--only REGEX] [--out out/cal]
+    scripts/calibrate.py --platform tvos --device apple-tv-4k --set tvos-26.5 [--scheme dark]
 
-Reads Tests/Reference/ios-<version>/manifest.json (written by scripts/mac/capture-references.sh),
-renders each listed preview with the renderer at the same OS version, device and scheme, then runs
-`swiftui-screenshot compare` on the two directories. Prints one line per screen, worst first, and
+Reads Tests/Reference/<set>/manifest.json (written by scripts/mac/capture-references.sh; the set is
+ios-<version> by default), renders each listed preview with the renderer at the same OS version, device
+and scheme, then runs `swiftui-screenshot compare` on the two directories. For tvOS sets the manifest's
+press variants (`<screen>-<preview>-<presses>.png`, the state after those Siri Remote presses) are rendered
+with `--press`, or with `--focus` where FOCUS_VARIANTS names the element the presses land on, so the
+look is compared independently of the focus engine. tvOS images are 2 px/pt and have no status bar. Prints one line per screen, worst first, and
 leaves heatmaps, side-by-side images and report.json under <out>/<scheme>/compare.
 
 The reference captures live on the `data/references` branch, not on `main`, so clones and CI stay small.
@@ -27,10 +31,15 @@ def fetch_references(root, name):
     if archive.wait() != 0:
         sys.exit(f"no reference set named {name} on data/references")
 
+# Press variants rendered with --focus instead of --press: the element the presses land on.
+FOCUS_VARIANTS = {"TVControls-0-right-right": "Prominent"}
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--ios", default="27.0")
-    ap.add_argument("--device", default="iphone-16")
+    ap.add_argument("--ios", default=None, help="OS version (default 27.0, or the set's version)")
+    ap.add_argument("--platform", default="ios", choices=["ios", "tvos"])
+    ap.add_argument("--set", default=None, help="reference set (default <platform>-<version>)")
+    ap.add_argument("--device", default=None, help="default iphone-16, apple-tv-4k on tvOS")
     ap.add_argument("--scheme", default="light")
     ap.add_argument("--only", default=None, help="regex on the screen key")
     ap.add_argument("--out", default="out/cal")
@@ -39,9 +48,17 @@ def main():
     args = ap.parse_args()
 
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    ref_root = os.path.join(root, "Tests", "Reference", f"ios-{args.ios}")
+    tvos = args.platform == "tvos"
+    if args.device is None:
+        args.device = "apple-tv-4k" if tvos else "iphone-16"
+    if args.set is None:
+        args.set = f"{args.platform}-{args.ios or ('26.5' if tvos else '27.0')}"
+    if args.ios is None:
+        args.ios = args.set.split("-", 1)[1]
+    scale = "2" if tvos else "3"
+    ref_root = os.path.join(root, "Tests", "Reference", args.set)
     if not os.path.exists(os.path.join(ref_root, "manifest.json")):
-        fetch_references(root, f"ios-{args.ios}")
+        fetch_references(root, args.set)
     manifest = json.load(open(os.path.join(ref_root, "manifest.json")))
     ref_dir = os.path.join(ref_root, args.device, args.scheme)
     bin_dir = subprocess.check_output(["swift", "build", "--show-bin-path"], cwd=root, text=True).strip()
@@ -62,25 +79,51 @@ def main():
             name = f"{key}-{preview['index']}"
             if not os.path.exists(os.path.join(ref_dir, name + ".png")):
                 continue
-            jobs.append((name, screen["source"], preview["index"]))
+            jobs.append((name, screen["source"], preview["index"], None))
+            for variant in manifest.get("devices", {}).get(args.device, {}).get("pressVariants", []):
+                if variant["screen"] != key or variant["preview"] != preview.get("name"):
+                    continue
+                vname = name + "-" + variant["presses"].replace(",", "-")
+                if os.path.exists(os.path.join(ref_dir, vname + ".png")):
+                    jobs.append((vname, screen["source"], preview["index"], variant["presses"]))
 
     def render(job):
-        name, source, index = job
+        name, source, index, presses = job
         png = os.path.join(ours, name + ".png")
         cmd = [tool, "render", os.path.join(root, source), "--preview", str(index), "-o", png,
-               "--ios", major, "--device", args.device, "--scheme", args.scheme, "--scale", "3",
+               "--ios", major, "--device", args.device, "--scheme", args.scheme, "--scale", scale,
                "--accessibility-tree", os.path.join(ours, name + ".json")]
-        r = subprocess.run(cmd, capture_output=True, text=True)
+        if tvos:
+            cmd += ["--platform", "tvos"]
+        if presses and name in FOCUS_VARIANTS:
+            cmd += ["--focus", FOCUS_VARIANTS[name]]
+        elif presses:
+            cmd += ["--press", presses]
+        # Parallel renders of one source share its compile cache and can collide; retry those.
+        for _ in range(3):
+            r = subprocess.run(cmd, capture_output=True, text=True)
+            if r.returncode == 0:
+                break
         return name, r.returncode, r.stderr.strip().splitlines()[-1:] if r.returncode else []
 
     if not args.no_render:
+        for job in jobs:
+            for stale in (".png", ".json"):
+                if os.path.exists(os.path.join(ours, job[0] + stale)):
+                    os.remove(os.path.join(ours, job[0] + stale))
+        # The first render of each source compiles it; the others reuse that build, so run them after it.
+        first = {}
+        for job in jobs:
+            first.setdefault(job[1], job)
+        rest = [j for j in jobs if first[j[1]] is not j]
         with concurrent.futures.ThreadPoolExecutor(args.jobs) as pool:
-            for name, code, err in pool.map(render, jobs):
-                if code != 0:
-                    print(f"render failed: {name}: {' '.join(err)}", file=sys.stderr)
+            for batch in (list(first.values()), rest):
+                for name, code, err in pool.map(render, batch):
+                    if code != 0:
+                        print(f"render failed: {name}: {' '.join(err)}", file=sys.stderr)
 
     # Compare only the files both sides have.
-    names = [n for n, _, _ in jobs if os.path.exists(os.path.join(ours, n + ".png"))]
+    names = [n for n, _, _, _ in jobs if os.path.exists(os.path.join(ours, n + ".png"))]
     ref_sel = os.path.join(out, "reference")
     os.makedirs(ref_sel, exist_ok=True)
     for stale in os.listdir(ref_sel):
@@ -94,8 +137,10 @@ def main():
         if os.path.splitext(stale)[0] not in names:
             os.remove(os.path.join(ours, stale))
     cmp_out = os.path.join(out, "compare")
-    r = subprocess.run([tool, "compare", ref_sel, ours, "--out-dir", cmp_out, "--scale", "3"],
-                       capture_output=True, text=True)
+    cmp = [tool, "compare", ref_sel, ours, "--out-dir", cmp_out, "--scale", scale]
+    if tvos:
+        cmp += ["--status-bar", "0", "--home-indicator", "0"]
+    r = subprocess.run(cmp, capture_output=True, text=True)
     sys.stdout.write(r.stdout)
     sys.stderr.write(r.stderr)
     return r.returncode

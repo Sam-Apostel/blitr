@@ -549,14 +549,19 @@ final class NavigationStackNode: Node {
             e.truncationMode = .tail
         }
         let subtitleSource = glass == nil ? nil : chrome.subtitle.flatMap { $0.plain.isEmpty ? nil : $0 }
-        let inlineFont = tv ? TVMetrics.navigationTitleFont : glass.map { subtitleSource == nil ? $0.inlineTitleFont : $0.inlineTitleWithSubtitleFont }
+        let tvGlassTitle = tv && env.designLanguage.isGlass
+        let inlineFont = tv ? TVMetrics.navigationTitleFont(glass: tvGlassTitle) : glass.map { subtitleSource == nil ? $0.inlineTitleFont : $0.inlineTitleWithSubtitleFont }
             ?? NavigationBarMetrics.inlineTitleFont
         if let title = chrome.title, !title.plain.isEmpty || principal == nil {
             if showsLargeTitle {
                 largeTitle = title.make { titleAdjust(&$0); $0.font = NavigationBarMetrics.largeTitleFont }
                 inlineTitle = nil
             } else {
-                inlineTitle = principal == nil ? title.make { titleAdjust(&$0); $0.font = inlineFont } : nil
+                // tvOS 26 titles are dimmed (measured: tvOS 26.5, the section header color).
+                inlineTitle = principal == nil ? title.make {
+                    titleAdjust(&$0); $0.font = inlineFont
+                    if tvGlassTitle { $0.foregroundStyle = AnyShapeStyle(Color(TVColors.dimmedTitle($0.colorScheme))) }
+                } : nil
                 largeTitle = nil
             }
         } else {

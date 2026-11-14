@@ -2,9 +2,10 @@
 //
 // tvOS 18 and earlier: the whole screen is covered by a dimmed, blurred backdrop; the title and message
 // are centred and the actions are full-width platters stacked below them, cancel last (est. sizes).
-// tvOS 26/27: a Liquid Glass card in the centre (HIG Alerts image, tvOS: 578pt wide, title and message
-// leading-aligned, two actions side by side, more stacked; measured from the image where noted in
-// TVMetrics). Confirmation dialogs are presented the same way as alerts on tvOS (est.).
+// tvOS 26/27: a Liquid Glass card in the centre over the screen dimmed by 45% black (measured: tvOS 26.5
+// simulator, TVMetrics.glassAlert*): title and message centred, two alert actions side by side with cancel first,
+// dialog actions stacked with cancel last. tvOS 18 sizes are estimates.
+//
 // The focused action is a white, lifted platter; the others are translucent platters.
 
 final class TVAlertCardNode: Node {
@@ -13,9 +14,11 @@ final class TVAlertCardNode: Node {
     /// Action titles in focus order (cancel last), their handlers, and their frames after layout.
     let actions: [TextNode]
     let actionHandlers: [(@MainActor () -> Void)?]
+    let isDestructive: [Bool]
     private(set) var actionCells: [CGRect] = []
     let focusedIndex: Int?
     let glass: Bool
+    let isDialog: Bool
     let scheme: ColorScheme
     let design: DesignLanguage
     private var cardRect = CGRect.zero
@@ -27,10 +30,14 @@ final class TVAlertCardNode: Node {
         design = env.designLanguage
         let isGlass = env.designLanguage.isGlass
         glass = isGlass
+        self.isDialog = isDialog
         var list = presentationActions(spec, ctx)
         if list.isEmpty { list = [PresentationAction(title: "OK", role: nil)] }
         if let cancel = list.firstIndex(where: { $0.role == .cancel }) { list.append(list.remove(at: cancel)) }
         else if isDialog { list.append(PresentationAction(title: "Cancel", role: .cancel)) }
+        // tvOS 26: an alert's two actions sit side by side with cancel first, which also has the initial
+        // focus (measured: tvOS 26.5).
+        if isGlass && !isDialog && list.count == 2, list[1].role == .cancel { list.reverse() }
         let focused = list.indices.first { ctx.runtime.focus.focusedPath == IdentityPath(components: ["chrome", "alertAction", $0]) }
         focusedIndex = focused
         let scheme = env.colorScheme
@@ -54,15 +61,16 @@ final class TVAlertCardNode: Node {
             if nodes.isEmpty { return nil }
             return nodes.count == 1 ? nodes[0] : StackNode(axis: .vertical, alignment: (align == .leading ? HorizontalAlignment.leading : .center).key, spacing: 8, children: nodes)
         }
-        let align: TextAlignment = isGlass ? .leading : .center
+        let align: TextAlignment = .center
         let label = SystemColor.label.resolve(scheme), secondary = SystemColor.secondaryLabel.resolve(scheme)
         title = spec.title.flatMap { resolved(nodeResolver($0), "title", font: isGlass ? .system(size: 31, weight: .bold) : .system(size: 48, weight: .medium), color: label, align: align) }
         message = resolved(spec.message, "message", font: isGlass ? .system(size: 25) : .system(size: 29), color: isGlass ? label : secondary, align: align)
         actionHandlers = list.map(\.activate)
+        isDestructive = list.map { $0.role == .destructive }
         actions = list.enumerated().map { i, action in
             let isFocused = i == focused
             let color: RGBA = action.role == .destructive ? SystemColor.red.resolve(scheme) : (isFocused ? TVColors.focusedLabel : label)
-            return text(action.title, font: .system(size: 29, weight: .medium), color: color, align: .center, onPlatter: isFocused)
+            return text(action.title, font: isGlass ? .body : .system(size: 29, weight: .medium), color: color, align: .center, onPlatter: isFocused)
         }
         super.init(children: [title, message].compactMap { $0 } + actions)
     }
@@ -99,22 +107,26 @@ final class TVAlertCardNode: Node {
     }
 
     private func layoutCard(size: CGSize, _ ctx: PlaceContext) {
-        let width = TVMetrics.glassAlertWidth, pad = TVMetrics.glassAlertPadding
-        let textWidth = width - pad * 2
+        // measured: tvOS 26.5 (TVMetrics.glassAlert*).
+        let width = isDialog ? TVMetrics.glassDialogWidth : TVMetrics.glassAlertWidth, pad = TVMetrics.glassAlertPadding
+        let inset = TVMetrics.glassAlertButtonInset, h = TVMetrics.glassAlertButtonHeight
+        let textWidth = width - inset * 2
         let t = title?.sizeThatFits(ProposedViewSize(width: textWidth, height: nil)) ?? .zero
         let m = message?.sizeThatFits(ProposedViewSize(width: textWidth, height: nil)) ?? .zero
-        let inset = TVMetrics.glassAlertButtonInset, gap = TVMetrics.glassAlertButtonGap, h = TVMetrics.glassAlertButtonHeight
-        let half = (width - inset * 2 - gap) / 2
-        sideBySide = actions.count == 2 && actions.allSatisfy { $0.sizeThatFits(.unspecified).width <= half - 32 }
+        let half = (width - inset * 2 - TVMetrics.glassAlertButtonGap) / 2
+        sideBySide = !isDialog && actions.count == 2 && actions.allSatisfy { $0.sizeThatFits(.unspecified).width <= half - 32 }
+        let gap = sideBySide ? TVMetrics.glassAlertButtonGap : TVMetrics.glassDialogButtonGap
         let rows = sideBySide ? 1 : actions.count
-        let textHeight = t.height + (title != nil && message != nil ? 12 : 0) + m.height
-        let height = pad * 0.85 + textHeight + 30 + CGFloat(rows) * h + CGFloat(max(0, rows - 1)) * gap + inset
+        let titleGap = title != nil && message != nil ? TVMetrics.glassAlertTitleGap : 0
+        let textGap = message == nil && isDialog ? TVMetrics.glassDialogTitleGap : TVMetrics.glassAlertMessageGap
+        let textHeight = t.height + titleGap + m.height
+        let height = pad + textHeight + textGap + CGFloat(rows) * h + CGFloat(max(0, rows - 1)) * gap + inset
         cardRect = CGRect(x: (size.width - width) / 2, y: (size.height - height) / 2, width: width, height: height)
-        var y = cardRect.minY + pad * 0.85
-        title?.place(at: CGPoint(x: cardRect.minX + pad, y: y), size: t, ctx)
-        y += t.height + (title != nil && message != nil ? 12 : 0)
-        message?.place(at: CGPoint(x: cardRect.minX + pad, y: y), size: m, ctx)
-        y += m.height + 30
+        var y = cardRect.minY + pad
+        title?.place(at: CGPoint(x: cardRect.midX - t.width / 2, y: y), size: t, ctx)
+        y += t.height + titleGap
+        message?.place(at: CGPoint(x: cardRect.midX - m.width / 2, y: y), size: m, ctx)
+        y += m.height + textGap
         actionCells = []
         for (i, action) in actions.enumerated() {
             let cell: CGRect
@@ -132,10 +144,8 @@ final class TVAlertCardNode: Node {
     override func drawContent(_ p: Painter) {
         let bounds = CGRect(origin: .zero, size: frame.size)
         if glass {
-            p.fill(Path(bounds), with: .color(RGBA(0, 0, 0, scheme == .dark ? 0.45 : 0.25)), in: bounds)
-            var a = GlassAppearance.system(.regular, scheme: scheme, design: design)
-            a.tint = scheme == .dark ? RGBA(0.16, 0.16, 0.17, 0.6) : RGBA(0.96, 0.96, 0.97, 0.62)
-            p.fillGlass(.roundedRect(cardRect, radius: TVMetrics.glassAlertCornerRadius), appearance: a)
+            p.fill(Path(bounds), with: .color(RGBA(0, 0, 0, TVMetrics.glassAlertDim)), in: bounds)
+            p.fillGlass(.roundedRect(cardRect, radius: TVMetrics.glassAlertCornerRadius), appearance: TVColors.glassCard(scheme, design: design))
         } else {
             // Full-screen backdrop: what is behind, blurred and dimmed.
             drawPresentationMaterial(p, Path(bounds), tint: TVColors.dim(scheme))
@@ -147,7 +157,23 @@ final class TVAlertCardNode: Node {
             let radius: CGFloat = glass ? cell.height / 2 : TVMetrics.buttonCornerRadius
             let path = Path(roundedRect: cell, cornerRadius: radius, style: glass ? .circular : .continuous)
             p.save()
-            if focused {
+            if glass {
+                // tvOS 26 (measured): unfocused actions are a dark film (destructive ones red), the focused one
+                // white and 4 pt larger with the focus shadow.
+                if focused {
+                    let g = TVMetrics.glassFocusGrowth
+                    let plate = cell.insetBy(dx: -g, dy: -g)
+                    let shadow = plate.insetBy(dx: TVMetrics.glassShadowInset, dy: 0).offsetBy(dx: 0, dy: TVMetrics.glassShadowY)
+                    p.saveLayer(.init(imageFilter: Painter.blurFilter(radius: TVMetrics.glassShadowRadius, scale: p.scale)))
+                    p.fill(Path(roundedRect: shadow, cornerRadius: shadow.height / 2, style: .circular),
+                           with: .color(RGBA(0, 0, 0, TVMetrics.glassShadowOpacity)), in: shadow)
+                    p.restore()
+                    p.fill(Path(roundedRect: plate, cornerRadius: plate.height / 2, style: .circular), with: .color(TVColors.focusedPlatter), in: plate)
+                } else {
+                    let destructive = isDestructive[i]
+                    p.fill(path, with: .color(destructive ? TVColors.glassDestructiveAction : TVColors.glassAction(scheme)), in: cell)
+                }
+            } else if focused {
                 let s = TVMetrics.liftScale
                 p.translate(cell.midX, cell.midY); p.scale(s, s); p.translate(-cell.midX, -cell.midY)
                 p.saveLayer(.init(imageFilter: Painter.shadowFilter(color: RGBA(0, 0, 0, TVMetrics.liftShadowOpacity), radius: TVMetrics.liftShadowRadius,
@@ -176,6 +202,7 @@ extension PresentationHostNode {
             let ctx = record.ctx.child("sheet")
             let layer = CoverLayerNode(content: content(ctx), env: ctx.env)
             layer.tvSheet = true
+            layer.tvGlassSheet = ctx.env.designLanguage.isGlass
             layer.backdrop = .dim(0)
             return layer
         case .fullScreenCover:

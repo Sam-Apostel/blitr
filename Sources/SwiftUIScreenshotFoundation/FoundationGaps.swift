@@ -127,9 +127,10 @@ extension AttributedString {
         }
     }
 
-    /// Inline Markdown: the markers of strong, emphasis, code and strikethrough are removed (the text keeps no
-    /// styling: Linux Foundation has no presentation intents), and links get their `link` attribute (with `baseURL` for relative ones).
-    /// With `.full`, block markers (headings, list bullets, quotes) are removed and paragraphs joined by newlines.
+    /// Inline Markdown: the markers of strong, emphasis, code and strikethrough are removed and their runs get an
+    /// `inlinePresentationIntent` (stronglyEmphasized, emphasized, code, strikethrough), and links get their `link`
+    /// attribute (with `baseURL` for relative ones). With `.full`, block markers (headings, list bullets, quotes) are
+    /// removed, paragraphs joined by newlines, and each line's run gets its `presentationIntent`.
     public init(markdown: String, options: MarkdownParsingOptions = MarkdownParsingOptions(), baseURL: URL? = nil) throws {
         var source = markdown
         if options.interpretedSyntax == .full {
@@ -143,6 +144,15 @@ extension AttributedString {
             source = source.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
         }
         self = MarkdownInline.parse(source, baseURL: baseURL)
+        if options.interpretedSyntax == .full { MarkdownInline.applyBlocks(markdown, to: &self) }
+    }
+    public init<S: AttributeScope>(markdown: String, including scope: KeyPath<AttributeScopes, S.Type>,
+                                   options: MarkdownParsingOptions = MarkdownParsingOptions(), baseURL: URL? = nil) throws {
+        try self.init(markdown: markdown, options: options, baseURL: baseURL)
+    }
+    public init<S: AttributeScope>(markdown: String, including scope: S.Type,
+                                   options: MarkdownParsingOptions = MarkdownParsingOptions(), baseURL: URL? = nil) throws {
+        try self.init(markdown: markdown, options: options, baseURL: baseURL)
     }
     public init(markdown: Data, options: MarkdownParsingOptions = MarkdownParsingOptions(), baseURL: URL? = nil) throws {
         try self.init(markdown: String(decoding: markdown, as: UTF8.self), options: options, baseURL: baseURL)
@@ -150,12 +160,17 @@ extension AttributedString {
 }
 
 enum MarkdownInline {
-    static func parse(_ text: String, baseURL: URL?) -> AttributedString {
+    static func parse(_ text: String, baseURL: URL?, intent: InlinePresentationIntent = []) -> AttributedString {
         var result = AttributedString()
+        func styled(_ s: String, _ intent: InlinePresentationIntent) -> AttributedString {
+            var a = AttributedString(s)
+            if !intent.isEmpty { a.inlinePresentationIntent = intent }
+            return a
+        }
         let chars = Array(text)
         var i = 0
         var plain = ""
-        func flush() { if !plain.isEmpty { result += AttributedString(plain); plain = "" } }
+        func flush() { if !plain.isEmpty { result += styled(plain, intent); plain = "" } }
         func find(_ marker: [Character], from start: Int) -> Int? {
             var j = start
             while j + marker.count <= chars.count {
@@ -172,27 +187,28 @@ enum MarkdownInline {
             }
             if c == "`", let end = find(["`"], from: i + 1) {
                 flush()
-                result += AttributedString(String(chars[(i + 1)..<end]))
+                result += styled(String(chars[(i + 1)..<end]), intent.union(.code))
                 i = end + 1; continue
             }
             if c == "[", let close = find(["]"], from: i + 1), close + 1 < chars.count, chars[close + 1] == "(",
                let paren = find([")"], from: close + 2) {
                 flush()
-                var label = parse(String(chars[(i + 1)..<close]), baseURL: baseURL)
+                var label = parse(String(chars[(i + 1)..<close]), baseURL: baseURL, intent: intent)
                 let target = String(chars[(close + 2)..<paren]).trimmingCharacters(in: .whitespaces)
                 label.link = URL(string: target, relativeTo: baseURL)
                 result += label
                 i = paren + 1; continue
             }
             var consumed = false
-            // Emphasis markers are removed; Foundation on Linux has no inline presentation intents to record them.
+            // Emphasis markers are removed; the run records them as inline presentation intents.
             for marker in [["*", "*"], ["_", "_"], ["~", "~"], ["*"], ["_"], ["~"]]
             where Array(chars[i..<min(chars.count, i + marker.count)]) == marker.map(Character.init) {
                 let m = marker.map(Character.init)
                 let opensWord = i + m.count < chars.count && !chars[i + m.count].isWhitespace
                 if opensWord, let end = find(m, from: i + m.count), end > i + m.count {
                     flush()
-                    result += parse(String(chars[(i + m.count)..<end]), baseURL: baseURL)
+                    let added: InlinePresentationIntent = m[0] == "~" ? .strikethrough : m.count == 2 ? .stronglyEmphasized : .emphasized
+                    result += parse(String(chars[(i + m.count)..<end]), baseURL: baseURL, intent: intent.union(added))
                     i = end + m.count
                     consumed = true
                     break
@@ -204,6 +220,53 @@ enum MarkdownInline {
         }
         flush()
         return result
+    }
+
+    /// Block intents for `.full` Markdown: the n-th line of the parsed text came from the n-th source line.
+    static func applyBlocks(_ markdown: String, to result: inout AttributedString) {
+        var kinds: [PresentationIntent?] = []
+        var identity = 0
+        var paragraph: PresentationIntent?, list: PresentationIntent?
+        var ordinal = 0
+        func next() -> Int { identity += 1; return identity }
+        for line in markdown.components(separatedBy: "\n") {
+            let l = line.drop(while: { $0 == " " })
+            if l.isEmpty { paragraph = nil; list = nil; kinds.append(nil); continue }
+            if let level = ["# ", "## ", "### ", "#### ", "##### ", "###### "].firstIndex(where: { l.hasPrefix($0) }) {
+                kinds.append(PresentationIntent(.header(level: level + 1), identity: next()))
+                paragraph = nil; list = nil
+            } else if ["- ", "* ", "+ "].contains(where: { l.hasPrefix($0) }) {
+                if list == nil { list = PresentationIntent(.unorderedList, identity: next()); ordinal = 0 }
+                ordinal += 1
+                let item = PresentationIntent(.listItem(ordinal: ordinal), identity: next(), parent: list)
+                kinds.append(PresentationIntent(.paragraph, identity: next(), parent: item))
+                paragraph = nil
+            } else if l.hasPrefix("> ") {
+                let quote = PresentationIntent(.blockQuote, identity: next())
+                kinds.append(PresentationIntent(.paragraph, identity: next(), parent: quote))
+                paragraph = nil; list = nil
+            } else {
+                if paragraph == nil { paragraph = PresentationIntent(.paragraph, identity: next()) }
+                kinds.append(paragraph)
+                list = nil
+            }
+        }
+        var line = 0
+        var start = result.startIndex
+        var index = result.startIndex
+        func apply(_ end: AttributedString.Index) {
+            if line < kinds.count, let intent = kinds[line], start < end { result[start..<end].presentationIntent = intent }
+        }
+        while index < result.endIndex {
+            let after = result.characters.index(after: index)
+            if result.characters[index] == "\n" {
+                apply(after)
+                line += 1
+                start = after
+            }
+            index = after
+        }
+        apply(result.endIndex)
     }
 }
 

@@ -44,7 +44,8 @@ Render options:
       --padding <pt>     Margin around the view in fit layout
       --background <hex> Background color, or "clear"
       --dynamic-type <s> xSmall ... xxxLarge, accessibility1 ... accessibility5
-      --no-chrome        Omit the status bar and home indicator
+      --no-chrome        Omit the status bar and home indicator (iPhones at --ios 27 draw no home
+                         indicator, as the iOS 27.0 simulator does)
       --show-tips        Display TipKit tips (as Tips.showAllTipsForTesting() does); hidden by default
       --assets <dir>     Extra directory with images / .xcassets (repeatable)
       --fonts <dir>      Extra font directory, searched first (repeatable)
@@ -333,6 +334,7 @@ func build(_ options: Options, _ installation: Installation) -> Build {
     var preprocessor = Preprocessor()
     preprocessor.platform = options.platform
     let output = preprocessor.process(sources, viewExpression: options.view)
+    for warning in output.warnings { note("warning: \(warning)") }
     guard !output.entries.isEmpty else {
         fail("nothing to render: no #Preview, PreviewProvider or @main App found. Pass --view \"YourView()\" to pick a view.")
     }

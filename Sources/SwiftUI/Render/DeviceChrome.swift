@@ -4,10 +4,11 @@
 @MainActor
 enum DeviceChrome {
     static func draw(_ p: Painter, device: DeviceProfile, size: CGSize, statusBarScheme scheme: ColorScheme,
-                     homeIndicatorScheme: ColorScheme, showsHousing: Bool = false) {
+                     homeIndicatorScheme: ColorScheme, osVersion: Int = RenderedPlatform.defaultVersion,
+                     showsHousing: Bool = false) {
         let color = _Paint.color(scheme == .dark ? .white : .black)
         // Apple TV has an overscan margin but no home indicator or status bar.
-        if device.safeArea.bottom > 0, device.idiom != .tv {
+        if device.safeArea.bottom > 0, device.idiom != .tv, showsHomeIndicator(device: device, osVersion: osVersion) {
             // iPhone: 139x5, 8pt above the bottom edge. iPad: longer; 219pt is an estimate.
             let width: CGFloat = device.idiom == .pad ? 219 : 139
             let bar = CGRect(x: (size.width - width) / 2, y: size.height - 8 - 5, width: width, height: 5)
@@ -23,6 +24,12 @@ enum DeviceChrome {
             }
         }
         if showsHousing { drawHousing(p, device: device, size: size) }
+    }
+
+    /// The iOS 27.0 simulator draws no home indicator on iPhone screenshots (Apple's own apps included);
+    /// iOS 26.5 and earlier draw it.
+    static func showsHomeIndicator(device: DeviceProfile, osVersion: Int) -> Bool {
+        !(device.idiom == .phone && osVersion >= 27)
     }
 
     // MARK: Status bars

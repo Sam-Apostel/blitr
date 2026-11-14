@@ -24,6 +24,7 @@ final class ListRowNode: Node {
     var tvSingleElement = false
     var tvFocused = false
     var tvGlass = false
+    var tvScheme = ColorScheme.light
 
     /// Per-edge overrides from `.listRowInsets(_:_:)`, applied over the default insets.
     let partialInsets: PartialRowInsets?
@@ -217,7 +218,7 @@ final class ListNode: Node {
         }
         flushLoose()
         self.sections = sections
-        if tv { ListNode.markTVFocus(sections.flatMap(\.rows), glass: env.designLanguage.isGlass) }
+        if tv { ListNode.markTVFocus(sections.flatMap(\.rows), glass: env.designLanguage.isGlass, scheme: env.colorScheme) }
         var kids: [Node] = []
         for s in sections {
             if let h = s.header { kids.append(h) }

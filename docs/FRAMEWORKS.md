@@ -31,7 +31,11 @@ usual `as CFData` / `as? [CFString: Any]` casts work.
 the SDK, and `canImport` of one Apple does not ship for the rendered platform is rewritten to `false`
 (UIKit off on macOS, AppKit only on macOS, WatchConnectivity on iOS and watchOS, ...). Submodule imports
 (`import CoreImage.CIFilterBuiltins`) are rewritten to the module, and `@objc`, `@IBAction` and friends are
-dropped and `#selector(x)` becomes `Selector("x")` (there is no Objective-C runtime on Linux).
+dropped and `#selector(x)` becomes `Selector("x")` (there is no Objective-C runtime on Linux). For the same reason an `override`
+declared in an extension (`extension UIWindow { override func motionEnded(...) }`, legal on Apple platforms only for
+`@objc dynamic` members) is left out, with a warning naming it: such hooks never show in a still frame. DateFormatter's symbol
+properties (`monthSymbols`, `amSymbol`, ...) are `[String]!` / `String!` on Apple and non-optional on Linux, so `?.`, `?[`
+and `!` right after them are removed.
 
 ## What each framework does
 
@@ -41,7 +45,7 @@ dropped and `#selector(x)` becomes `Selector("x")` (there is no Objective-C runt
 | ImageIO | CGImageSource decode (PNG, JPEG, WebP, GIF, BMP), thumbnails with max size and transform, properties with EXIF/TIFF/GPS from JPEG; CGImageDestination encode PNG/JPEG/WebP with quality | HEIC/AVIF decode and encode (nil, warns), metadata writing | |
 | CoreImage | CIImage (pixels/color, transform, crop, orient, composite), CIContext.createCGImage/render/PNG/JPEG; filters: QR Code (byte mode, L/M/Q/H, v1-40, masks), Code 128 (sets A/B/C), constant color, Gaussian/box/disc blur, color controls, sepia, invert, monochrome, photo effects, exposure, hue, false color, color matrix, affine, Lanczos scale, crop, source-over, area average | Aztec and PDF417 give nil (warn); other filter names pass the input through (warn); HEIF output | the images |
 | CoreText | font registration by URL/URLs/CGFont (then `Font.custom`, `UIFont(name:)` find the font by PostScript, family or file name); CTFont metrics from the file | | |
-| UIKit | UIImage (data/file decode, `cgImage`, size/scale/orientation, PNG/JPEG encode, thumbnails, tint, symbols to bitmaps, `draw(in:)`); UIGraphicsImageRenderer and UIGraphicsBeginImageContext; UIColor (dynamic provider, HSB, `cgColor`, every system color); UIFont/UIFontDescriptor/UIFontMetrics with real metrics; NSString/NSAttributedString measuring and drawing; UIBezierPath; UITraitCollection from the render; UIScreen/UIDevice; pasteboard (in memory); UITextView text storage | UIApplication (one scene, opens nothing), haptics, accessibility settings at defaults, Auto Layout (recorded, not solved), gestures, view controllers and presentations (recorded), appearance proxies (accepted, one warning), UIGraphicsPDFRenderer (blank pages) | representables: UIImageView, UILabel, UIActivityIndicatorView, UIVisualEffectView, plain UIViews (background, corner radius, border, alpha), UIHostingController; other views are a placeholder naming the class |
+| UIKit | UIImage (data/file decode, `cgImage`, size/scale/orientation, PNG/JPEG encode, thumbnails, tint, symbols to bitmaps, `draw(in:)`); UIGraphicsImageRenderer and UIGraphicsBeginImageContext; UIColor (dynamic provider, HSB, `cgColor`, every system color); UIFont/UIFontDescriptor/UIFontMetrics with real metrics; NSString/NSAttributedString measuring and drawing; the `AttributeScopes.UIKitAttributes` scope (its lookup is disfavored, so `a.foregroundColor = .red` picks SwiftUI's attribute); UIBezierPath; UITraitCollection from the render; UIScreen/UIDevice; pasteboard (in memory); UITextView text storage | UIApplication (one scene, opens nothing), haptics, accessibility settings at defaults, Auto Layout (recorded, not solved), gestures, view controllers and presentations (recorded), appearance proxies (accepted, one warning), UIGraphicsPDFRenderer (blank pages) | representables: UIImageView, UILabel, UIActivityIndicatorView, UIVisualEffectView, plain UIViews (background, corner radius, border, alpha), UIHostingController; other views are a placeholder naming the class |
 | AppKit (macOS) | NSColor with appearance-dependent colors, NSImage (decode), NSFont, NSAppearance | NSPasteboard (in memory), NSWorkspace, NSApplication | NSViewRepresentable: placeholder |
 | QuartzCore | CACurrentMediaTime, CATransform3D math | CALayer family stores properties; CADisplayLink never fires (one frame) | via the owning view |
 | ObjectiveC | associated objects (side table), Selector values | swizzling functions do nothing; nothing responds to selectors | |
@@ -67,8 +71,10 @@ dropped and `#selector(x)` becomes `Selector("x")` (there is no Objective-C runt
 
 Foundation gaps used by app code live in `SwiftUIScreenshotFoundation`: `URLCache(memoryCapacity:diskCapacity:directory:)`,
 `FileManager.containerURL(forSecurityApplicationGroupIdentifier:)` (a temporary directory per group),
-`RelativeDateTimeFormatter` and `ListFormatter` (English), `AttributedString(markdown:options:baseURL:)` (markers
-removed; links kept), `URLSession.bytes(from:)`, `ProcessInfo.thermalState`, `NSUbiquitousKeyValueStore` (in memory).
+`RelativeDateTimeFormatter` and `ListFormatter` (English), `AttributedString(markdown:options:baseURL:)` (Linux Foundation
+has no Markdown parser: inline markers become `inlinePresentationIntent` runs, links `link`, and with `.full` lines get a
+`presentationIntent`; `InlinePresentationIntent` and `PresentationIntent` are declared here too, as Linux Foundation lacks them),
+`URLSession.bytes(from:)`, `ProcessInfo.thermalState`, `NSUbiquitousKeyValueStore` (in memory).
 
 ## Checks
 

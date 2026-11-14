@@ -82,10 +82,13 @@ final class FocusSnapshot {
 @MainActor
 enum FocusMovement {
     struct Score: Comparable {
-        var distance: CGFloat, overlap: CGFloat, centre: CGFloat
+        var distance: CGFloat, overlap: CGFloat, leading: CGFloat, centre: CGFloat
+        /// Ties on distance and overlap go to the candidate whose leading (top) edge is nearest the origin's
+        /// (measured: tvOS 26.5, down from a full-width row onto three equal segments lands on the first).
         static func < (a: Score, b: Score) -> Bool {
             if abs(a.distance - b.distance) > 0.5 { return a.distance < b.distance }
             if abs(a.overlap - b.overlap) > 0.5 { return a.overlap > b.overlap }
+            if abs(a.leading - b.leading) > 0.5 { return a.leading < b.leading }
             return a.centre < b.centre
         }
     }
@@ -110,7 +113,8 @@ enum FocusMovement {
             distance = max(0, o.minX - r.maxX); overlap = min(r.maxY, o.maxY) - max(r.minY, o.minY)
         }
         guard overlap > 0.5 else { return nil }
-        return Score(distance: distance, overlap: overlap, centre: hypot(r.midX - o.midX, r.midY - o.midY))
+        let leading = d == .up || d == .down ? abs(r.minX - o.minX) : abs(r.minY - o.minY)
+        return Score(distance: distance, overlap: overlap, leading: leading, centre: hypot(r.midX - o.midX, r.midY - o.midY))
     }
 
     static func target(from i: Int, _ d: MoveCommandDirection, in snap: FocusSnapshot) -> Int? {
@@ -269,6 +273,15 @@ final class FocusEngine {
             }
         }
 
+        if let f = focusedIndex {
+            // tvOS: focus on a tab item selects that tab (the content switches as focus moves along the bar).
+            if automaticInitialFocus, snap.elements[f].isTab,
+               snap.elements[f].sections.contains(where: { snap.sections[$0].kind == "tabBar" && snap.sections[$0].preferred != f }),
+               let select = snap.elements[f].activate {
+                select()
+                changed = true
+            }
+        }
         if let f = focusedIndex, scrollIntoView(snap.elements[f]) { changed = true }
         if next != focusedPath {
             setFocus(next)
@@ -306,7 +319,9 @@ final class FocusEngine {
     // MARK: Initial focus
 
     /// `defaultFocus`, then `prefersDefaultFocus(in:)` inside its `focusScope`, then the selected tab
-    /// of a tab bar, then the first element in reading order.
+    /// of a tab bar, then the visible element nearest the top-leading corner of the screen (measured:
+    /// tvOS 26.5 starts on the first poster below a centred bar of buttons, and on the first list row rather
+    /// than a toolbar button beside the navigation title).
     func initialFocus(_ snap: FocusSnapshot, runtime: Runtime) -> Int? {
         guard !snap.elements.isEmpty else { return nil }
         // defaultFocus(binding, value): an element under the modifier bound to that value.
@@ -336,30 +351,72 @@ final class FocusEngine {
             }
         }
         if let tabBar = snap.sections.first(where: { $0.kind == "tabBar" }), let selected = tabBar.preferred { return selected }
-        return 0
+        guard automaticInitialFocus else { return 0 }
+        let visible = snap.elements.indices.filter { snap.elements[$0].visible }
+        return visible.min { a, b in
+            let ra = snap.elements[a].frame, rb = snap.elements[b].frame
+            let da = hypot(ra.minX - snap.screen.minX, ra.minY - snap.screen.minY)
+            let db = hypot(rb.minX - snap.screen.minX, rb.minY - snap.screen.minY)
+            return da < db - 0.5
+        } ?? 0
     }
 
     // MARK: Scrolling
+
+    /// Space tvOS leaves around an element it scrolls to (measured: tvOS 26.5). Moving down into a row cut
+    /// off by 37 pt scrolls 215 pt, leaving the card's bottom 178 pt above the screen's bottom edge; a card
+    /// scrolled to from below lands with its top 82 pt below the top edge; shelf items scrolled to sideways
+    /// end 76 pt from the edge. Other platforms keep the minimal 40 pt margin.
+    struct ScrollMargins { var top: CGFloat, bottom: CGFloat, leading: CGFloat, trailing: CGFloat }
+    var scrollMargins: ScrollMargins {
+        automaticInitialFocus ? ScrollMargins(top: 82, bottom: 178, leading: 76, trailing: 76)
+                              : ScrollMargins(top: 40, bottom: 40, leading: 40, trailing: 40)
+    }
 
     /// Scrolls the element's scroll views (innermost first) so it is visible. True when an offset changed.
     func scrollIntoView(_ e: FocusElement) -> Bool {
         var rect = e.frame
         var changed = false
+        let margins = scrollMargins
         for scroll in e.scrolls.reversed() {
             let old = scrollOffsets[scroll.path] ?? .zero
             var offset = old
-            func adjust(_ minE: CGFloat, _ maxE: CGFloat, _ minV: CGFloat, _ maxV: CGFloat, _ current: CGFloat, _ limit: CGFloat) -> CGFloat {
-                let margin = max(0, min(40, ((maxV - minV) - (maxE - minE)) / 2))
+            func adjust(_ minE: CGFloat, _ maxE: CGFloat, _ minV: CGFloat, _ maxV: CGFloat, _ current: CGFloat, _ limit: CGFloat,
+                        _ lead: CGFloat, _ trail: CGFloat) -> CGFloat {
+                // Margins shrink when the element is too large for them (centred at worst).
+                let room = max(0, (maxV - minV) - (maxE - minE))
+                let k = lead + trail > room ? room / max(1, lead + trail) : 1
+                let m0 = lead * k, m1 = trail * k
                 var delta: CGFloat = 0
-                if maxE - minE > maxV - minV - 2 * margin || minE < minV + margin { delta = minE - (minV + margin) }
-                else if maxE > maxV - margin { delta = maxE - (maxV - margin) }
-                return min(max(0, current + delta), max(0, limit))
+                if maxE - minE > maxV - minV - m0 - m1 || minE < minV + m0 { delta = minE - (minV + m0) }
+                else if maxE > maxV - m1 { delta = maxE - (maxV - m1) }
+                var next = min(max(0, current + delta), max(0, limit))
+                // tvOS scrolls all the way to an end that is closer than the margin (measured: the last shelf item
+                // ends 154 pt from the screen edge, at the end of the content 78 pt further, not 76 pt from the edge).
+                if automaticInitialFocus {
+                    if delta > 0, limit - next < max(trail, 100) { next = max(0, limit) }
+                    if delta < 0, next < max(lead, 100) { next = 0 }
+                }
+                return next
+            }
+            // tvOS scroll views reach the screen's edges under the safe area (shelves scroll edge to edge), and
+            // the measured margins are from those edges: a viewport within the safe-area inset of an edge is
+            // taken to extend to it.
+            var viewport = scroll.viewport
+            if automaticInitialFocus {
+                let screen = snapshot.screen, slack: CGFloat = 90
+                if viewport.minX - screen.minX <= slack { viewport.size.width += viewport.minX - screen.minX; viewport.origin.x = screen.minX }
+                if screen.maxX - viewport.maxX <= slack { viewport.size.width = screen.maxX - viewport.minX }
+                if viewport.minY - screen.minY <= slack { viewport.size.height += viewport.minY - screen.minY; viewport.origin.y = screen.minY }
+                if screen.maxY - viewport.maxY <= slack { viewport.size.height = screen.maxY - viewport.minY }
             }
             if scroll.axes.contains(.vertical) {
-                offset.y = adjust(rect.minY, rect.maxY, scroll.viewport.minY, scroll.viewport.maxY, old.y, scroll.maxOffset.y)
+                offset.y = adjust(rect.minY, rect.maxY, viewport.minY, viewport.maxY, old.y, scroll.maxOffset.y,
+                                  margins.top, margins.bottom)
             }
             if scroll.axes.contains(.horizontal) {
-                offset.x = adjust(rect.minX, rect.maxX, scroll.viewport.minX, scroll.viewport.maxX, old.x, scroll.maxOffset.x)
+                offset.x = adjust(rect.minX, rect.maxX, viewport.minX, viewport.maxX, old.x, scroll.maxOffset.x,
+                                  margins.leading, margins.trailing)
             }
             if abs(offset.x - old.x) > 0.25 || abs(offset.y - old.y) > 0.25 {
                 scrollOffsets[scroll.path] = offset

@@ -103,6 +103,10 @@ final class SearchFieldNode: Node {
     var tv = false
     var tvFocused = false
     var tvScheme = ColorScheme.light
+    /// tvOS 26 search screen: the keys of the keyboard row and the hint at the trailing edge (Chrome/TV/TVNavigation.swift).
+    var tvGlassKeys: [Node] = []
+    var tvGlassHint: [Node] = []
+    var tvGlassKeyCells: [CGRect] = []
     /// Microphone glyph of the glass field (dictation).
     private var microphone: Node? { children.count > 1 ? children[1] : nil }
 
@@ -122,11 +126,18 @@ final class SearchFieldNode: Node {
         // The first search field on screen is the extractor's chrome element "search" #0.
         let tvFocused = isTV && Runtime.current?.focus.focusedPath == IdentityPath(components: ["chrome", "search", 0])
         let textScheme: ColorScheme = tvFocused ? .light : scheme
-        if isTV { textEnv.font = TVMetrics.searchFont }
-        textEnv.foregroundStyle = AnyShapeStyle(_FixedPaintStyle(.color((showsText ? SystemColor.label : SystemColor.secondaryLabel).resolve(textScheme))))
+        let tvGlass = isTV && env.designLanguage.isGlass
+        if isTV { textEnv.font = tvGlass ? TVMetrics.glassSearchFont : TVMetrics.searchFont }
+        let promptColor = tvGlass ? TVColors.dimmedTitle(scheme) : SystemColor.secondaryLabel.resolve(textScheme)
+        textEnv.foregroundStyle = AnyShapeStyle(_FixedPaintStyle(.color(showsText ? SystemColor.label.resolve(tvGlass ? scheme : textScheme) : promptColor)))
         textEnv.foregroundStyleLevels = nil
         let text = showsText ? Text(verbatim: configuration.text) : (configuration.prompt ?? Text(verbatim: "Search"))
         var nodes: [Node] = [text.makeNode(textEnv)]
+        var keys: [Node] = [], hint: [Node] = []
+        if tvGlass {
+            (keys, hint) = SearchFieldNode.tvGlassKeyboard(env: env, focused: tvFocused)
+            nodes += keys + hint
+        }
         if env.designLanguage.isGlass && !isTV && NavigationGlassMetrics.search.showsMicrophone {
             var micEnv = env
             micEnv.font = .system(size: 17)
@@ -144,10 +155,12 @@ final class SearchFieldNode: Node {
         tv = isTV
         self.tvFocused = tvFocused
         tvScheme = scheme
+        tvGlassKeys = keys
+        tvGlassHint = hint
     }
 
     override func measure(_ proposal: ProposedViewSize) -> CGSize {
-        if tv { return CGSize(width: proposal.width ?? 800, height: TVMetrics.searchFieldHeight) }
+        if tv { return CGSize(width: proposal.width ?? 800, height: tvGlassKeys.isEmpty ? TVMetrics.searchFieldHeight : TVMetrics.glassSearchHeight) }
         if let style = glassStyle {
             let g = NavigationGlassMetrics.search
             switch style {

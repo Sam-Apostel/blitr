@@ -49,7 +49,11 @@ element); with several controls inside it warns.
   warns (tvOS would move focus elsewhere).
 - Initial focus, tvOS only (other platforms render exactly as before): a `@FocusState` set in
   `onAppear`, else `defaultFocus`, else `prefersDefaultFocus(in:)` inside a matching `focusScope`, else
-  the selected tab of a tab bar, else the first element in reading order.
+  the selected tab of a tab bar, else the visible element nearest the top-leading corner of the screen
+  (tvOS 26.5 starts on the first poster below a centred bar of buttons, on the first list row rather than
+  a toolbar button beside the title, and on an alert's cancel button, which it puts first).
+- Focus on a tab item selects that tab, as on tvOS: the content switches as focus moves along the tab
+  bar (down from a tab whose content has nothing focusable goes nowhere).
 - When the focused element goes away (a sheet is dismissed, a screen popped), focus returns to the most
   recently focused element that is still on screen; otherwise the initial-focus rule picks one.
 - `.onMoveCommand`, `.onExitCommand`, `.onPlayPauseCommand` on the focused element or an ancestor
@@ -58,7 +62,6 @@ element); with several controls inside it warns.
 - On tvOS renders `onChange(of:)` fires when a value differs from the previous pass, so UI that follows
   focus (`onChange(of: focusState)`, a top bar that switches pages as focus moves) updates after each
   move. Other platforms keep the one-shot `initial:` behaviour.
-- `.buttonStyle(.card)` exists and draws like `.plain` until tvOS control styles land.
 - Not modelled: `ScrollViewReader.scrollTo` and `scrollPosition` (scrolling follows focus only),
   `hoverEffect`, long presses on select.
 
@@ -66,8 +69,9 @@ element); with several controls inside it warns.
 
 From the focused element's frame, a press in a direction considers elements that lie beyond the
 frame's edge in that direction (1pt tolerance) and overlap the beam the frame sweeps in that direction.
-The nearest one along the axis wins; ties go to the larger overlap with the beam, then to the nearest
-centre. An element outside the beam cannot be reached by that press.
+The nearest one along the axis wins; ties go to the larger overlap with the beam, then to the leading
+(or top) edge nearest the origin's (down from a full-width row onto equal segments lands on the first),
+then to the nearest centre. An element outside the beam cannot be reached by that press.
 
 Focus sections are targets in their own right. If the beam reaches a section's frame before (strictly
 nearer than) any element, focus enters the section at its element nearest to the origin element. The
@@ -83,9 +87,55 @@ static map uses this history-free rule for presses too. Sections:
 Lazy stacks, grids, their rows and scroll views are not sections: plain geometry decides.
 
 When focus lands on an element outside the visible part of a `ScrollView` or `List`, the enclosing
-scroll views scroll (innermost first) by the least amount that shows it with a 40pt margin, clamped to
-the content. The offsets are kept per scroll view across passes. The map is computed for the current
-offsets.
+scroll views scroll (innermost first) by the least amount that shows it with tvOS's margins, measured
+on tvOS 26.5: 178 pt below an element scrolled to from above (a row cut off by 37 pt scrolls 215 pt), 82 pt
+above one scrolled to from below, 76 pt beside a shelf item. The margins are from the screen's edges: a
+scroll view within the safe-area inset of an edge counts as reaching it, as tvOS scroll views do. When
+less than 100 pt (or the margin) of content would be left, the scroll view goes to its end (the last shelf
+item ends where the content ends). Offsets are clamped to the content and kept per scroll view across
+passes. Other platforms keep the minimal 40 pt margin. The map is computed for the current offsets.
+
+### History
+
+Moves depend on history only through state: scroll offsets left by earlier presses, a tab selected by
+focus, a page an `onChange` switched. The static map computes every element's moves on the current
+layout, without re-rendering per element; `--press <path>` replays a path, and the map written after it
+has the moves of the element focus ended on, with that history. Focus memory (a section returning to
+the element it last had focus on) is not modelled: once scrolling uses the measured margins, every
+recorded move of the tvOS 26.5 reference set that looked like memory (Shelves: right x3, down, right x3,
+up lands on Movie 4) is plain geometry, and a memory model made 21 recorded moves disagree (down from a
+centred bar item would return to the poster focused before instead of the poster below it; left from
+"Play Trailer" would return to "Library" instead of the nearest button).
+
+### Comparison with the real focus engine
+
+`scripts/compare-focus.py` renders each preview of `Examples/TVFocus.swift` with `--focus-map` and diffs it
+against the moves the tvOS 26.5 simulator recorded (`Tests/Reference/tvos-26.5/focus/`, on the
+`data/references` branch), matching elements by label. Where our press path to an element differs from
+the recorded one, or a move disagrees, it replays the recorded path with `--press` so both sides start
+from the same history; it also replays the probes (longer press sequences). Mismatches (of initial focus,
+moves and probe steps):
+
+| Recording | before | after |
+|---|---|---|
+| Poster Grid | 0 / 81 | 0 / 81 |
+| Top Bar | 117 / 133 | 9 / 133 |
+| Viewer | 0 / 5 | 0 / 5 |
+| Shelves | 18 / 121 | 9 / 121 |
+| Unreachable | 0 / 13 | 0 / 13 |
+| Focus Section | 0 / 17 | 0 / 17 |
+| Settings Tabs | 16 / 41 | 0 / 41 |
+| Default Focus | 0 / 13 | 0 / 13 |
+| Focus On Appear | 0 / 17 | 0 / 17 |
+| probe Shelves right x3, down, right x3, up | 4 / 9 | 0 / 9 |
+| probe Settings Tabs down x4, select, menu | 2 / 7 | 0 / 7 |
+| probe Settings Tabs down x4, select, up, select | 1 / 8 | 0 / 8 |
+| total | 158 / 465 | 18 / 465 |
+
+What still differs: one move, in both Shelves and Top Bar. Down from "Movie 21" (250 pt wide, 160 to
+410) lands on "Movie 42" (400 to 600) on tvOS, though "Movie 41" (160 to 360) lies under it and overlaps
+the beam far more; no geometric rule found explains it. The other 16 mismatches follow from it: "Movie 42"
+and "Movie 43" are reached by recorded paths through that move, so our replay ends one item to the left.
 
 ## Presses
 
@@ -93,7 +143,7 @@ offsets.
 |---|---|
 | `up` `down` `left` `right` | `onMoveCommand`, then focus moves when there is a target. |
 | `select` | Activates the focused element: runs a `Button`'s action, flips a `Toggle`, selects a tab or a segmented/inline picker option, runs an alert button's action and dismisses the alert, pushes a `NavigationLink`'s destination (closure or `value:` through `navigationDestination(for:)`). Menu pickers, text fields and `Link`s warn: opening a picker, typing and opening URLs are not simulated. A `.focusable()` view runs its tap gesture. |
-| `menu` | `onExitCommand` if there is one; else dismisses the topmost sheet / cover / alert / dialog; else pops a screen pushed by `select`. Screens on a `NavigationStack(path:)` binding are not popped (warning). |
+| `menu` | `onExitCommand` if there is one; else dismisses the topmost sheet / cover / alert / dialog; else, with focus on the tab bar, nothing (tvOS leaves the app; the log's `to` is null, warning); else pops a screen pushed by `select`. Screens on a `NavigationStack(path:)` binding are not popped (warning). Selecting the selected tab does not pop either. |
 | `playpause` | `onPlayPauseCommand`, or a warning. |
 
 After each press the resolve/layout passes run again, so state changes, pushed screens and dismissed
@@ -110,7 +160,8 @@ presentations show up in the next press and in the PNG.
   "modal": null,
   "initialFocus": "button-1199a3",
   "focused": "button-1199a3",
-  "presses": [{"press": "down", "from": "button-1199a3", "to": "button-5d0e1a", "note": "focus #1 \"Movie 1\" -> #9 \"Movie 21\""}],
+  "presses": [{"press": "down", "from": "button-1199a3", "to": "button-5d0e1a", "fromLabel": "Movie 1", "toLabel": "Movie 21",
+               "note": "focus #1 \"Movie 1\" -> #9 \"Movie 21\""}],
   "elements": [
     {
       "id": "button-1199a3",
@@ -155,7 +206,8 @@ read `@Environment(\.isFocused)`, or add `.hoverEffect(.highlight)` / `.hoverEff
 
 ## Known differences from tvOS
 
-- UIKit remembers the last focused element of a section and returns to it; the map always uses the
-  nearest element. UIKit also prefers items it scrolled to, uses focus guides with their own preferred
-  environments, and animates scrolling; none of that is modelled.
+- The one recorded move above that geometry does not explain. UIKit focus guides with their own
+  preferred environments, and animated scrolling, are not modelled.
+- An automatic `Picker` in a `List` is a segmented control with one element per option (tvOS 26), in a
+  `Form` a row showing the value; tvOS 18 draws both as rows (est.).
 - Focus effect geometry (the lift scale, parallax) does not change the frames used for movement.
