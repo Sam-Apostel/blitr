@@ -41,6 +41,8 @@ struct RenderConfiguration {
     var locale: String?
     /// Seconds async `.task` work may run before the frame is taken.
     var taskBudget: TimeInterval = 0.5
+    /// Major iOS version whose look is rendered.
+    var osVersion = RenderedPlatform.defaultVersion
 }
 
 struct RenderResult {
@@ -62,6 +64,8 @@ enum Renderer {
         env.colorScheme = config.colorScheme
         env.displayScale = scale
         env.dynamicTypeSize = config.dynamicTypeSize
+        env.platformVersion = config.osVersion
+        RenderedPlatform.current = config.osVersion
         // An app's accent color comes from the "AccentColor" asset when there is one.
         if let accent = AssetCatalog.shared.color(named: "AccentColor", scheme: config.colorScheme) {
             env.accentColor = Color(accent)
@@ -129,7 +133,7 @@ enum Renderer {
 
         let background = config.background ?? (config.layout == .sizeThatFits ? RGBA.clear : SystemColor.background.resolve(env.colorScheme))
         sk_canvas_clear(canvas, Painter.skColor(background))
-        let painter = Painter(canvas: canvas, scale: scale)
+        let painter = Painter(canvas: canvas, scale: scale, surface: surface)
         painter.scale(scale, scale)
         root.draw(painter)
         if config.layout == .device, config.showsDeviceChrome, safeRect != container {

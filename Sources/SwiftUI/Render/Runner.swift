@@ -65,6 +65,13 @@ public enum _ScreenshotRunner {
                     fail("unknown dynamic type size \"\(wanted)\"")
                 }
                 config.dynamicTypeSize = size
+            case "--ios":
+                let raw = value(flag).lowercased()
+                let latest = RenderedPlatform.supportedVersions.max()!
+                guard let major = raw == "latest" ? latest : Int(raw.split(separator: ".").first ?? "") else {
+                    fail("--ios takes a version such as 18, 26, 27 or \"latest\"")
+                }
+                config.osVersion = major
             case "--no-chrome": config.showsDeviceChrome = false
             case "--background":
                 let hex = value(flag).trimmingCharacters(in: CharacterSet(charactersIn: "#"))

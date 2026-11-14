@@ -6,15 +6,30 @@ final class Painter {
     let canvas: OpaquePointer
     let scale: CGFloat
 
-    init(canvas: OpaquePointer, scale: CGFloat) {
+    /// The surface behind `canvas`, when drawing straight to one. Glass effects read it back to
+    /// refract what has been drawn so far.
+    let surface: OpaquePointer?
+    /// One entry per open save: true when it opened an offscreen layer. While any layer is open,
+    /// what has been drawn is not yet in the surface, so effects that read the surface fall back.
+    private var saveStack: [Bool] = []
+    var isInsideLayer: Bool { saveStack.contains(true) }
+
+    init(canvas: OpaquePointer, scale: CGFloat, surface: OpaquePointer? = nil) {
         self.canvas = canvas
         self.scale = scale
+        self.surface = surface
     }
 
     // MARK: State
 
-    func save() { sk_canvas_save(canvas) }
-    func restore() { sk_canvas_restore(canvas) }
+    func save() {
+        saveStack.append(false)
+        sk_canvas_save(canvas)
+    }
+    func restore() {
+        if !saveStack.isEmpty { saveStack.removeLast() }
+        sk_canvas_restore(canvas)
+    }
     func translate(_ x: CGFloat, _ y: CGFloat) { sk_canvas_translate(canvas, Float(x), Float(y)) }
     func scale(_ x: CGFloat, _ y: CGFloat) { sk_canvas_scale(canvas, Float(x), Float(y)) }
     func rotate(_ angle: Angle) { sk_canvas_rotate_radians(canvas, Float(angle.radians)) }
@@ -63,6 +78,7 @@ final class Painter {
 
     /// Opens an offscreen layer; everything drawn until the matching `restore()` is composited as one image.
     func saveLayer(_ options: LayerOptions) {
+        saveStack.append(true)
         let paint = sk_paint_new()
         defer { sk_paint_delete(paint) }
         if options.opacity < 1 {

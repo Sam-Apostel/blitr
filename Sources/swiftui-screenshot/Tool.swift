@@ -26,6 +26,7 @@ Render options:
       --all              Render every preview
       --device <name>    Device profile (default iphone-16); see `devices`
       --scheme <s>       light | dark | both (default light)
+      --ios <version>    iOS release whose look is drawn: 18, 26, 27 or latest
       --layout <l>       device (full screen, default) | fit (size of the view) | fixed
       --width <pt>       Canvas width (fixed), or width proposed to the view (fit)
       --height <pt>      Same for height
@@ -198,7 +199,7 @@ func parse(_ arguments: [String]) -> Options {
         case "-v", "--verbose": options.verbose = true
         case "--assets": options.userAssetDirectories.append(value(arg))
         case "--fonts": options.userFontDirectories.append(value(arg))
-        case "--device", "--layout", "--width", "--height", "--scale", "--padding", "--background", "--dynamic-type", "--task-budget":
+        case "--device", "--layout", "--width", "--height", "--scale", "--padding", "--background", "--dynamic-type", "--task-budget", "--ios":
             options.runnerArguments += [arg, value(arg)]
         case "--no-chrome": options.runnerArguments.append(arg)
         case "-h", "--help":
