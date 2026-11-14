@@ -149,6 +149,11 @@ final class ListNode: Node {
     var scrollIdentity: IdentityPath?
     /// Height of everything in the list (after layout), for the largest scroll offset.
     var contentHeight: CGFloat = 0
+    /// Glass: VoiceOver frames of each section's header and footer box (local coordinates, by section), and
+    /// whether a row's only element takes the row's frame, as UIKit cells report them.
+    var axHeaderBoxes: [Int: CGRect] = [:]
+    var axFooterBoxes: [Int: CGRect] = [:]
+    var axRowFrames: Bool { design.sections != nil || design.plainSections != nil }
 
     init(items: [Node], style: ListStyleKind, env: EnvironmentValues) {
         self.style = style
@@ -251,6 +256,8 @@ final class ListNode: Node {
         if tv { layoutTV(size: size, ctx); return }
         cards = []
         separators = []
+        axHeaderBoxes = [:]
+        axFooterBoxes = [:]
         let margin = ChromeMetrics.layoutMargin(forWidth: size.width)
         let cardX: CGFloat = (style == .insetGrouped || style == .inset) ? ChromeMetrics.insetListMargin(forWidth: size.width) : 0
         let cardW = max(0, size.width - cardX * 2)
@@ -309,7 +316,9 @@ final class ListNode: Node {
                     let width = cardW - design.headerInset * 2
                     let h = header.sizeThatFits(ProposedViewSize(width: width, height: nil))
                     header.place(at: CGPoint(x: cardX + design.headerInset, y: y + g.headerPaddingTop), size: h, inner)
-                    y += g.headerPaddingTop + h.height + g.headerPaddingBottom
+                    let box = g.headerPaddingTop + h.height + g.headerPaddingBottom
+                    axHeaderBoxes[index] = CGRect(x: cardX, y: y, width: cardW, height: box)
+                    y += box
                 } else if grouped {
                     let width = cardW - ListMetrics.headerInset * 2
                     let h = header.sizeThatFits(ProposedViewSize(width: width, height: nil))
@@ -321,6 +330,7 @@ final class ListNode: Node {
                     let width = size.width - plainInset * 2
                     let h = header.sizeThatFits(ProposedViewSize(width: width, height: nil))
                     header.place(at: CGPoint(x: plainInset, y: y + plain.headerPadding), size: h, inner)
+                    axHeaderBoxes[index] = CGRect(x: 0, y: y, width: size.width, height: h.height + plain.headerPadding * 2)
                     y += h.height + plain.headerPadding * 2
                 } else {
                     let width = size.width - plainInset * 2
@@ -379,7 +389,9 @@ final class ListNode: Node {
                     let width = cardW - design.headerInset * 2
                     let f = footer.sizeThatFits(ProposedViewSize(width: width, height: nil))
                     footer.place(at: CGPoint(x: cardX + design.headerInset, y: y + g.footerPaddingTop), size: f, inner)
-                    y += g.footerPaddingTop + f.height + g.footerPaddingBottom
+                    let box = g.footerPaddingTop + f.height + g.footerPaddingBottom
+                    axFooterBoxes[index] = CGRect(x: cardX, y: y, width: cardW, height: box)
+                    y += box
                 } else if grouped {
                     y += ListMetrics.footerTopSpacing
                     let width = cardW - ListMetrics.headerInset * 2

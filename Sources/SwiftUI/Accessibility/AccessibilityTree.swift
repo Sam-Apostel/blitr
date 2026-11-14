@@ -556,10 +556,19 @@ final class AXExtractor {
                           width: own.width + bleed.leading + bleed.trailing, height: own.height + bleed.top + bleed.bottom)
         inner.visible = intersect(ctx.visible, clip)
         var result: [AXElement] = []
-        for section in n.sections {
-            if let header = section.header { result += promoteToHeader(visit(header, inner)) }
-            for row in section.rows { result += listRow(row, inner) }
-            if let footer = section.footer { result += visit(footer, inner) }
+        // Glass lists report a lone header, footer or row element at its box, as the simulator does.
+        func boxed(_ elements: [AXElement], _ box: CGRect?) -> [AXElement] {
+            guard geometry, let box, elements.count == 1, elements[0].children.isEmpty else { return elements }
+            var e = elements
+            e[0].frame = box.offsetBy(dx: n.absoluteOrigin.x, dy: n.absoluteOrigin.y)
+            return e
+        }
+        for (index, section) in n.sections.enumerated() {
+            if let header = section.header { result += boxed(promoteToHeader(visit(header, inner)), n.axHeaderBoxes[index]) }
+            for row in section.rows {
+                result += boxed(listRow(row, inner), n.axRowFrames ? CGRect(origin: row.frame.origin, size: row.frame.size) : nil)
+            }
+            if let footer = section.footer { result += boxed(visit(footer, inner), n.axFooterBoxes[index]) }
         }
         return result
     }
