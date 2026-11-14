@@ -1,6 +1,7 @@
-// Animation vocabulary. A screenshot is a single settled frame, so animations never run:
-// values are only kept so that spring/curve math written by apps still compiles and returns
-// sensible numbers. (`Animation` and `Transaction` themselves live in Core/State.swift.)
+// Animation vocabulary: Animatable conformances, UnitCurve, Spring, the custom-animation protocol and the
+// `.animation` / `.transaction` modifiers. A still render shows the settled frame; an interaction capture
+// (docs/INTERACTION.md) reads these to interpolate between states. `Animation` and `Transaction` live in
+// Animation.swift.
 
 // MARK: - Animatable conformances
 
@@ -67,11 +68,17 @@ public protocol AnimatableModifier: Animatable, ViewModifier {}
 // MARK: - Animation additions
 
 extension Animation {
-    public static func spring(_ spring: Spring, blendDuration: TimeInterval = 0) -> Animation { Animation() }
-    public static func interpolatingSpring(_ spring: Spring, initialVelocity: Double = 0) -> Animation { Animation() }
-    public static func timingCurve(_ curve: UnitCurve, duration: TimeInterval) -> Animation { Animation() }
-    public static func interactiveSpring(duration: TimeInterval = 0.15, extraBounce: Double = 0, blendDuration: TimeInterval = 0.25) -> Animation { Animation() }
-    public init<A: CustomAnimation>(_ base: A) { self.init() }
+    public static func spring(_ spring: Spring, blendDuration: TimeInterval = 0) -> Animation {
+        Animation(.spring(mass: spring.mass, stiffness: spring.stiffness, damping: spring.damping, initialVelocity: 0))
+    }
+    public static func interpolatingSpring(_ spring: Spring, initialVelocity: Double = 0) -> Animation {
+        Animation(.spring(mass: spring.mass, stiffness: spring.stiffness, damping: spring.damping, initialVelocity: initialVelocity))
+    }
+    public static func timingCurve(_ curve: UnitCurve, duration: TimeInterval) -> Animation { Animation(.curve(curve, duration: duration)) }
+    public static func interactiveSpring(duration: TimeInterval = 0.15, extraBounce: Double = 0, blendDuration: TimeInterval = 0.25) -> Animation {
+        Animation.spring(Spring(duration: duration, bounce: 0.14 + extraBounce))
+    }
+    public init<A: CustomAnimation>(_ base: A) { self.init(.custom(CustomAnimationBox(base))) }
 }
 
 public protocol AnimationStateKey {
@@ -301,10 +308,9 @@ public protocol TransactionKey {
 }
 
 extension Transaction {
-    /// Custom transaction values carry no meaning without animation; reads return the default.
     public subscript<K: TransactionKey>(key: K.Type) -> K.Value {
-        get { K.defaultValue }
-        set {}
+        get { values[ObjectIdentifier(key)] as? K.Value ?? K.defaultValue }
+        set { values[ObjectIdentifier(key)] = newValue }
     }
     public var tracksVelocity: Bool {
         get { false }
@@ -312,20 +318,32 @@ extension Transaction {
     }
 }
 
+// The modifiers record what they say on the nodes they produce (Animation/AnimationScope.swift); the
+// capture reads it when it interpolates. Nothing changes in a still render.
 extension View {
-    public func animation<V: Equatable>(_ animation: Animation?, value: V) -> some View { self }
+    public func animation<V: Equatable>(_ animation: Animation?, value: V) -> some View {
+        modifier(AnimationScopeModifier(scope: .implicit(animation, AnimationValue(value))))
+    }
     @available(iOS, deprecated: 15.0)
-    public func animation(_ animation: Animation?) -> some View { self }
+    public func animation(_ animation: Animation?) -> some View {
+        modifier(AnimationScopeModifier(scope: .implicit(animation, AnimationValue.always)))
+    }
     public func animation<V: View>(_ animation: Animation?, @ViewBuilder body: (PlaceholderContentView<Self>) -> V) -> some View {
-        body(PlaceholderContentView(self))
+        body(PlaceholderContentView(self)).modifier(AnimationScopeModifier(scope: .implicit(animation, AnimationValue.always)))
     }
 
-    public func transaction(_ transform: @escaping (inout Transaction) -> Void) -> some View { self }
-    public func transaction<V: Equatable>(value: V, _ transform: @escaping (inout Transaction) -> Void) -> some View { self }
+    public func transaction(_ transform: @escaping (inout Transaction) -> Void) -> some View {
+        modifier(AnimationScopeModifier(scope: .transaction(transform, AnimationValue.always)))
+    }
+    public func transaction<V: Equatable>(value: V, _ transform: @escaping (inout Transaction) -> Void) -> some View {
+        modifier(AnimationScopeModifier(scope: .transaction(transform, AnimationValue(value))))
+    }
     @available(iOS, deprecated: 15.0)
-    public func transaction(_ transaction: Transaction) -> some View { self }
+    public func transaction(_ transaction: Transaction) -> some View {
+        modifier(AnimationScopeModifier(scope: .transaction({ $0 = transaction }, AnimationValue.always)))
+    }
     public func transaction<V: View>(_ transform: @escaping (inout Transaction) -> Void,
                                      @ViewBuilder body: (PlaceholderContentView<Self>) -> V) -> some View {
-        body(PlaceholderContentView(self))
+        body(PlaceholderContentView(self)).modifier(AnimationScopeModifier(scope: .transaction(transform, AnimationValue.always)))
     }
 }

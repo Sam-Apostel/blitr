@@ -72,7 +72,9 @@ package final class Runtime {
 @MainActor
 func resolveView<V: View>(_ view: V, _ ctx: ResolveContext, into out: inout [Node]) {
     if let primitive = view as? PrimitiveView {
+        let start = out.count
         primitive.resolve(ctx, into: &out)
+        if CaptureInfo.isRecording { CaptureInfo.stamp(out, from: start, ctx.path) }
         return
     }
     let ctx = ctx.child(ObjectIdentifier(V.self))

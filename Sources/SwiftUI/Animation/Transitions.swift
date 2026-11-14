@@ -1,5 +1,6 @@
-// Transitions describe how a view enters and leaves the hierarchy. A screenshot only ever shows
-// views in their settled (identity) state, so every transition renders its content unchanged.
+// Transitions describe how a view enters and leaves the hierarchy. A still render only shows views in
+// their settled (identity) state, so every transition renders its content unchanged. An interaction
+// capture reads the `TransitionModel` recorded by `.transition(_:)` (TransitionModel.swift).
 
 public enum TransitionPhase: Hashable, Sendable {
     case willAppear, identity, didDisappear
@@ -97,6 +98,21 @@ struct CombinedTransition<First: Transition, Second: Transition>: Transition {
     func body(content: Content, phase: TransitionPhase) -> some View { content }
 }
 
+extension OpacityTransition: TransitionModelProvider { var model: TransitionModel { .opacity } }
+extension SlideTransition: TransitionModelProvider { var model: TransitionModel { .slide } }
+extension ScaleTransition: TransitionModelProvider { var model: TransitionModel { .scale(scale, anchor) } }
+extension MoveTransition: TransitionModelProvider { var model: TransitionModel { .move(edge) } }
+extension OffsetTransition: TransitionModelProvider { var model: TransitionModel { .offset(offset) } }
+extension PushTransition: TransitionModelProvider { var model: TransitionModel { .push(edge) } }
+extension IdentityTransition: TransitionModelProvider { var model: TransitionModel { .identity } }
+extension BlurReplaceTransition: TransitionModelProvider { var model: TransitionModel { .blurReplace(upUp: configuration == .upUp) } }
+extension AsymmetricTransition: TransitionModelProvider {
+    var model: TransitionModel { .asymmetric(TransitionModel.of(insertion), TransitionModel.of(removal)) }
+}
+extension CombinedTransition: TransitionModelProvider {
+    var model: TransitionModel { .combined(TransitionModel.of(first), TransitionModel.of(second)) }
+}
+
 extension Transition where Self == OpacityTransition {
     public static var opacity: OpacityTransition { OpacityTransition() }
 }
@@ -130,34 +146,46 @@ extension Transition where Self == BlurReplaceTransition {
 // MARK: - AnyTransition
 
 public struct AnyTransition: Sendable {
-    public init<T: Transition>(_ transition: T) {}
-    init() {}
+    let model: TransitionModel
+    public init<T: Transition>(_ transition: T) { model = TransitionModel.of(transition) }
+    init(model: TransitionModel) { self.model = model }
 
-    public static let identity = AnyTransition()
-    public static let opacity = AnyTransition()
-    public static let slide = AnyTransition()
-    public static let scale = AnyTransition()
-    public static func scale(scale: CGFloat, anchor: UnitPoint = .center) -> AnyTransition { AnyTransition() }
-    public static func move(edge: Edge) -> AnyTransition { AnyTransition() }
-    public static func offset(_ offset: CGSize) -> AnyTransition { AnyTransition() }
-    public static func offset(x: CGFloat = 0, y: CGFloat = 0) -> AnyTransition { AnyTransition() }
-    public static func push(from edge: Edge) -> AnyTransition { AnyTransition() }
-    public static func asymmetric(insertion: AnyTransition, removal: AnyTransition) -> AnyTransition { AnyTransition() }
-    public static func modifier<E: ViewModifier>(active: E, identity: E) -> AnyTransition { AnyTransition() }
-    public static var blurReplace: AnyTransition { AnyTransition() }
-    public static func blurReplace(_ configuration: BlurReplaceTransition.Configuration) -> AnyTransition { AnyTransition() }
-    public static var symbolEffect: AnyTransition { AnyTransition() }
-    public static func symbolEffect<T: TransitionSymbolEffect & SymbolEffect>(_ effect: T, options: SymbolEffectOptions = .default) -> AnyTransition {
-        AnyTransition()
+    public static let identity = AnyTransition(model: .identity)
+    public static let opacity = AnyTransition(model: .opacity)
+    public static let slide = AnyTransition(model: .slide)
+    public static let scale = AnyTransition(model: .scale(0, .center))
+    public static func scale(scale: CGFloat, anchor: UnitPoint = .center) -> AnyTransition { AnyTransition(model: .scale(Double(scale), anchor)) }
+    public static func move(edge: Edge) -> AnyTransition { AnyTransition(model: .move(edge)) }
+    public static func offset(_ offset: CGSize) -> AnyTransition { AnyTransition(model: .offset(offset)) }
+    public static func offset(x: CGFloat = 0, y: CGFloat = 0) -> AnyTransition { AnyTransition(model: .offset(CGSize(width: x, height: y))) }
+    public static func push(from edge: Edge) -> AnyTransition { AnyTransition(model: .push(edge)) }
+    public static func asymmetric(insertion: AnyTransition, removal: AnyTransition) -> AnyTransition {
+        AnyTransition(model: .asymmetric(insertion.model, removal.model))
     }
-    public func combined(with other: AnyTransition) -> AnyTransition { self }
-    public func animation(_ animation: Animation?) -> AnyTransition { self }
+    public static func modifier<E: ViewModifier>(active: E, identity: E) -> AnyTransition {
+        AnyTransition(model: .custom("AnyTransition.modifier(active: \(E.self), identity:)"))
+    }
+    public static var blurReplace: AnyTransition { AnyTransition(model: .blurReplace(upUp: false)) }
+    public static func blurReplace(_ configuration: BlurReplaceTransition.Configuration) -> AnyTransition {
+        AnyTransition(model: .blurReplace(upUp: configuration == .upUp))
+    }
+    public static var symbolEffect: AnyTransition { AnyTransition(model: .opacity) }
+    public static func symbolEffect<T: TransitionSymbolEffect & SymbolEffect>(_ effect: T, options: SymbolEffectOptions = .default) -> AnyTransition {
+        AnyTransition(model: .opacity)
+    }
+    public func combined(with other: AnyTransition) -> AnyTransition { AnyTransition(model: .combined(model, other.model)) }
+    public func animation(_ animation: Animation?) -> AnyTransition { AnyTransition(model: .animated(model, animation)) }
 }
 
 extension View {
-    public func transition(_ t: AnyTransition) -> some View { self }
+    public func transition(_ t: AnyTransition) -> some View {
+        captureRecord { info, _ in info.transition = t.model }
+    }
     @_disfavoredOverload
-    public func transition<T: Transition>(_ transition: T) -> some View { self }
+    public func transition<T: Transition>(_ transition: T) -> some View {
+        let model = TransitionModel.of(transition)
+        return captureRecord { info, _ in info.transition = model }
+    }
 }
 
 // MARK: - matched geometry and navigation transitions
@@ -198,7 +226,11 @@ extension MatchedTransitionSourceConfiguration {
 extension View {
     public func matchedGeometryEffect<ID: Hashable>(id: ID, in namespace: Namespace.ID,
                                                     properties: MatchedGeometryProperties = .frame,
-                                                    anchor: UnitPoint = .center, isSource: Bool = true) -> some View { self }
+                                                    anchor: UnitPoint = .center, isSource: Bool = true) -> some View {
+        captureRecord { info, _ in
+            info.matched.append(MatchedGeometry(id: AnyHashable(id), namespace: namespace, properties: properties, anchor: anchor, isSource: isSource))
+        }
+    }
     public func matchedGeometryGroup(id: some Hashable, in namespace: Namespace.ID,
                                      properties: MatchedGeometryProperties = .frame,
                                      anchor: UnitPoint = .center, isSource: Bool = true) -> some View { self }

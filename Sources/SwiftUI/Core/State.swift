@@ -89,8 +89,6 @@ public struct Binding<Value>: DynamicProperty {
                          set: { self.wrappedValue[keyPath: keyPath] = $0 })
     }
 
-    public func transaction(_ transaction: Transaction) -> Binding<Value> { self }
-    public func animation(_ animation: Animation? = .default) -> Binding<Value> { self }
 }
 
 extension Binding: @unchecked Sendable where Value: Sendable {}
@@ -144,60 +142,4 @@ extension Bindable: Identifiable where Value: Identifiable {
     public var id: Value.ID { wrappedValue.id }
 }
 
-// MARK: - Transactions / animation (inert: screenshots are a single frame)
-
-public struct Transaction {
-    public var animation: Animation?
-    public var disablesAnimations = false
-    public var isContinuous = false
-    public init() {}
-    public init(animation: Animation?) { self.animation = animation }
-}
-
-public func withAnimation<Result>(_ animation: Animation? = .default, _ body: () throws -> Result) rethrows -> Result {
-    try body()
-}
-
-public func withAnimation<Result>(_ animation: Animation? = .default, completionCriteria: AnimationCompletionCriteria = .logicallyComplete,
-                                  _ body: () throws -> Result, completion: @escaping () -> Void) rethrows -> Result {
-    try body()
-}
-
-public func withTransaction<Result>(_ transaction: Transaction, _ body: () throws -> Result) rethrows -> Result {
-    try body()
-}
-
-public struct AnimationCompletionCriteria: Hashable, Sendable {
-    public static let logicallyComplete = AnimationCompletionCriteria()
-    public static let removed = AnimationCompletionCriteria()
-}
-
-public struct Animation: Hashable, Sendable {
-    public static let `default` = Animation()
-    public static let linear = Animation()
-    public static let easeIn = Animation()
-    public static let easeOut = Animation()
-    public static let easeInOut = Animation()
-    public static let spring = Animation()
-    public static let bouncy = Animation()
-    public static let smooth = Animation()
-    public static let snappy = Animation()
-    public static let interactiveSpring = Animation()
-    public static func linear(duration: Double) -> Animation { Animation() }
-    public static func easeIn(duration: Double) -> Animation { Animation() }
-    public static func easeOut(duration: Double) -> Animation { Animation() }
-    public static func easeInOut(duration: Double) -> Animation { Animation() }
-    public static func spring(response: Double = 0.5, dampingFraction: Double = 0.825, blendDuration: Double = 0) -> Animation { Animation() }
-    public static func spring(duration: Double = 0.5, bounce: Double = 0, blendDuration: Double = 0) -> Animation { Animation() }
-    public static func interactiveSpring(response: Double = 0.15, dampingFraction: Double = 0.86, blendDuration: Double = 0.25) -> Animation { Animation() }
-    public static func interpolatingSpring(mass: Double = 1, stiffness: Double, damping: Double, initialVelocity: Double = 0) -> Animation { Animation() }
-    public static func interpolatingSpring(duration: Double = 0.5, bounce: Double = 0, initialVelocity: Double = 0) -> Animation { Animation() }
-    public static func bouncy(duration: Double = 0.5, extraBounce: Double = 0) -> Animation { Animation() }
-    public static func smooth(duration: Double = 0.5, extraBounce: Double = 0) -> Animation { Animation() }
-    public static func snappy(duration: Double = 0.5, extraBounce: Double = 0) -> Animation { Animation() }
-    public static func timingCurve(_ c0x: Double, _ c0y: Double, _ c1x: Double, _ c1y: Double, duration: Double = 0.35) -> Animation { Animation() }
-    public func delay(_ delay: Double) -> Animation { self }
-    public func speed(_ speed: Double) -> Animation { self }
-    public func repeatCount(_ count: Int, autoreverses: Bool = true) -> Animation { self }
-    public func repeatForever(autoreverses: Bool = true) -> Animation { self }
-}
+// Transaction, Animation, withAnimation and withTransaction live in Animation/Animation.swift.

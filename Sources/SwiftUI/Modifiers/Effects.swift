@@ -39,15 +39,7 @@ extension View {
 
     // MARK: Opacity / visibility
 
-    public func opacity(_ opacity: Double) -> some View {
-        effect { p, _, draw in
-            if opacity <= 0 { return }
-            if opacity >= 1 { draw(); return }
-            p.saveLayer(.init(opacity: opacity))
-            draw()
-            p.restore()
-        }
-    }
+    public func opacity(_ opacity: Double) -> some View { animatableEffect(.opacity(opacity)) }
     public func hidden() -> some View { effect { _, _, _ in } }
     public func compositingGroup() -> some View { layer { _, _ in .init() } }
     public func drawingGroup(opaque: Bool = false, colorMode: ColorRenderingMode = .nonLinear) -> some View { layer { _, _ in .init() } }
@@ -80,24 +72,9 @@ extension View {
     // MARK: Shadow / blur
 
     public func shadow(color: Color = Color(.sRGBLinear, white: 0, opacity: 0.33), radius: CGFloat, x: CGFloat = 0, y: CGFloat = 0) -> some View {
-        effect(env: { env in
-            let rgba = color.rgba(in: env)
-            return { p, _, draw in
-                guard rgba.a > 0 else { draw(); return }
-                p.saveLayer(.init(imageFilter: Painter.shadowFilter(color: rgba, radius: radius, x: x, y: y, scale: p.scale)))
-                draw()
-                p.restore()
-            }
-        })
+        animatableEffect(env: { env in .shadow(color.rgba(in: env), radius: radius, x: x, y: y) })
     }
-    public func blur(radius: CGFloat, opaque: Bool = false) -> some View {
-        effect { p, _, draw in
-            guard radius > 0 else { draw(); return }
-            p.saveLayer(.init(imageFilter: Painter.blurFilter(radius: radius, scale: p.scale)))
-            draw()
-            p.restore()
-        }
-    }
+    public func blur(radius: CGFloat, opaque: Bool = false) -> some View { animatableEffect(.blur(radius)) }
 
     // MARK: Geometry effects (do not affect layout)
 
@@ -113,16 +90,16 @@ extension View {
         }
     }
     public func rotationEffect(_ angle: Angle, anchor: UnitPoint = .center) -> some View {
-        transformEffect(anchor: anchor) { $0.rotate(angle) }
+        animatableEffect(.rotation(angle, anchor))
     }
     public func scaleEffect(_ scale: CGSize, anchor: UnitPoint = .center) -> some View {
-        transformEffect(anchor: anchor) { $0.scale(scale.width, scale.height) }
+        animatableEffect(.scale(scale, anchor))
     }
     public func scaleEffect(_ s: CGFloat, anchor: UnitPoint = .center) -> some View {
-        transformEffect(anchor: anchor) { $0.scale(s, s) }
+        animatableEffect(.scale(CGSize(width: s, height: s), anchor))
     }
     public func scaleEffect(x: CGFloat = 1, y: CGFloat = 1, anchor: UnitPoint = .center) -> some View {
-        transformEffect(anchor: anchor) { $0.scale(x, y) }
+        animatableEffect(.scale(CGSize(width: x, height: y), anchor))
     }
     public func transformEffect(_ transform: CGAffineTransform) -> some View {
         effect { p, _, draw in
