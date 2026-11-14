@@ -1,0 +1,267 @@
+{
+  "colorScheme": "light",
+  "device": "Apple TV 4K (3rd generation)",
+  "elements": [
+    {
+      "class": "_UINavigationItemView",
+      "frame": {
+        "height": 67,
+        "width": 220.5,
+        "x": 850,
+        "y": 64
+      },
+      "label": "",
+      "role": "header",
+      "traits": [
+        "header",
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 163.5,
+        "width": 163.5,
+        "x": 423.5,
+        "y": 276
+      },
+      "label": "gearshape.fill",
+      "role": "image",
+      "traits": [
+        "image"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 45.5,
+        "width": 226,
+        "x": 392,
+        "y": 474.5
+      },
+      "label": "Riverbend TV",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 30,
+        "width": 191,
+        "x": 409.5,
+        "y": 544
+      },
+      "label": "Version 3.2 (418)",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 35,
+        "width": 141.5,
+        "x": 1010,
+        "y": 151
+      },
+      "label": "PLAYBACK",
+      "role": "header",
+      "traits": [
+        "header",
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 35.33,
+        "width": 817.62,
+        "x": 1006.19,
+        "y": 207.34
+      },
+      "label": "Autoplay Next Episode",
+      "role": "switch",
+      "traits": [
+        "button",
+        "toggle"
+      ],
+      "value": "1"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 35,
+        "width": 810,
+        "x": 1010,
+        "y": 287.5
+      },
+      "label": "Subtitles",
+      "role": "switch",
+      "traits": [
+        "button",
+        "toggle"
+      ],
+      "value": "0"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 35,
+        "width": 808.5,
+        "x": 1010,
+        "y": 367.5
+      },
+      "label": "Streaming Quality",
+      "role": "button",
+      "traits": [
+        "button"
+      ],
+      "value": "Automatic"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 35,
+        "width": 808.5,
+        "x": 1010,
+        "y": 447.5
+      },
+      "label": "Audio Language, English",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 35,
+        "width": 453.5,
+        "x": 1010,
+        "y": 518
+      },
+      "label": "Higher quality uses more bandwidth.",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 35,
+        "width": 100.5,
+        "x": 1010,
+        "y": 579
+      },
+      "label": "SOUND",
+      "role": "header",
+      "traits": [
+        "header",
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 35,
+        "width": 810,
+        "x": 1010,
+        "y": 635.5
+      },
+      "label": "Reduce Loud Sounds",
+      "role": "switch",
+      "traits": [
+        "button",
+        "toggle"
+      ],
+      "value": "1"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 35,
+        "width": 139,
+        "x": 1010,
+        "y": 713
+      },
+      "label": "ACCOUNT",
+      "role": "header",
+      "traits": [
+        "header",
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 35,
+        "width": 810,
+        "x": 1010,
+        "y": 769.5
+      },
+      "label": "Signed in as, Robin",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 35,
+        "width": 808.5,
+        "x": 1010,
+        "y": 849.5
+      },
+      "label": "Manage Subscription",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 35,
+        "width": 112,
+        "x": 1010,
+        "y": 929.5
+      },
+      "label": "Sign Out",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    }
+  ],
+  "focused": {
+    "frame": {
+      "height": 66,
+      "width": 850,
+      "x": 990,
+      "y": 192
+    },
+    "label": "Autoplay Next Episode"
+  },
+  "model": "AppleTV14,1",
+  "presses": [],
+  "preview": 0,
+  "safeArea": {
+    "bottom": 60,
+    "left": 80,
+    "right": 80,
+    "top": 60
+  },
+  "scale": 2,
+  "screen": "14_TVSettings",
+  "size": {
+    "height": 1080,
+    "width": 1920
+  },
+  "systemVersion": "26.5",
+  "version": 1
+}

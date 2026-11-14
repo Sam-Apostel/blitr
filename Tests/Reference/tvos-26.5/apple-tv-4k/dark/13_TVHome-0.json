@@ -1,0 +1,368 @@
+{
+  "colorScheme": "light",
+  "device": "Apple TV 4K (3rd generation)",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 74,
+        "width": 445,
+        "x": 140,
+        "y": 444
+      },
+      "label": "The Long Coast",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 37,
+        "width": 546.5,
+        "x": 140,
+        "y": 536
+      },
+      "label": "Drama \u00b7 3 Seasons \u00b7 New episode Friday",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 66,
+        "width": 153,
+        "x": 140,
+        "y": 591
+      },
+      "label": "Play",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 66,
+        "width": 298.5,
+        "x": 317,
+        "y": 591
+      },
+      "label": "Add to Up Next",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 64.5,
+        "width": 64.5,
+        "x": 639.5,
+        "y": 591.75
+      },
+      "label": "Info",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 45.5,
+        "width": 320,
+        "x": 80,
+        "y": 757
+      },
+      "label": "Continue Watching",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 308,
+        "width": 400,
+        "x": 80,
+        "y": 842.5
+      },
+      "label": "Harbour Lights, S2, E4 \u00b7 18 min left",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 308,
+        "width": 400,
+        "x": 520,
+        "y": 842.5
+      },
+      "label": "North Ridge, S1, E9 \u00b7 32 min left",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 308,
+        "width": 400,
+        "x": 960,
+        "y": 842.5
+      },
+      "label": "Salt & Stone, Episode 3 \u00b7 41 min left",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 308,
+        "width": 400,
+        "x": 1400,
+        "y": 842.5
+      },
+      "label": "Night Market, S3, E1 \u00b7 5 min left",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 308,
+        "width": 400,
+        "x": 1840,
+        "y": 842.5
+      },
+      "label": "Glass Valley, S1, E2 \u00b7 50 min left",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 45.5,
+        "width": 182.5,
+        "x": 80,
+        "y": 1210.5
+      },
+      "label": "Top Shows",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 349,
+        "width": 200,
+        "x": 80,
+        "y": 1296
+      },
+      "label": "Paper Moons",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 349,
+        "width": 200,
+        "x": 320,
+        "y": 1296
+      },
+      "label": "Tidewater",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 349,
+        "width": 200,
+        "x": 560,
+        "y": 1296
+      },
+      "label": "The Quiet Hour",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 349,
+        "width": 200,
+        "x": 800,
+        "y": 1296
+      },
+      "label": "Lanterns",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 349,
+        "width": 200,
+        "x": 1040,
+        "y": 1296
+      },
+      "label": "Coldwater",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 349,
+        "width": 200,
+        "x": 1280,
+        "y": 1296
+      },
+      "label": "Second Spring",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 349,
+        "width": 200,
+        "x": 1520,
+        "y": 1296
+      },
+      "label": "Wildflower",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 349,
+        "width": 200,
+        "x": 1760,
+        "y": 1296
+      },
+      "label": "The Crossing",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "UITabBarButton",
+      "frame": {
+        "height": 33.5,
+        "width": 129.5,
+        "x": 569,
+        "y": 63.25
+      },
+      "label": "Search",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "UITabBarButton",
+      "frame": {
+        "height": 32.52,
+        "width": 192.05,
+        "x": 760.48,
+        "y": 63.74
+      },
+      "label": "Watch Now",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "UITabBarButton",
+      "frame": {
+        "height": 34.5,
+        "width": 134,
+        "x": 1014.5,
+        "y": 62.75
+      },
+      "label": "Shows",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "UITabBarButton",
+      "frame": {
+        "height": 37,
+        "width": 138,
+        "x": 1213.5,
+        "y": 61.5
+      },
+      "label": "Library",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    }
+  ],
+  "focused": {
+    "frame": {
+      "height": 32.52,
+      "width": 192.05,
+      "x": 760.48,
+      "y": 63.74
+    },
+    "label": "Watch Now"
+  },
+  "model": "AppleTV14,1",
+  "presses": [],
+  "preview": 0,
+  "safeArea": {
+    "bottom": 60,
+    "left": 80,
+    "right": 80,
+    "top": 60
+  },
+  "scale": 2,
+  "screen": "13_TVHome",
+  "size": {
+    "height": 1080,
+    "width": 1920
+  },
+  "systemVersion": "26.5",
+  "version": 1
+}
