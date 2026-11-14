@@ -1,0 +1,65 @@
+{
+  "colorScheme": "dark",
+  "device": "agent-calibrate-iphone16-ios27",
+  "elements": [
+    {
+      "class": "UILabel",
+      "frame": {
+        "height": 40.67,
+        "width": 356.33,
+        "x": 16,
+        "y": 116.67
+      },
+      "label": "Split Sidebar With A Very Long Title That Truncates",
+      "role": "header",
+      "traits": [
+        "header"
+      ]
+    },
+    {
+      "class": "_UITabButton",
+      "frame": {
+        "height": 54,
+        "width": 94,
+        "x": 106.67,
+        "y": 773
+      },
+      "label": "Old",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "_UITabButton",
+      "frame": {
+        "height": 54,
+        "width": 94,
+        "x": 192.67,
+        "y": 773
+      },
+      "label": "Split",
+      "role": "button",
+      "traits": [
+        "button",
+        "selected"
+      ]
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 0,
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "NavigationTabs-Misc",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "27.0",
+  "version": 1
+}

@@ -1,0 +1,290 @@
+{
+  "colorScheme": "light",
+  "device": "agent-calibrate-iphone16-ios27",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 28,
+        "width": 353,
+        "x": 20,
+        "y": 59.33
+      },
+      "label": "Airplane Mode",
+      "role": "switch",
+      "traits": [
+        "button",
+        "toggle"
+      ],
+      "value": "0"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 28,
+        "width": 353,
+        "x": 20,
+        "y": 103.33
+      },
+      "label": "Wi-Fi",
+      "role": "switch",
+      "traits": [
+        "button",
+        "toggle"
+      ],
+      "value": "1"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 28,
+        "width": 353,
+        "x": 20,
+        "y": 147.33
+      },
+      "label": "Tinted",
+      "role": "switch",
+      "traits": [
+        "button",
+        "toggle"
+      ],
+      "value": "1"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 28,
+        "width": 353,
+        "x": 20,
+        "y": 191.33
+      },
+      "label": "Disabled",
+      "role": "switch",
+      "traits": [
+        "button",
+        "toggle",
+        "notEnabled"
+      ],
+      "value": "1"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 34.33,
+        "width": 115.33,
+        "x": 139,
+        "y": 235.33
+      },
+      "label": "Button style",
+      "role": "switch",
+      "traits": [
+        "button",
+        "toggle"
+      ],
+      "value": "1"
+    },
+    {
+      "class": "UISlider",
+      "frame": {
+        "height": 31,
+        "width": 353,
+        "x": 20,
+        "y": 285.67
+      },
+      "label": "",
+      "role": "adjustable",
+      "traits": [
+        "adjustable"
+      ],
+      "value": "40%"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 10.33,
+        "x": 20,
+        "y": 338.08
+      },
+      "label": "0",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "UISlider",
+      "frame": {
+        "height": 31,
+        "width": 319,
+        "x": 38.33,
+        "y": 332.67
+      },
+      "label": "v",
+      "role": "adjustable",
+      "traits": [
+        "adjustable"
+      ],
+      "value": "40%"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 7.67,
+        "x": 365.33,
+        "y": 338.08
+      },
+      "label": "1",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 4,
+        "width": 353,
+        "x": 20,
+        "y": 475.67
+      },
+      "label": "",
+      "role": "group",
+      "traits": [
+        "updatesFrequently"
+      ],
+      "value": "60%"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 28.26,
+        "width": 353,
+        "x": 20,
+        "y": 495.74
+      },
+      "label": "Downloading",
+      "role": "group",
+      "traits": [
+        "updatesFrequently"
+      ],
+      "value": "30%"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 46.67,
+        "width": 353,
+        "x": 20,
+        "y": 540.08
+      },
+      "label": "Uploading, 40%",
+      "role": "group",
+      "traits": [
+        "updatesFrequently"
+      ],
+      "value": "40%"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20,
+        "width": 20,
+        "x": 126.33,
+        "y": 616
+      },
+      "label": "",
+      "role": "group",
+      "traits": [
+        "updatesFrequently"
+      ],
+      "value": "1"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 46.85,
+        "width": 60.67,
+        "x": 166.17,
+        "y": 602.67
+      },
+      "label": "Loading",
+      "role": "group",
+      "traits": [
+        "updatesFrequently"
+      ],
+      "value": "1"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20,
+        "width": 20,
+        "x": 247,
+        "y": 616
+      },
+      "label": "",
+      "role": "group",
+      "traits": [
+        "updatesFrequently"
+      ],
+      "value": "1"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 78.08,
+        "width": 353,
+        "x": 20,
+        "y": 665.51
+      },
+      "label": "Battery, 70%",
+      "role": "group",
+      "traits": [],
+      "value": "70%"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 57.06,
+        "width": 58,
+        "x": 128.67,
+        "y": 759.67
+      },
+      "label": "B, 70",
+      "role": "group",
+      "traits": [],
+      "value": "70%"
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 58,
+        "width": 58,
+        "x": 206.67,
+        "y": 759.67
+      },
+      "label": "40",
+      "role": "group",
+      "traits": [],
+      "value": "40%"
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 0,
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "ControlsIndicators",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "27.0",
+  "version": 1
+}

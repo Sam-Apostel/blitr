@@ -1,0 +1,79 @@
+{
+  "colorScheme": "light",
+  "device": "agent-calibrate-iphone16-ios27",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 105.33,
+        "x": 143.83,
+        "y": 455.33
+      },
+      "label": "Pushed Detail",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "UIAccessibilityBackButtonElement",
+      "frame": {
+        "height": 44,
+        "width": 44,
+        "x": 16,
+        "y": 59
+      },
+      "identifier": "BackButton",
+      "label": "Settings",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "UILabel",
+      "frame": {
+        "height": 20.67,
+        "width": 46,
+        "x": 173.33,
+        "y": 70.67
+      },
+      "label": "Detail",
+      "role": "header",
+      "traits": [
+        "header"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 30.33,
+        "x": 339.83,
+        "y": 70.83
+      },
+      "label": "Edit",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 0,
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "NavigationTabs-Path",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "27.0",
+  "version": 1
+}

@@ -1,0 +1,78 @@
+{
+  "colorScheme": "dark",
+  "device": "agent-calibrate-iphone16-ios27",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 155,
+        "x": 119,
+        "y": 455.33
+      },
+      "label": "Inline title with items",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 36,
+        "width": 64.67,
+        "x": 20,
+        "y": 63
+      },
+      "label": "Cancel",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "UILabel",
+      "frame": {
+        "height": 20.67,
+        "width": 43.67,
+        "x": 174.67,
+        "y": 70.67
+      },
+      "label": "Inbox",
+      "role": "header",
+      "traits": [
+        "header"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 36,
+        "width": 53.67,
+        "x": 319.33,
+        "y": 63
+      },
+      "label": "Done",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 0,
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "NavigationTabs-Inline",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "27.0",
+  "version": 1
+}

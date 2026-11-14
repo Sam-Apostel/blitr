@@ -1,0 +1,456 @@
+{
+  "colorScheme": "light",
+  "device": "agent-calibrate-iphone16-ios27",
+  "elements": [
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 88,
+        "x": 86,
+        "y": 145.17
+      },
+      "label": "Maya Chen",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 3.33,
+        "width": 15.67,
+        "x": 344,
+        "y": 161.33
+      },
+      "label": "More",
+      "role": "image",
+      "traits": [
+        "image"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 14.33,
+        "width": 69,
+        "x": 86,
+        "y": 166.5
+      },
+      "label": "@maya \u00b7 2m",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 64.33,
+        "width": 308.33,
+        "x": 32,
+        "y": 197
+      },
+      "label": "Golden hour over the ridge this evening. Hiked four miles for this view and it was absolutely worth every step.",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 15.33,
+        "width": 19.67,
+        "x": 331.33,
+        "y": 495.33
+      },
+      "label": "Photo",
+      "role": "image",
+      "traits": [
+        "image"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 18,
+        "width": 49.67,
+        "x": 34,
+        "y": 533.42
+      },
+      "label": "Like, 128 likes",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 18,
+        "width": 42.67,
+        "x": 109.67,
+        "y": 533.23
+      },
+      "label": "Comment, 14 comments",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 18,
+        "width": 34.33,
+        "x": 178,
+        "y": 533.42
+      },
+      "label": "Share, 6 shares",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 18,
+        "width": 11.33,
+        "x": 346.67,
+        "y": 533.33
+      },
+      "label": "Bookmark",
+      "role": "image",
+      "traits": [
+        "image"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 92.67,
+        "x": 86,
+        "y": 604.92
+      },
+      "label": "Jon Alvarez",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 3.33,
+        "width": 15.67,
+        "x": 344,
+        "y": 621
+      },
+      "label": "More",
+      "role": "image",
+      "traits": [
+        "image"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 14.33,
+        "width": 76.67,
+        "x": 86,
+        "y": 626.25
+      },
+      "label": "@jonny \u00b7 37m",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 64.33,
+        "width": 309.67,
+        "x": 32,
+        "y": 656.75
+      },
+      "label": "Shipped the new onboarding flow today. Small team, big feeling. Thanks to everyone who tested the beta builds!",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 15.33,
+        "width": 19.67,
+        "x": 331.33,
+        "y": 893.33
+      },
+      "label": "Photo",
+      "role": "image",
+      "traits": [
+        "image"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 18,
+        "width": 43.67,
+        "x": 34,
+        "y": 931.48
+      },
+      "label": "Like, 84 likes",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 18,
+        "width": 44,
+        "x": 103.67,
+        "y": 931.29
+      },
+      "label": "Comment, 22 comments",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 18,
+        "width": 34.33,
+        "x": 173.33,
+        "y": 931.48
+      },
+      "label": "Share, 3 shares",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 18,
+        "width": 11.33,
+        "x": 346.67,
+        "y": 931.33
+      },
+      "label": "Bookmark",
+      "role": "image",
+      "traits": [
+        "image"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 20.33,
+        "width": 77,
+        "x": 86,
+        "y": 1002.98
+      },
+      "label": "Priya Nair",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 3.33,
+        "width": 15.67,
+        "x": 344,
+        "y": 1019
+      },
+      "label": "More",
+      "role": "image",
+      "traits": [
+        "image"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 14.33,
+        "width": 63.67,
+        "x": 86,
+        "y": 1024.31
+      },
+      "label": "@priya \u00b7 2h",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 86.33,
+        "width": 305.67,
+        "x": 32,
+        "y": 1054.81
+      },
+      "label": "Reading list for the long weekend:\n1. Designing Data-Intensive Applications\n2. The Pragmatic Programmer\n3. Something with dragons",
+      "role": "staticText",
+      "traits": [
+        "staticText"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 15.33,
+        "width": 19.67,
+        "x": 331.33,
+        "y": 1457.33
+      },
+      "label": "Photo",
+      "role": "image",
+      "traits": [
+        "image"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 18,
+        "width": 50,
+        "x": 34,
+        "y": 1495.48
+      },
+      "label": "Like, 301 likes",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 18,
+        "width": 45.33,
+        "x": 110,
+        "y": 1495.29
+      },
+      "label": "Comment, 48 comments",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 18,
+        "width": 41.33,
+        "x": 181,
+        "y": 1495.48
+      },
+      "label": "Share, 19 shares",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 18,
+        "width": 11.33,
+        "x": 346.67,
+        "y": 1495.33
+      },
+      "label": "Bookmark",
+      "role": "image",
+      "traits": [
+        "image"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 36,
+        "width": 31.33,
+        "x": 22.33,
+        "y": 63
+      },
+      "label": "Menu",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "UILabel",
+      "frame": {
+        "height": 20.67,
+        "width": 47.33,
+        "x": 172.67,
+        "y": 70.67
+      },
+      "label": "Home",
+      "role": "header",
+      "traits": [
+        "header"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 36,
+        "width": 39.67,
+        "x": 276.33,
+        "y": 63
+      },
+      "label": "Search",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    },
+    {
+      "class": "AccessibilityNode",
+      "frame": {
+        "height": 36,
+        "width": 41,
+        "x": 332,
+        "y": 63
+      },
+      "label": "Compose",
+      "role": "button",
+      "traits": [
+        "button"
+      ]
+    }
+  ],
+  "model": "iPhone17,3",
+  "preview": 0,
+  "safeArea": {
+    "bottom": 34,
+    "left": 0,
+    "right": 0,
+    "top": 59
+  },
+  "scale": 3,
+  "screen": "02_SocialFeed",
+  "size": {
+    "height": 852,
+    "width": 393
+  },
+  "systemVersion": "27.0",
+  "version": 1
+}
