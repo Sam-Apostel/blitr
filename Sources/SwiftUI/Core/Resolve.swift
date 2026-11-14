@@ -48,6 +48,8 @@ final class Runtime {
     let focus = FocusEngine()
     /// What activating each element does, rebuilt every pass (Focus/FocusModel.swift).
     var activations = ActivationRegistry()
+    /// The value each `onChange` saw in the previous pass (tvOS: see Modifiers/Lifecycle.swift).
+    var changeValues: [IdentityPath: AnyObject] = [:]
 
     static var current: Runtime?
 

@@ -55,6 +55,12 @@ element); with several controls inside it warns.
 - `.onMoveCommand`, `.onExitCommand`, `.onPlayPauseCommand` on the focused element or an ancestor
   (the innermost one) are called by the matching press. A move still moves focus.
 - `.focusEffectDisabled()` turns off the default focus effect.
+- On tvOS renders `onChange(of:)` fires when a value differs from the previous pass, so UI that follows
+  focus (`onChange(of: focusState)`, a top bar that switches pages as focus moves) updates after each
+  move. Other platforms keep the one-shot `initial:` behaviour.
+- `.buttonStyle(.card)` exists and draws like `.plain` until tvOS control styles land.
+- Not modelled: `ScrollViewReader.scrollTo` and `scrollPosition` (scrolling follows focus only),
+  `hoverEffect`, long presses on select.
 
 ## Movement rules
 

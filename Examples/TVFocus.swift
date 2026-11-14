@@ -32,7 +32,7 @@ struct PosterGrid: View {
                 LazyVGrid(columns: columns, spacing: 48) {
                     ForEach(0..<20, id: \.self) { i in
                         Button {} label: { Poster(index: i, size: CGSize(width: 300, height: 420)) }
-                            .buttonStyle(.plain)
+                            .buttonStyle(.card)
                     }
                 }
             }
@@ -61,7 +61,7 @@ struct Shelves: View {
                             LazyHStack(spacing: 40) {
                                 ForEach(0..<rows[r].count, id: \.self) { i in
                                     Button {} label: { Poster(index: r * 20 + i, size: rows[r].size) }
-                                        .buttonStyle(.plain)
+                                        .buttonStyle(.card)
                                 }
                             }
                             .padding(.horizontal, 80)
@@ -185,7 +185,93 @@ struct FocusStateFromOnAppear: View {
     }
 }
 
+// MARK: - A hand-built top bar over shelves (focus on a bar item switches the page)
+
+enum Page: Hashable, CaseIterable { case watch, library, settings }
+
+struct BarButtonStyle: ButtonStyle {
+    let selected: Bool
+    func makeBody(configuration: Configuration) -> some View { BarButtonBody(label: configuration.label, selected: selected) }
+}
+
+struct BarButtonBody: View {
+    let label: ButtonStyleConfiguration.Label
+    let selected: Bool
+    @Environment(\.isFocused) private var isFocused
+
+    var body: some View {
+        label
+            .font(.headline)
+            .padding(.horizontal, 28)
+            .padding(.vertical, 12)
+            .foregroundStyle(isFocused ? Color.black : selected ? Color.primary : Color.secondary)
+            .background(isFocused ? Color.white : selected ? Color.gray.opacity(0.25) : Color.clear, in: Capsule())
+    }
+}
+
+struct TopBarHome: View {
+    enum Focus: Hashable { case bar(Page), item(Int) }
+    @State private var page = Page.watch
+    @FocusState private var focus: Focus?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 30) {
+            HStack(spacing: 12) {
+                ForEach(Page.allCases, id: \.self) { p in
+                    Button("\(p)".capitalized) { page = p }
+                        .buttonStyle(BarButtonStyle(selected: p == page))
+                        .focused($focus, equals: .bar(p))
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .focusSection()
+            if page == .watch {
+                Shelves()
+            } else {
+                Text("\("\(page)".capitalized) page").font(.title2).frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .padding(.top, 40)
+        // On a tvOS top bar, moving focus along the bar switches the page.
+        .onChange(of: focus) { _, new in
+            if case .bar(let p)? = new { page = p }
+        }
+    }
+}
+
+// MARK: - Full-screen viewer driven by the remote
+
+struct Viewer: View {
+    @State private var showing = false
+    @State private var photo = 0
+    @State private var slideshow = false
+
+    var body: some View {
+        Button("Open Viewer") { showing = true }
+            .fullScreenCover(isPresented: $showing) {
+                ZStack(alignment: .bottom) {
+                    Poster(index: photo, size: CGSize(width: 1920, height: 1080))
+                    Text(slideshow ? "Photo \(photo + 1) · slideshow" : "Photo \(photo + 1)")
+                        .font(.title3).foregroundStyle(.white).padding(40)
+                }
+                .ignoresSafeArea()
+                .focusable()
+                .onMoveCommand { direction in
+                    switch direction {
+                    case .left: photo = max(0, photo - 1)
+                    case .right: photo = min(9, photo + 1)
+                    default: break
+                    }
+                }
+                .onPlayPauseCommand { slideshow.toggle() }
+                .onExitCommand { showing = false }
+            }
+    }
+}
+
 #Preview("Poster Grid") { PosterGrid() }
+#Preview("Top Bar") { TopBarHome() }
+#Preview("Viewer") { Viewer() }
 #Preview("Shelves") { Shelves() }
 #Preview("Unreachable") { SideBySide(fixed: false) }
 #Preview("Focus Section") { SideBySide(fixed: true) }
