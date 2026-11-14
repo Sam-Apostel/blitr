@@ -56,6 +56,9 @@ struct PreferenceStore {
         let merge: (Any, Any) -> Any
     }
     var entries: [ObjectIdentifier: Entry] = [:]
+    /// Keys written or removed through this value since it was read from a node; lets
+    /// `node.preferences.set(...)` record only the caller's change as the node's own value.
+    var touched: Set<ObjectIdentifier> = []
 
     subscript<K: PreferenceKey>(key: K.Type) -> K.Value {
         get { (entries[ObjectIdentifier(key)]?.value as? K.Value) ?? K.defaultValue }
@@ -63,13 +66,17 @@ struct PreferenceStore {
     func has<K: PreferenceKey>(_ key: K.Type) -> Bool { entries[ObjectIdentifier(key)] != nil }
 
     mutating func set<K: PreferenceKey>(_ key: K.Type, _ value: K.Value) {
+        touched.insert(ObjectIdentifier(key))
         entries[ObjectIdentifier(key)] = Entry(value: value, merge: { a, b in
             var result = a as! K.Value
             K.reduce(value: &result) { b as! K.Value }
             return result
         })
     }
-    mutating func remove<K: PreferenceKey>(_ key: K.Type) { entries[ObjectIdentifier(key)] = nil }
+    mutating func remove<K: PreferenceKey>(_ key: K.Type) {
+        touched.insert(ObjectIdentifier(key))
+        entries[ObjectIdentifier(key)] = nil
+    }
 
     /// Combines a later sibling's preferences into this store (document order).
     mutating func merge(_ other: PreferenceStore) {
@@ -87,7 +94,7 @@ struct PreferenceWritingModifier<K: PreferenceKey>: ViewModifier, PrimitiveModif
     let value: K.Value
     func resolve(content: ModifierContent, _ ctx: ResolveContext, into out: inout [Node]) {
         for node in content.nodes(ctx) {
-            node.preferences.set(K.self, value)
+            node.ownPreferences.set(K.self, value)
             out.append(node)
         }
     }

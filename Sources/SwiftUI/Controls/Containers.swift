@@ -112,8 +112,7 @@ public struct DatePicker<Label: View>: View {
     public var body: some View {
         VStack(spacing: 8) {
             HStack(spacing: 6) {
-                if let label { label }
-                Spacer(minLength: 8)
+                ControlLabel(label: label)
                 if !graphical && components.contains(.date) { _DatePill(text: formatted(date, "MMM d, yyyy")) }
                 if components.contains(.hourAndMinute) { _DatePill(text: formatted(date, "h:mm a")) }
             }
@@ -192,8 +191,7 @@ public struct ColorPicker<Label: View>: View {
 
     public var body: some View {
         HStack {
-            label
-            Spacer(minLength: 8)
+            ControlLabel(label: label)
             ColorWell(color: color)
         }
         .opacity(isEnabled ? 1 : 0.5)

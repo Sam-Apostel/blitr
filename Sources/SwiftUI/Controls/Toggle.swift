@@ -101,8 +101,7 @@ struct _SwitchToggle: View {
     let isOn: Binding<Bool>
     var body: some View {
         HStack {
-            label
-            Spacer(minLength: 8)
+            ControlLabel(label: label)
             SwitchControl(isOn: isOn.wrappedValue)
         }
     }

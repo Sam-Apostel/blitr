@@ -33,6 +33,9 @@ final class Runtime {
     /// onAppear-style actions that have already run (each runs once per identity).
     var performedActions: Set<IdentityPath> = []
     var pendingActions: [() -> Void] = []
+    /// Run after layout in each pass, when geometry-dependent values (preferences set inside a
+    /// GeometryReader, measured sizes) are known.
+    var postLayoutActions: [() -> Void] = []
     /// Set when state changes after the tree was resolved, so the renderer does another pass.
     var needsAnotherPass = false
     var runningTasks = 0

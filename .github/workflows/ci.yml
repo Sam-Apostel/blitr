@@ -24,17 +24,20 @@ jobs:
       - name: Build
         run: swift build
 
-      - name: Render every example in light and dark
+      - name: Render every example and the acceptance corpus
         run: |
           bin="$(swift build --show-bin-path)"
           "$bin/swiftui-screenshot" doctor
-          for file in Examples/*.swift; do
-            "$bin/swiftui-screenshot" render "$file" --all --out-dir out --scheme both
+          # Every file must compile against the module and render; a failure here is a regression.
+          find Examples Tests/Corpus -name '*.swift' | sort | while read -r file; do
+            echo "::group::$file"
+            "$bin/swiftui-screenshot" render "$file" --all --out-dir "out/$(dirname "$file")" --scheme both
+            echo "::endgroup::"
           done
 
       - name: Upload screenshots
         uses: actions/upload-artifact@v4
         with:
           name: screenshots
-          path: out/*.png
+          path: out/**/*.png
           if-no-files-found: error
