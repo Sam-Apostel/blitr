@@ -254,7 +254,7 @@ final class TextNode: Node {
         var size = textLayout(width: proposal.width).size
         if reservesSpace, let limit = options.lineLimit, let line = textLayout(width: nil).lines.first {
             let lineHeight = line.ascent + line.descent
-            size.height = max(size.height, lineHeight * CGFloat(limit) + options.lineSpacing * CGFloat(limit - 1))
+            size.height = max(size.height, lineHeight * CGFloat(limit) + (options.lineSpacing + line.leading) * CGFloat(limit - 1))
         }
         return size
     }
@@ -292,6 +292,7 @@ extension Text: View, PrimitiveView {
         options.lineSpacing = env.lineSpacing
         options.minimumScaleFactor = env.minimumScaleFactor
         options.scale = env.displayScale
+        options.avoidsOrphans = env.renderPlatform != .tvOS
         return TextNode(runs: runs(in: env), options: options, reservesSpace: env.lineLimitReservesSpace)
     }
 }
