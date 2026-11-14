@@ -49,27 +49,38 @@ enum TabBarMetrics {
     /// Liquid Glass tab bar (iOS 26+). Values marked (est.) are estimates kept here for calibration.
     struct Glass {
         /// Floating capsule: height, inset from the screen's sides, and its bottom edge above the screen's bottom.
-        var height: CGFloat = 62                    // (est.)
-        var sideInset: CGFloat = 21                 // third-party measurement
-        var bottomInset: CGFloat = 21               // phones with a home indicator
+        var height: CGFloat = 62                    // measured: iOS 27.0 simulator (769...831pt)
+        var sideInset: CGFloat = 21                 // measured: iOS 27.0 simulator
+        var bottomInset: CGFloat = 21               // phones with a home indicator; measured: iOS 27.0 simulator
         var bottomInsetWithoutHomeIndicator: CGFloat = 8   // (est.) iPhone SE
         /// Selection pill: inset from the capsule's edges.
         var pillInset: CGFloat = 4                  // (est.)
         var pillLight: RGBA
         var pillDark: RGBA
+        /// Item frames (the selection pill): at least `minItemWidth`, or the title plus `itemTitlePadding`.
+        /// Neighbouring frames overlap by up to `itemOverlapPerTab` times the number of tabs: frames that
+        /// fit even without overlap make a narrower, centred capsule; otherwise they fill the capsule,
+        /// overlapping more (up to that limit) and then shrinking.
+        /// measured: iOS 27.0 simulator (2 tabs: 94pt frames, 8pt overlap, 188pt capsule; 4 tabs: 95.8pt,
+        /// 13.3pt; 5 tabs: 84.6pt, 20pt; "Listen Now" 96.2pt among 81.7pt frames).
+        var minItemWidth: CGFloat = 94
+        var itemTitlePadding: CGFloat = 44          // (est.) from one long title
+        var itemOverlapPerTab: CGFloat = 4
         /// Icon centre and title baseline from the capsule's top edge.
-        var iconCenterY: CGFloat = 23               // (est.)
-        var titleBaseline: CGFloat = 48             // (est.)
-        var iconFont = Font.system(size: 21, weight: .medium)    // ~23pt glyphs (est.)
+        var iconCenterY: CGFloat = 24               // measured: iOS 27.0 simulator
+        var titleBaseline: CGFloat = 48.67          // measured: iOS 27.0 simulator
+        var iconFont = Font.system(size: 23, weight: .medium)    // measured: iOS 27.0 simulator (house 27 x 24pt)
         var titleFont = Font.system(size: 10, weight: .medium)
         /// Badge top edge from the capsule's top edge.
-        var badgeTop: CGFloat = 6                   // (est.)
+        var badgeTop: CGFloat = 6                   // measured: iOS 27.0 simulator
+        var badgeLeadingFromIconCenter: CGFloat = 7 // measured: iOS 27.0 simulator ("3" and "New" badges)
         /// A search / prominent tab: a separate circle this far from the main capsule.
         var separateGap: CGFloat = 12               // (est.)
         /// `tabViewBottomAccessory`: capsule height and gap above the bar.
         var accessoryHeight: CGFloat = 48           // (est.)
-        var accessoryGap: CGFloat = 10              // (est.)
-        var accessoryPadding: CGFloat = 16          // (est.)
+        var accessoryGap: CGFloat = 8               // measured: iOS 27.0 simulator (713...761pt over a bar at 769pt)
+        /// The accessory's content spans the capsule. measured: iOS 27.0 simulator (content 21...371.7pt)
+        var accessoryPadding: CGFloat = 0
         /// Compact height (landscape iPhone): a shorter capsule sized to its items, centred.
         var compactHeight: CGFloat = 48             // (est.)
         var compactItemPadding: CGFloat = 16        // (est.)
@@ -103,10 +114,12 @@ enum TabBarMetrics {
         switch design {
         case .liquidGlass27:
             // iOS 27: the selection pill is darker than the bar.
-            return Glass(pillLight: RGBA(0, 0, 0, 0.1), pillDark: RGBA(0, 0, 0, 0.32))
+            // measured: iOS 27.0 simulator (pill 235 on a 249 bar in light, 10 on 32 in dark)
+            return Glass(pillLight: RGBA(0, 0, 0, 0.056), pillDark: RGBA(0, 0, 0, 0.69))
         default:
-            // iOS 26: a soft highlight, lighter than the bar.
-            return Glass(pillLight: RGBA(1, 1, 1, 0.7), pillDark: RGBA(0.45, 0.45, 0.48, 0.5), pillIsRaised: true)
+            // iOS 26: a flat fill, darker than the bar in light mode and lighter in dark mode.
+            // measured: iOS 26.5 simulator (pill 235 on a 253 bar in light, 53 on 19 in dark)
+            return Glass(pillLight: RGBA(0, 0, 0, 0.07), pillDark: RGBA(1, 1, 1, 0.14))
         }
     }
 }
@@ -210,27 +223,29 @@ extension EnvironmentValues {
 }
 
 public enum TabBarMinimizeBehavior: Hashable, Sendable { case automatic, onScrollDown, onScrollUp, never }
-public struct TabViewCustomization: Codable, Hashable, Sendable {
-    public init() {}
-    public mutating func resetVisibility() {}
-    public mutating func resetSectionOrder() {}
-}
 public struct AdaptableTabBarPlacement: Hashable, Sendable {
-    public static let automatic = AdaptableTabBarPlacement()
-    public static let tabBar = AdaptableTabBarPlacement()
-    public static let sidebar = AdaptableTabBarPlacement()
+    let raw: Int
+    public static let automatic = AdaptableTabBarPlacement(raw: 0)
+    public static let tabBar = AdaptableTabBarPlacement(raw: 1)
+    public static let sidebar = AdaptableTabBarPlacement(raw: 2)
 }
 public struct TabPlacement: Hashable, Sendable {
-    public static let automatic = TabPlacement()
-    public static let pinned = TabPlacement()
-    public static let sidebarOnly = TabPlacement()
+    let raw: Int
+    public static let automatic = TabPlacement(raw: 0)
+    public static let pinned = TabPlacement(raw: 1)
+    public static let sidebarOnly = TabPlacement(raw: 2)
 }
 
 extension View {
     public func tabViewStyle<S: TabViewStyle>(_ style: S) -> some View {
-        let mode = (style as? PageTabViewStyle)?.indexDisplayMode
+        let vertical = style is VerticalPageTabViewStyle
+        let mode = vertical ? .automatic : (style as? PageTabViewStyle)?.indexDisplayMode
         let sidebar = style is SidebarAdaptableTabViewStyle
-        return env { $0.tabViewPageMode = mode; $0[TabViewSidebarAdaptableKey.self] = sidebar }
+        return env {
+            $0.tabViewPageMode = mode
+            $0[TabViewSidebarAdaptableKey.self] = sidebar
+            $0[TabViewVerticalPageKey.self] = vertical
+        }
     }
     public func indexViewStyle<S: IndexViewStyle>(_ style: S) -> some View {
         let mode = (style as? PageIndexViewStyle)?.backgroundDisplayMode ?? .automatic
@@ -241,6 +256,7 @@ extension View {
     public func tabViewSidebarHeader<C: View>(@ViewBuilder content: () -> C) -> some View { self }
     public func tabViewSidebarFooter<C: View>(@ViewBuilder content: () -> C) -> some View { self }
     public func tabViewSidebarBottomBar<C: View>(@ViewBuilder content: () -> C) -> some View { self }
+    @_disfavoredOverload
     public func tabViewSidebarHeader<C: View>(@ViewBuilder _ content: () -> C) -> some View { self }
 }
 
@@ -379,32 +395,33 @@ extension Tab where Value == Never {
 }
 
 /// On an iPhone tab bar, sections are flattened into their tabs.
-public struct TabSection<Header: View, Content: TabContent, Footer: View>: TabContent, PrimitiveTabContent {
-    public typealias TabValue = Content.TabValue
+public struct TabSection<Header, Content: TabContent, Footer, SelectionValue: Hashable>: TabContent, PrimitiveTabContent
+where Content.TabValue == SelectionValue {
+    public typealias TabValue = SelectionValue
     public typealias Body = Never
     let content: Content
-    public init(@TabContentBuilder<Content.TabValue> content: () -> Content, @ViewBuilder header: () -> Header,
-                @ViewBuilder footer: () -> Footer) {
+    public init(@TabContentBuilder<SelectionValue> content: () -> Content, @ViewBuilder header: () -> Header,
+                @ViewBuilder footer: () -> Footer) where Header: View, Footer: View {
         self.content = content()
     }
     func collectTabs(_ ctx: ResolveContext, into out: inout [TabEntry]) { collectTabContent(content, ctx, into: &out) }
 }
 extension TabSection where Footer == EmptyView {
-    public init(@TabContentBuilder<Content.TabValue> content: () -> Content, @ViewBuilder header: () -> Header) {
+    public init(@TabContentBuilder<SelectionValue> content: () -> Content, @ViewBuilder header: () -> Header) where Header: View {
         self.content = content()
     }
 }
 extension TabSection where Header == Text, Footer == EmptyView {
-    public init(_ titleKey: LocalizedStringKey, @TabContentBuilder<Content.TabValue> content: () -> Content) {
+    public init(_ titleKey: LocalizedStringKey, @TabContentBuilder<SelectionValue> content: () -> Content) {
         self.content = content()
     }
     @_disfavoredOverload
-    public init<S: StringProtocol>(_ title: S, @TabContentBuilder<Content.TabValue> content: () -> Content) {
+    public init<S: StringProtocol>(_ title: S, @TabContentBuilder<SelectionValue> content: () -> Content) {
         self.content = content()
     }
 }
 extension TabSection where Header == EmptyView, Footer == EmptyView {
-    public init(@TabContentBuilder<Content.TabValue> content: () -> Content) {
+    public init(@TabContentBuilder<SelectionValue> content: () -> Content) {
         self.content = content()
     }
 }
@@ -441,7 +458,8 @@ where TrueContent.TabValue == FalseContent.TabValue {
 extension ForEach: TabContent, PrimitiveTabContent where Content: TabContent {
     public typealias TabValue = Content.TabValue
     public typealias Body = Never
-    public init(_ data: Data, id: KeyPath<Data.Element, ID>, @TabContentBuilder<Content.TabValue> content: @escaping (Data.Element) -> Content) {
+    public init<V>(_ data: Data, id: KeyPath<Data.Element, ID>, @TabContentBuilder<V> content: @escaping (Data.Element) -> Content)
+    where V == Content.TabValue {
         self.data = data
         self.content = content
         self.idGetter = { $0[keyPath: id] }
@@ -522,8 +540,13 @@ extension TabContent {
     public func hidden(_ hidden: Bool = true) -> _ModifiedTabContent<Self> { modifyingTab { _ in !hidden } }
     public func customizationID(_ id: String) -> Self { self }
     public func customizationBehavior(_ behavior: TabCustomizationBehavior, for placements: AdaptableTabBarPlacement...) -> Self { self }
-    public func defaultVisibility(_ visibility: Visibility, for placements: AdaptableTabBarPlacement...) -> Self { self }
-    public func tabPlacement(_ placement: TabPlacement) -> Self { self }
+    /// The tab bar is what is drawn (the sidebar is not), so a tab hidden from the tab bar by default is left out.
+    public func defaultVisibility(_ visibility: Visibility, for placements: AdaptableTabBarPlacement...) -> _ModifiedTabContent<Self> {
+        let hidesFromTabBar = visibility == .hidden && (placements.isEmpty || placements.contains(.tabBar) || placements.contains(.automatic))
+        return modifyingTab { _ in !hidesFromTabBar }
+    }
+    /// A sidebar-only tab is not in the tab bar.
+    public func tabPlacement(_ placement: TabPlacement) -> _ModifiedTabContent<Self> { modifyingTab { _ in placement != .sidebarOnly } }
     public func sectionActions<C: View>(@ViewBuilder content: () -> C) -> Self { self }
     public func disabled(_ disabled: Bool) -> Self { self }
     public func accessibilityIdentifier(_ identifier: String) -> Self { self }
@@ -589,7 +612,17 @@ public struct TabView<SelectionValue: Hashable, Content: View>: View, PrimitiveV
             let page = PageTabViewNode(content: entries[selected].content(), count: entries.count, selected: selected,
                                        mode: mode, background: ctx.env.pageIndexBackground)
             if ctx.env.renderPlatform == .tvOS { page.dotScale = TVMetrics.pageDotScale }
+            page.vertical = ctx.env[TabViewVerticalPageKey.self]
+            if let background = page.content.preferences[TabContainerBackgroundKey.self] {
+                page.containerBackground = resolveSingle(background, ctx.child("containerBackground"))
+            }
             out.append(page)
+            // Scripted `swipe` turns the page (Interaction/).
+            InteractionRegistry.notePager(out[out.count - 1], count: entries.count, selected: selected) {
+                [tags = entries.map(\.tag), path = ctx.path, setSelection = self.setSelection, runtime = ctx.runtime] index in
+                if let setSelection { if let tag = tags[index] { _ = setSelection(tag) } } else { runtime.focus.tabSelections[path] = index }
+                runtime.needsAnotherPass = true
+            }
         } else {
             let accessoryNode: Node? = accessory.flatMap { resolver in
                 guard ctx.env.designLanguage.isGlass else { return nil }
@@ -736,7 +769,9 @@ final class TabViewNode: Node {
 
         var separate: Int? = nil
         if design.isGlass, !topBar, entries.count > 1 {
-            separate = entries.firstIndex { $0.role == .search || ($0.role == .prominent && design == .liquidGlass27) }
+            // iOS 26 sets the search tab apart (Apple's iOS 26 design); the iOS 27.0 simulator draws it
+            // inline with the other tabs (GlassTabsAndSheets "Search tab and accessory").
+            separate = entries.firstIndex { ($0.role == .search && design == .liquidGlass26) || ($0.role == .prominent && design == .liquidGlass27) }
         }
         separateIndex = separate
 
@@ -855,6 +890,7 @@ final class TabViewNode: Node {
 
     private func layoutGlassBar(size: CGSize, safeTop: CGFloat, _ ctx: PlaceContext) {
         let g = TabBarMetrics.forDesign(design)
+        var overlap: CGFloat = 0
         let compact = TabBarMetrics.isCompactHeight
         let device = _currentConfiguration().device
         let screen = ctx.container.offsetBy(dx: -ctx.origin.x, dy: -ctx.origin.y)
@@ -887,11 +923,38 @@ final class TabViewNode: Node {
                 mainWidth = available - extra
             }
         } else {
-            mainWidth = available - extra
-            let share = (mainWidth - g.pillInset * 2) / CGFloat(max(1, mainIndices.count))
-            widths = mainIndices.map { _ in share }
+            // Natural frames; neighbours overlap. They fill the capsule unless they fit at their natural width.
+            let n = CGFloat(mainIndices.count)
+            overlap = mainIndices.count > 1 ? g.itemOverlapPerTab * n : 0
+            let natural = mainIndices.map { i in
+                max(g.minItemWidth, (items[i].title?.sizeThatFits(.unspecified).width ?? 0) + g.itemTitlePadding)
+            }
+            let inner = available - extra - g.pillInset * 2
+            // The overlap that makes natural frames fill the capsule exactly.
+            let needed = n > 1 ? (natural.reduce(0, +) - inner) / (n - 1) : 0
+            if n <= 1 || needed <= 0 {
+                // They fit with room to spare: a narrower capsule, centred.
+                widths = natural
+                mainWidth = natural.reduce(0, +) - overlap * (n - 1) + g.pillInset * 2
+            } else if needed <= overlap {
+                // A little more overlap makes them fill (4 tabs).
+                overlap = needed
+                widths = natural
+                mainWidth = available - extra
+            } else {
+                // Stretch the frames that are at the minimum; wider (long-title) frames keep their width.
+                widths = natural
+                let wide = natural.filter { $0 > g.minItemWidth + 0.01 }
+                let narrowCount = n - CGFloat(wide.count)
+                let rest = inner + overlap * (n - 1) - wide.reduce(0, +)
+                let each = narrowCount > 0 ? rest / narrowCount : 0
+                widths = natural.map { $0 > g.minItemWidth + 0.01 && each < $0 ? $0 : each }
+                let total = widths.reduce(0, +) - overlap * (n - 1)
+                if total > inner + 0.01 { let k = inner / total; widths = widths.map { $0 * k } }
+                mainWidth = available - extra
+            }
         }
-        let groupX = compact ? leftLimit + (available - mainWidth - extra) / 2 : leftLimit
+        let groupX = leftLimit + (available - mainWidth - extra) / 2
         capsule = CGRect(x: groupX, y: top, width: mainWidth, height: height)
         separateRect = separate == nil ? .zero : CGRect(x: capsule.maxX + g.separateGap, y: top, width: height, height: height)
 
@@ -899,7 +962,7 @@ final class TabViewNode: Node {
         var x = capsule.minX + g.pillInset
         for (k, i) in mainIndices.enumerated() {
             cells[i] = CGRect(x: x, y: top + g.pillInset, width: widths[k], height: height - g.pillInset * 2)
-            x += widths[k]
+            x += widths[k] - (compact ? 0 : overlap)
         }
         if let separate { cells[separate] = separateRect.insetBy(dx: g.pillInset, dy: g.pillInset) }
         pillRect = cells.indices.contains(selectedIndex) ? cells[selectedIndex] : .zero
@@ -966,13 +1029,13 @@ final class TabViewNode: Node {
             }
             if let badge = item.badge {
                 let s = badge.sizeThatFits(.unspecified)
-                badge.place(at: CGPoint(x: iconMidX + TabBarMetrics.badgeLeadingFromIconCenter,
+                badge.place(at: CGPoint(x: iconMidX + g.badgeLeadingFromIconCenter,
                                         y: compact || isSeparate ? iconTop : top + g.badgeTop), size: s, ctx)
             }
         }
         // Hit frames: the whole cell, to the capsule's outer edge.
         glassItemFrames = cells.enumerated().map { i, cell in
-            i == separate ? separateRect : CGRect(x: cell.minX, y: top, width: cell.width, height: height)
+            i == separate ? separateRect : compact ? CGRect(x: cell.minX, y: top, width: cell.width, height: height) : cell
         }
         glassBarFrame = separate == nil ? capsule : capsule.union(separateRect)
     }
@@ -1063,6 +1126,10 @@ final class PageTabViewNode: Node {
     private var dotsCenterY: CGFloat = 0
     /// tvOS draws larger page dots (est.).
     var dotScale: CGFloat = 1
+    /// watchOS `.verticalPage`: small dots stacked at the trailing edge, centred vertically.
+    var vertical = false
+    /// `containerBackground(_:for: .tabView)` of the page: fills the screen behind it.
+    var containerBackground: Node?
 
     init(content: Node, count: Int, selected: Int, mode: PageTabViewStyle.IndexDisplayMode,
          background: PageIndexViewStyle.BackgroundDisplayMode) {
@@ -1079,13 +1146,20 @@ final class PageTabViewNode: Node {
     override func layout(size: CGSize, _ ctx: PlaceContext) {
         let c = content.sizeThatFits(ProposedViewSize(size))
         content.place(at: CGPoint(x: (size.width - c.width) / 2, y: (size.height - c.height) / 2), size: c, ctx)
+        if let containerBackground {
+            let full = ctx.container.offsetBy(dx: -ctx.origin.x, dy: -ctx.origin.y)
+            _ = containerBackground.sizeThatFits(ProposedViewSize(full.size))
+            containerBackground.place(at: full.origin, size: full.size, ctx)
+        }
         let bottom = min(size.height, ctx.safeRect.maxY - ctx.origin.y)
         dotsCenterY = bottom - TabBarMetrics.pageDotsCenterFromBottom * dotScale
     }
 
     override func drawContent(_ p: Painter) {
+        containerBackground?.draw(p)
         drawChildren(p)
         guard showsDots, count > 0 else { return }
+        if vertical { drawVerticalDots(p); return }
         let m = TabBarMetrics.self
         let pitch = m.pageDotPitch * dotScale, diameter = m.pageDotDiameter * dotScale
         let total = CGFloat(count - 1) * pitch
@@ -1100,6 +1174,17 @@ final class PageTabViewNode: Node {
             let r = CGRect(x: x - diameter / 2, y: dotsCenterY - diameter / 2, width: diameter, height: diameter)
             let alpha = i == selected ? 1 : m.pageDotInactiveOpacity
             p.fill(Path(ellipseIn: r), with: .color(RGBA(1, 1, 1, alpha)), in: r)
+        }
+    }
+
+    /// watchOS vertical page indicator (est.: 5pt dots, 9pt apart, 6pt from the trailing edge).
+    private func drawVerticalDots(_ p: Painter) {
+        let diameter: CGFloat = 5, pitch: CGFloat = 9
+        let total = CGFloat(count - 1) * pitch
+        let startY = frame.height / 2 - total / 2, x = frame.width - 6
+        for i in 0..<count {
+            let r = CGRect(x: x - diameter / 2, y: startY + CGFloat(i) * pitch - diameter / 2, width: diameter, height: diameter)
+            p.fill(Path(ellipseIn: r), with: .color(RGBA(1, 1, 1, i == selected ? 1 : TabBarMetrics.pageDotInactiveOpacity)), in: r)
         }
     }
 }

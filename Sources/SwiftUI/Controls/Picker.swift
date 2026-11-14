@@ -35,9 +35,10 @@ extension View {
         env {
             $0[PickerKindExplicitKey.self] = !(style is DefaultPickerStyle)
             if style is PalettePickerStyle { $0[PickerPaletteKey.self] = true }
+            $0[PickerRadioKey.self] = style is RadioGroupPickerStyle
             switch style {
             case is SegmentedPickerStyle, is PalettePickerStyle: $0.pickerKind = .segmented
-            case is InlinePickerStyle: $0.pickerKind = .inline
+            case is InlinePickerStyle, is RadioGroupPickerStyle: $0.pickerKind = .inline
             case is WheelPickerStyle: $0.pickerKind = .wheel
             case is NavigationLinkPickerStyle: $0.pickerKind = .navigationLink
             default: $0.pickerKind = .menu
@@ -103,23 +104,62 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
             let nodes = options({ $0.foregroundStyle = AnyShapeStyle(Color.accentColor) }, key: "menu")
             let selected = selectedIndex(nodes).map { nodes[$0] }
             valueText = selected.map { axText([$0]) }
-            view = AnyView(HStack(spacing: 8) {
-                if !labelNodes.isEmpty { labelView }
-                HStack(spacing: 5) {
+            if ctx.env.designLanguage.isGlass, !ctx.env.isInListRow, ctx.env.renderPlatform != .tvOS {
+                // iOS 26/27 outside a list: a borderless menu button showing only the value.
+                // measured: iOS 27.0 simulator (ControlsInputs): 89.67 x 34.33pt for "Vanilla",
+                // 12/7pt padding, an 8.67 x 12.67pt double chevron 8pt after the value.
+                view = AnyView(HStack(spacing: 8) {
                     if let selected { _NodeView(selected) }
-                    UpDownChevron(color: AnyShapeStyle(Color.accentColor))
+                    if ctx.env.menuIndicatorVisibility != .hidden { UpDownChevron(color: AnyShapeStyle(Color.accentColor), size: CGSize(width: 8.67, height: 12.67)) }
                 }
-            })
+                .padding(.horizontal, 12).padding(.vertical, 7))
+            } else if ctx.env.isInListRow, ctx.env.renderPlatform != .tvOS {
+                // In a list row the value sits at the trailing edge, as in Settings-style forms.
+                // measured: iOS 27.0 simulator (01_Settings): "System" and its chevron end at the row's trailing inset.
+                let glass = ctx.env.designLanguage.isGlass
+                view = AnyView(HStack(spacing: 8) {
+                    if !labelNodes.isEmpty { labelView }
+                    Spacer(minLength: 8)
+                    HStack(spacing: glass ? 8 : 5) {
+                        if let selected { _NodeView(selected) }
+                        if ctx.env.menuIndicatorVisibility != .hidden {
+                            if glass { UpDownChevron(color: AnyShapeStyle(Color.accentColor), size: CGSize(width: 8.67, height: 12.67)) }
+                            else { UpDownChevron(color: AnyShapeStyle(Color.accentColor)) }
+                        }
+                    }
+                })
+            } else {
+                view = AnyView(HStack(spacing: 8) {
+                    if !labelNodes.isEmpty { labelView }
+                    HStack(spacing: 5) {
+                        if let selected { _NodeView(selected) }
+                        if ctx.env.menuIndicatorVisibility != .hidden { UpDownChevron(color: AnyShapeStyle(Color.accentColor)) }
+                    }
+                })
+            }
         case .navigationLink:
             let nodes = options({ $0.foregroundStyle = AnyShapeStyle(Color(SystemColor.secondaryLabel)) }, key: "nav")
             let selected = selectedIndex(nodes).map { nodes[$0] }
             valueText = selected.map { axText([$0]) }
-            view = AnyView(HStack(spacing: 8) {
-                labelView
-                Spacer(minLength: 8)
-                if let selected { _NodeView(selected) }
-                Chevron(width: 7, height: 12, weight: 2, color: AnyShapeStyle(Color(SystemColor.tertiaryLabel)))
-            })
+            if ctx.env.designLanguage.isGlass, ctx.env.navigationStackIdentity == nil, ctx.env.renderPlatform != .tvOS {
+                // Outside a NavigationStack the link cannot navigate: a disabled row, label in
+                // the tertiary colour, no chevron. measured: iOS 27.0 simulator (ControlsInputs).
+                let disabledLabel = _NodesView(resolveNodes(label, ctx.child("label").with {
+                    $0.foregroundStyle = AnyShapeStyle(Color(SystemColor.tertiaryLabel))
+                }))
+                view = AnyView(HStack(spacing: 8) {
+                    disabledLabel
+                    Spacer(minLength: 8)
+                    if let selected { _NodeView(selected) }
+                })
+            } else {
+                view = AnyView(HStack(spacing: 8) {
+                    labelView
+                    Spacer(minLength: 8)
+                    if let selected { _NodeView(selected) }
+                    Chevron(width: 7, height: 12, weight: 2, color: AnyShapeStyle(Color(SystemColor.tertiaryLabel)))
+                })
+            }
         case .segmented:
             let glass = ctx.env.designLanguage.isGlass
             let size = glass ? ControlGlassMetrics.segmentedFontSize : 13
@@ -127,6 +167,29 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
             let bold = options({ $0.font = .system(size: size, weight: glass ? .semibold : .medium) }, key: "seg")
             let sel = selectedIndex(normal)
             view = AnyView(SegmentedBody(nodes: normal, selectedNode: sel.map { bold[$0] }, selected: sel, select: selector(normal)))
+        case .inline where ctx.env[PickerRadioKey.self]:
+            // macOS radio group: the label, then one radio button per option.
+            let nodes = options({ _ in }, key: "radio")
+            let sel = selectedIndex(nodes)
+            view = AnyView(HStack(alignment: .top, spacing: 8) {
+                if !labelNodes.isEmpty { labelView }
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(Array(nodes.enumerated()), id: \.offset) { pair in
+                        HStack(spacing: 6) {
+                            _RadioCircle(isOn: pair.offset == sel)
+                            _NodeView(pair.element)
+                        }
+                        .focusElement(role: "option", activate: { [select = selector(nodes)] in select(pair.offset) })
+                    }
+                }
+            })
+        case .inline where ctx.env.designLanguage.isGlass && !ctx.env.isInListRow && ctx.env.renderPlatform != .tvOS:
+            // Outside a list an inline picker is a wheel (measured: iOS 27.0 simulator,
+            // ControlsInputs: an adjustable wheel element, squeezed by the full stack).
+            let nodes = options({ $0.font = .system(size: 21) }, key: "wheel")
+            let sel = selectedIndex(nodes) ?? 0
+            valueText = nodes.indices.contains(sel) ? axText([nodes[sel]]) : nil
+            view = AnyView(WheelBody(nodes: nodes, selected: sel, flexible: true))
         case .inline:
             let nodes = options({ _ in }, key: "inline")
             let sel = selectedIndex(nodes)
@@ -154,7 +217,7 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
             let nodes = options({ $0.font = .system(size: 21) }, key: "wheel")
             let sel = selectedIndex(nodes) ?? 0
             valueText = nodes.indices.contains(sel) ? axText([nodes[sel]]) : nil
-            view = AnyView(WheelBody(nodes: nodes, selected: sel))
+            view = AnyView(WheelBody(nodes: nodes, selected: sel, flexible: ctx.env.designLanguage.isGlass && ctx.env.renderPlatform != .tvOS))
         }
         let result = view.opacity(enabled ? 1 : 0.4)
         let labelText = axText(labelNodes)
@@ -175,10 +238,18 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
             case .segmented:
                 $0.role = "segmentedControl"; $0.children = .contain
             case .inline:
-                $0.children = .contain
+                if valueText != nil {
+                    $0.addTraits = [.adjustable]; $0.children = .ignore; $0.value = valueText
+                } else {
+                    $0.children = .contain
+                }
             }
         }
-        let described = result.modifier(AXModifier(shared: true) { _ in info })
+        // Scripted steps choose an option by its title (Interaction/).
+        let described = result.modifier(AXModifier(shared: true) { _ in info }).interaction { _ in
+            let plain = options({ _ in }, key: "interaction")
+            return .picker(labels: plain.map { axText([$0]) }, select: selector(plain))
+        }
         switch kind {
         case .segmented, .inline:
             // Each option is focusable on its own.
@@ -209,10 +280,6 @@ struct SegmentedBody: View {
         return HStack(spacing: 0) {
             ForEach(Array(nodes.enumerated()), id: \.offset) { pair in
                 let isSel = pair.offset == selected
-                if pair.offset > 0 {
-                    let hide = isSel || pair.offset - 1 == selected
-                    Rectangle().fill(Color(SystemColor.gray3)).frame(width: 1, height: 14).opacity(hide ? 0 : 1)
-                }
                 Group {
                     if isSel, let selectedNode { _NodeView(selectedNode) } else { _NodeView(pair.element) }
                 }
@@ -228,12 +295,7 @@ struct SegmentedBody: View {
                 }
                 .focusElement(role: "segment", activate: { [select] in select(pair.offset) })
                 .background {
-                    if isSel {
-                        Capsule()
-                            .fill(Color(DynamicColor(0xFFFFFF, 0x636366)))
-                            .shadow(color: Color.black.opacity(0.12), radius: 3, x: 0, y: 2)
-                            .shadow(color: Color.black.opacity(0.04), radius: 0.5, x: 0, y: 0.5)
-                    }
+                    if isSel { Capsule().fill(Color(m.segmentedSelection)) }
                 }
             }
         }
@@ -283,6 +345,9 @@ struct SegmentedBody: View {
 struct WheelBody: View {
     let nodes: [Node]
     let selected: Int
+    /// A wheel gives up height when its container is short of room (measured: iOS 27.0
+    /// simulator, a wheel in an over-full VStack takes no height at all).
+    var flexible = false
 
     var body: some View {
         ZStack {
@@ -300,6 +365,7 @@ struct WheelBody: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: 216)
+        .frame(minHeight: flexible ? 0 : 216, idealHeight: 216, maxHeight: 216)
         .clipped()
     }
 }

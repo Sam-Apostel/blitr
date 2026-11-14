@@ -109,7 +109,7 @@ xcrun simctl spawn "$UDID" defaults write -g AppleLanguages '("en-US")'
 xcrun simctl spawn "$UDID" defaults write com.apple.Accessibility ReduceMotionEnabled -bool true
 xcrun simctl ui "$UDID" content_size large
 xcrun simctl status_bar "$UDID" override --time 9:41 --dataNetwork wifi --wifiMode active --wifiBars 3 \
-    --cellularMode active --cellularBars 4 --operatorName "" --batteryState charged --batteryLevel 100
+    --cellularMode active --cellularBars 4 --operatorName "" --batteryState discharging --batteryLevel 100
 
 CONTAINER="$(xcrun simctl get_app_container "$UDID" "$BUNDLE_ID" data)/Documents"
 SRGB="/System/Library/ColorSync/Profiles/sRGB Profile.icc"
@@ -152,8 +152,13 @@ PY
         printf '  %s-%s %s\n' "$key" "$index" "$scheme"
     done
 done < <(python3 - "$BUILD/gen/screens.json" <<'PY'
-import json, sys
+import json, os, sys
+failed_path = os.path.join(os.path.dirname(sys.argv[1]), "failed.txt")
+failed = set(open(failed_path).read().split()) if os.path.exists(failed_path) else set()
 for screen in json.load(open(sys.argv[1])):
+    # Files that did not compile are not in the app; the manifest lists them as skipped.
+    if screen["module"] in failed:
+        continue
     for p in screen["previews"]:
         # Only full-device previews are comparable to a simulator screen.
         if p.get("layout") or p.get("orientation"):
@@ -183,7 +188,7 @@ devices[slug] = {
     "name": device,
     "schemes": "$SCHEMES".split(),
     "captured": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-    "statusBar": {"time": "9:41", "battery": "charged 100%", "cellularBars": 4, "wifiBars": 3},
+    "statusBar": {"time": "9:41", "battery": "discharging 100%", "cellularBars": 4, "wifiBars": 3},
     "locale": "en_US", "dynamicType": "large", "reduceMotion": True, "colorSpace": "sRGB",
     # Screens that show dates or times render the simulator's clock; this is when they were taken.
     "simulatorDate": "$SIM_DATE", "simulatorTimeZone": "$SIM_TZ",

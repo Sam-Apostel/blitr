@@ -86,15 +86,21 @@ extension View {
 // MARK: - Context menus, swipe actions, refresh
 
 extension View {
-    public func contextMenu<MenuItems: View>(@ViewBuilder menuItems: () -> MenuItems) -> some View { self }
+    public func contextMenu<MenuItems: View>(@ViewBuilder menuItems: () -> MenuItems) -> some View {
+        interaction { _ in var h = InteractionHandlers(); h.hasContextMenu = true; return h }
+    }
     public func contextMenu<MenuItems: View, Preview: View>(@ViewBuilder menuItems: () -> MenuItems,
-                                                           @ViewBuilder preview: () -> Preview) -> some View { self }
+                                                           @ViewBuilder preview: () -> Preview) -> some View {
+        interaction { _ in var h = InteractionHandlers(); h.hasContextMenu = true; return h }
+    }
     public func contextMenu<I: Hashable, M: View>(forSelectionType itemType: I.Type = I.self,
                                                   @ViewBuilder menu: @escaping (Set<I>) -> M,
                                                   primaryAction: ((Set<I>) -> Void)? = nil) -> some View { self }
 
     public func swipeActions<T: View>(edge: HorizontalEdge = .trailing, allowsFullSwipe: Bool = true,
-                                      @ViewBuilder content: () -> T) -> some View { self }
+                                      @ViewBuilder content: () -> T) -> some View {
+        modifier(SwipeActionsModifier(edge: edge, actions: content()))
+    }
 
     public func refreshable(action: @escaping @Sendable () async -> Void) -> some View { self }
 }

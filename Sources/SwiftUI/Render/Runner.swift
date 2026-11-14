@@ -106,6 +106,7 @@ public enum _ScreenshotRunner {
                 }
                 config.osVersion = major
             case "--no-chrome": config.showsDeviceChrome = false
+            case "--show-tips": config.showsTips = true
             case "--background":
                 let hex = value(flag).trimmingCharacters(in: CharacterSet(charactersIn: "#"))
                 if hex == "clear" || hex == "transparent" { config.background = .clear }
@@ -135,7 +136,11 @@ public enum _ScreenshotRunner {
             case "--widget-rendering-mode":
                 let v = value(flag)
                 guard _WidgetRenderingModeID(_argument: v) != nil else { fail("--widget-rendering-mode must be fullColor, accented or vibrant") }
-            default: fail("unknown option \(flag)")
+            default:
+                // Interaction and animation capture flags (Interaction/InteractionFlags.swift).
+                do {
+                    guard try InteractionFlags.parse(flag, value: { value(flag) }) else { fail("unknown option \(flag)") }
+                } catch { fail("\(error)") }
             }
         }
 
@@ -188,6 +193,7 @@ public enum _ScreenshotRunner {
                                           "warnings": result.warnings]
             payload.merge(AccessibilityOutputs.payload) { current, _ in current }
             payload.merge(FocusOutputs.payload) { current, _ in current }
+            payload.merge(InteractionSession.payload) { current, _ in current }
             let json = try JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys])
             print(String(decoding: json, as: UTF8.self))
             exit(0)

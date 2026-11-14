@@ -25,6 +25,8 @@ class Node {
     final var ax: AXBox?
     /// Focus information recorded by controls and focus modifiers (see Focus/).
     final var focusRecords: [FocusRecord] = []
+    /// What an interaction capture needs to animate this node (Animation/); nil in a still render.
+    final var capture: CaptureInfo?
     /// Preference values written on this node itself; they replace what its children report.
     final var ownPreferences = PreferenceStore()
     private var blockedPreferences: Set<ObjectIdentifier> = []
@@ -127,6 +129,7 @@ class Node {
     // MARK: Drawing
 
     func draw(_ p: Painter) {
+        if let tween = Tweener.active, tween.draw(self, p) { return }
         p.save()
         p.translate(frame.origin.x, frame.origin.y)
         drawContent(p)

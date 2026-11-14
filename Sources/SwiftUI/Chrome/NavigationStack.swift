@@ -133,6 +133,8 @@ public struct NavigationStack<Data, Root: View>: View, PrimitiveView {
     public typealias Body = Never
     let root: Root
     let path: () -> [AnyHashable]
+    /// Removes the last element of a bound path (scripted `back`, Interaction/); false when it is empty.
+    var popPath: (@MainActor () -> Bool)?
 
     public init(@ViewBuilder root: () -> Root) where Data == NavigationPath {
         self.root = root()
@@ -141,15 +143,18 @@ public struct NavigationStack<Data, Root: View>: View, PrimitiveView {
     public init(path: Binding<NavigationPath>, @ViewBuilder root: () -> Root) where Data == NavigationPath {
         self.root = root()
         self.path = { path.wrappedValue.elements }
+        popPath = { if path.wrappedValue.isEmpty { return false }; path.wrappedValue.removeLast(); return true }
     }
     public init(path: Binding<Data>, @ViewBuilder root: () -> Root)
     where Data: MutableCollection, Data: RandomAccessCollection, Data: RangeReplaceableCollection, Data.Element: Hashable {
         self.root = root()
         self.path = { path.wrappedValue.map { AnyHashable($0) } }
+        popPath = { if path.wrappedValue.isEmpty { return false }; path.wrappedValue.removeLast(); return true }
     }
 
     func resolve(_ ctx: ResolveContext, into out: inout [Node]) {
         let root = self.root
+        InteractionRegistry.notePathPop(ctx.path, popPath)
         out.append(makeNavigationStack(ctx, path: path()) { resolveSingle(root, $0) })
     }
 }
@@ -232,14 +237,6 @@ public struct NavigationSplitView<Sidebar: View, Content: View, Detail: View>: V
     }
 }
 
-public protocol NavigationSplitViewStyle {}
-public struct AutomaticNavigationSplitViewStyle: NavigationSplitViewStyle { public init() {} }
-public struct BalancedNavigationSplitViewStyle: NavigationSplitViewStyle { public init() {} }
-public struct ProminentDetailNavigationSplitViewStyle: NavigationSplitViewStyle { public init() {} }
-extension NavigationSplitViewStyle where Self == AutomaticNavigationSplitViewStyle { public static var automatic: Self { .init() } }
-extension NavigationSplitViewStyle where Self == BalancedNavigationSplitViewStyle { public static var balanced: Self { .init() } }
-extension NavigationSplitViewStyle where Self == ProminentDetailNavigationSplitViewStyle { public static var prominentDetail: Self { .init() } }
-
 public protocol NavigationViewStyle {}
 public struct DefaultNavigationViewStyle: NavigationViewStyle { public init() {} }
 public struct StackNavigationViewStyle: NavigationViewStyle { public init() {} }
@@ -314,6 +311,7 @@ func makeNavigationStack(_ ctx: ResolveContext, path: [AnyHashable], root: (Reso
     if pages.count == 1, chrome.search == nil { chrome.search = outerSearch }
     let previousTitle: String? = pages.count > 1 ? (pages[pages.count - 2].chrome.title?.plain ?? "") : nil
     let node = NavigationStackNode(content: top.node, chrome: chrome, displayMode: mode, previousTitle: previousTitle, ctx: ctx)
+    InteractionRegistry.noteStack(node, ctx.path)
     return node
 }
 
@@ -338,7 +336,9 @@ final class BackButtonNode: Node {
                       height: m.barHeight)
     }
     override func layout(size: CGSize, _ ctx: PlaceContext) {
-        guard let title, glass == nil else { return }
+        guard let title else { return }
+        // Liquid Glass: the title is not shown, it only names the button for accessibility.
+        guard glass == nil else { title.place(at: .zero, size: .zero, ctx); return }
         let t = title.sizeThatFits(.unspecified)
         title.place(at: CGPoint(x: NavigationBarMetrics.backTitleLeading, y: (size.height - t.height) / 2), size: t, ctx)
     }
@@ -373,7 +373,10 @@ final class EllipsisCircleNode: Node {
     /// Liquid Glass: three dots (`ellipsis`) on the item's glass instead of a ringed glyph.
     let onGlass: Bool
     init(color: _Paint, onGlass: Bool = false) { self.color = color; self.onGlass = onGlass; super.init() }
-    override func measure(_ proposal: ProposedViewSize) -> CGSize { CGSize(width: 23, height: 23) }
+    override func measure(_ proposal: ProposedViewSize) -> CGSize {
+        // On glass the `ellipsis` glyph: 18pt wide. measured: iOS 27.0 simulator ("More" frame 38pt)
+        onGlass ? CGSize(width: 18, height: 23) : CGSize(width: 23, height: 23)
+    }
     override func drawContent(_ p: Painter) {
         if onGlass {
             let mid = CGPoint(x: frame.width / 2, y: frame.height / 2)
@@ -472,7 +475,7 @@ final class NavigationStackNode: Node {
             barAdjust = { e in
                 e.colorScheme = barScheme
                 e.font = glass.itemFont
-                e.imageScale = .medium
+                e.imageScale = glass.itemImageScale
                 e.stackAxis = .horizontal
                 e.isInListRow = false
                 e.lineLimit = 1
@@ -502,7 +505,8 @@ final class NavigationStackNode: Node {
             var schemeEnv = env
             schemeEnv.colorScheme = barScheme
             let items = NavigationStackNode.glassItems(chrome, glass: glass, barAdjust: barAdjust, accent: accent,
-                                                       hasBack: previousTitle != nil && chrome.backButtonHidden != true, env: schemeEnv)
+                                                       hasBack: previousTitle != nil && chrome.backButtonHidden != true,
+                                                       backTitle: previousTitle, env: schemeEnv)
             (leading, trailing, principal, status) = (items.leading, items.trailing, items.principal, items.status)
             glassRow = items.bottom
         }
@@ -605,15 +609,19 @@ final class NavigationStackNode: Node {
         bottomBackgroundVisibility = bottomBar.backgroundVisibility ?? .automatic
         hairline = .color(SystemColor.separator.resolve(barScheme))
 
-        // Scroll edge effect of glass bars: iOS 26 defaults to soft, iOS 27 to hard.
-        func isHard(_ style: ScrollEdgeEffectStyle?) -> Bool {
-            let style = style ?? .automatic
-            return style == .hard || (style == .automatic && glass?.defaultScrollEdgeHard == true)
+        // Scroll edge effect of glass bars: iOS 26 defaults to soft, iOS 27 draws none at rest.
+        func resolved(_ style: ScrollEdgeEffectStyle?) -> NavigationGlassMetrics.DefaultScrollEdge {
+            switch style ?? .automatic {
+            case .hard: return .hard
+            case .soft: return .soft
+            default: return glass?.defaultScrollEdge ?? .none
+            }
         }
-        topEdgeHard = isHard(chrome.topEdgeEffectStyle)
-        bottomEdgeHard = isHard(chrome.bottomEdgeEffectStyle)
-        topEdgeHidden = chrome.topEdgeEffectHidden ?? false
-        bottomEdgeHidden = chrome.bottomEdgeEffectHidden ?? false
+        let topEdge = resolved(chrome.topEdgeEffectStyle), bottomEdge = resolved(chrome.bottomEdgeEffectStyle)
+        topEdgeHard = topEdge == .hard
+        bottomEdgeHard = bottomEdge == .hard
+        topEdgeHidden = (chrome.topEdgeEffectHidden ?? false) || topEdge == .none
+        bottomEdgeHidden = (chrome.bottomEdgeEffectHidden ?? false) || bottomEdge == .none
         edgeTint = SystemColor.background.resolve(barScheme).opacity(glass?.softEdgeTintOpacity ?? 0)
         edgeMaterial = Material.bar._paint(in: schemeEnv)
 
@@ -779,11 +787,13 @@ extension NavigationStackNode {
     /// Groups a stack's toolbar items onto glass capsules: navigation bar leading and trailing
     /// groups, and the floating bottom bar.
     static func glassItems(_ chrome: NavigationChrome, glass: NavigationGlassMetrics, barAdjust: @escaping (inout EnvironmentValues) -> Void,
-                           accent: _Paint, hasBack: Bool, env: EnvironmentValues)
+                           accent: _Paint, hasBack: Bool, backTitle: String? = nil, env: EnvironmentValues)
     -> (leading: [Node], trailing: [Node], principal: Node?, status: Node?, bottom: ToolbarGlassRowNode?) {
         let neutral = GlassAppearance.system(.regular, scheme: env.colorScheme, design: env.designLanguage)
         // Prominent glass takes the app's accent color (the bar's own environment made labels monochrome).
-        let prominent = GlassAppearance.resolve(Glass.regular.tint(Color.accentColor), in: env)
+        // An opaque accent fill. measured: iOS 27.0 simulator (confirm button (0,134,251) light, (0,145,255) dark)
+        var prominent = GlassAppearance.resolve(Glass.regular.tint(Color.accentColor), in: env)
+        prominent.tint.a = 1
         var lead: [ToolbarGlassToken] = [], trail: [ToolbarGlassToken] = [], pinned: [ToolbarGlassToken] = [], bottom: [ToolbarGlassToken] = []
         var principal: Node?, status: Node?, hasSecondary = false
         func add(_ token: ToolbarGlassToken, _ placement: ToolbarItemPlacement.Kind) {
@@ -806,9 +816,10 @@ extension NavigationStackNode {
                 let nodes = entry.resolve { e in
                     barAdjust(&e)
                     e.font = glass.prominentItemFont
-                    e.accentColor = Color.white
                 }
-                for node in nodes { add(.item(node, prominent: true, sharesBackground: shares), .confirmation) }
+                // Semibold, but on neutral glass: only a `.confirm` role makes an item prominent.
+                // measured: iOS 27.0 simulator ("Done" in .confirmationAction, GlassNavigation-3)
+                for node in nodes { add(.item(node, prominent: false, sharesBackground: shares), .confirmation) }
             case .principal:
                 let nodes = entry.resolve(barAdjust)
                 principal = principal ?? (nodes.count == 1 ? nodes.first : StackNode(axis: .horizontal, alignment: .center, spacing: nil, children: nodes))
@@ -828,14 +839,17 @@ extension NavigationStackNode {
         var leading: [Node] = []
         if hasBack {
             // The back button: its own glass circle with a chevron, no title.
-            leading.append(ToolbarGlassGroupNode(items: [BackButtonNode(title: nil, color: accent, glass: glass)], kinds: [.icon],
+            // The previous title is not drawn; it labels the button for accessibility, as on iOS.
+            let title = backTitle.flatMap { $0.isEmpty ? nil : Text(verbatim: $0).makeNode(env) }
+            leading.append(ToolbarGlassGroupNode(items: [BackButtonNode(title: title, color: accent, glass: glass)], kinds: [.back],
                                                  appearance: neutral, height: glass.itemHeight, metrics: glass))
         }
         leading += groups(lead)
         let trailing = groups(trail) + groups(pinned)
         var row: ToolbarGlassRowNode?
         if !bottom.isEmpty || chrome.search != nil {
-            let slots = makeToolbarGlassSlots(bottom, height: glass.bottomBarHeight, metrics: glass, neutral: neutral, prominent: prominent)
+            let slots = makeToolbarGlassSlots(bottom, height: glass.bottomBarHeight, metrics: glass, neutral: neutral, prominent: prominent,
+                                              bottom: true)
             row = ToolbarGlassRowNode(slots: slots, metrics: glass)
         }
         return (leading, trailing, principal, status, row)
@@ -862,10 +876,10 @@ extension NavigationStackNode {
             search.glassStyle = searchStyle
         }
 
-        let largeTitleRegion = NavigationBarMetrics.largeTitleHeight + (subtitle != nil && showsLargeTitle ? g.largeSubtitleHeight : 0)
+        let largeTitleRegion = g.largeTitleHeight + (subtitle != nil && showsLargeTitle ? g.largeSubtitleHeight : 0)
         var y = barTop
         if barVisible {
-            y += g.barHeight
+            y += g.barHeight + g.barBottomPadding
             if showsLargeTitle { y += largeTitleRegion }
             if searchStyle == .drawer { y += g.drawerSearchRegion }
         }
@@ -882,12 +896,13 @@ extension NavigationStackNode {
             if barBelow {
                 barBottom = safeBottom - g.bottomBarBottomInsetNoIndicator
             } else {
-                let screenBottom = min(size.height, ctx.container.maxY - ctx.origin.y)
+                // The screen bottom, not this node's: the stack itself ends at the safe area.
+                let screenBottom = ctx.container.maxY - ctx.origin.y
                 let indicator = _currentConfiguration().device.safeArea.bottom > 0 && ctx.container.maxY - ctx.safeRect.maxY > 0.5
                 barBottom = screenBottom - (indicator ? g.bottomBarBottomInset : g.bottomBarBottomInsetNoIndicator)
             }
             bottomBarTop = barBottom - g.bottomBarHeight
-            contentBottom = min(safeBottom, barBottom - g.bottomBarHeight)
+            contentBottom = min(safeBottom, barBottom - g.bottomBarHeight - g.bottomBarContentGap)
         } else {
             bottomBarTop = nil
         }
@@ -905,6 +920,7 @@ extension NavigationStackNode {
             if let row, !row.isEmpty {
                 row.place(at: CGPoint(x: side, y: barY), size: CGSize(width: size.width - side * 2, height: g.bottomBarHeight), ctx)
                 if let f = row.searchFrame, let search {
+                    search.glassJoined = row.searchJoined
                     search.place(at: CGPoint(x: side + f.minX, y: barY + f.minY), size: f.size, ctx)
                 }
             }
@@ -974,21 +990,23 @@ extension NavigationStackNode {
             }
         }
 
-        let m = NavigationBarMetrics.self
         if let largeTitle {
             let width = size.width - margin * 2
             let s = largeTitle.sizeThatFits(ProposedViewSize(width: width, height: nil))
             let baseline = largeTitle.explicitAlignment(VerticalAlignment.firstTextBaseline.key, size: s) ?? s.height
-            let baselineY = barTop + h + m.largeTitleHeight - m.largeTitleBaselineInset
+            var baselineY = barTop + h + g.barBottomPadding + g.largeTitleHeight - g.largeTitleBaselineInset
+            if subtitle != nil { baselineY += g.largeTitleShiftWithSubtitle }
             largeTitle.place(at: CGPoint(x: margin, y: baselineY - baseline), size: CGSize(width: min(s.width, width), height: s.height), ctx)
             if let subtitle {
                 let ss = subtitle.sizeThatFits(ProposedViewSize(width: width, height: nil))
-                subtitle.place(at: CGPoint(x: margin, y: barTop + h + m.largeTitleHeight), size: CGSize(width: min(ss.width, width), height: ss.height), ctx)
+                let sb = subtitle.explicitAlignment(VerticalAlignment.firstTextBaseline.key, size: ss) ?? ss.height
+                subtitle.place(at: CGPoint(x: margin, y: baselineY + g.largeSubtitleBaselineGap - sb),
+                               size: CGSize(width: min(ss.width, width), height: ss.height), ctx)
             }
         }
 
         if let search, search.glassStyle == .drawer {
-            let top = barTop + h + (showsLargeTitle ? largeTitleRegion : 0) + g.drawerSearchTopGap
+            let top = barTop + h + (showsLargeTitle ? g.barBottomPadding + largeTitleRegion : 0) + g.drawerSearchTopGap
             search.place(at: CGPoint(x: itemMargin, y: top),
                          size: CGSize(width: size.width - itemMargin * 2, height: NavigationGlassMetrics.search.drawerHeight), ctx)
         }
@@ -1144,7 +1162,6 @@ extension View {
         return navigationChrome { chrome, _ in if let item { chrome.presented.append(AnyView(destination(item))) } }
     }
 
-    public func navigationSplitViewStyle<S: NavigationSplitViewStyle>(_ style: S) -> some View { self }
     public func navigationSplitViewColumnWidth(_ width: CGFloat) -> some View { self }
     public func navigationSplitViewColumnWidth(min: CGFloat? = nil, ideal: CGFloat, max: CGFloat? = nil) -> some View { self }
     @available(*, deprecated)

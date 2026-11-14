@@ -1,0 +1,173 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "%lld harvests": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld harvest"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld harvests"
+                }
+              }
+            }
+          }
+        },
+        "nl": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld oogst"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld oogsten"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Best tree: %@": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beste boom: %@"
+          }
+        }
+      }
+    },
+    "Day %lld of the season": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dag %lld van het seizoen"
+          }
+        }
+      }
+    },
+    "Harvest": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oogst"
+          }
+        }
+      }
+    },
+    "Measure a trunk": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meet een stam"
+          }
+        }
+      }
+    },
+    "No trees yet": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nog geen bomen"
+          }
+        }
+      }
+    },
+    "Nothing picked yet": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nog niets geplukt"
+          }
+        }
+      }
+    },
+    "Planted in %@": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geplant in %@"
+          }
+        }
+      }
+    },
+    "Sunlight today": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zonlicht vandaag"
+          }
+        }
+      }
+    },
+    "Tools": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gereedschap"
+          }
+        }
+      }
+    },
+    "Total %@": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Totaal %@"
+          }
+        }
+      }
+    },
+    "Trees": {
+      "localizations": {
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bomen"
+          }
+        }
+      }
+    },
+    "orchard.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Orchard"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Boomgaard"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

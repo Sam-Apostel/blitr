@@ -30,6 +30,10 @@ struct TextLayoutOptions {
     var lineSpacing: CGFloat = 0
     var minimumScaleFactor: CGFloat = 1
     var scale: CGFloat = 3
+    /// Moves a word down so a wrapped paragraph never ends on a single word, as iOS's standard
+    /// line-break strategy does (measured: iOS 27.0 simulator, "...track your habits and stay /
+    /// focused." wraps as "...track your habits and / stay focused.").
+    var avoidsOrphans = false
 }
 
 @MainActor
@@ -55,6 +59,11 @@ final class TextLayout {
         var descent: CGFloat
         var x: CGFloat = 0
         var baseline: CGFloat = 0
+        /// Space added above this line when it follows another (a text style's line advance
+        /// beyond the font's height).
+        var leading: CGFloat = 0
+        /// Width of the whitespace the line wrapped at, counted in the text's width on iOS.
+        var trailingSpace: CGFloat = 0
     }
 
     let runs: [TextRun]
@@ -68,13 +77,15 @@ final class TextLayout {
     private static var shapeCache: [ShapeKey: [Glyph]] = [:]
     private struct ShapeKey: Hashable { var text: String; var font: ResolvedFont; var kerning: CGFloat }
 
-    init(runs: [TextRun], width: CGFloat?, options: TextLayoutOptions) {
+    init(runs: [TextRun], width: CGFloat?, height: CGFloat? = nil, options: TextLayoutOptions) {
         self.runs = runs
         self.options = options
         var factor: CGFloat = 1
         layout(width: width, fontScale: factor)
-        // minimumScaleFactor: shrink in steps until the text fits untruncated.
-        while isTruncated, options.minimumScaleFactor < 1, factor > options.minimumScaleFactor {
+        // minimumScaleFactor: shrink in steps until the text fits untruncated, and within the
+        // height offered (SwiftUI shrinks text that a full stack squeezes vertically).
+        func overflows() -> Bool { isTruncated || height.map { size.height > $0 + 0.01 } ?? false }
+        while overflows(), options.minimumScaleFactor < 1, factor > options.minimumScaleFactor {
             factor = max(options.minimumScaleFactor, factor - 0.05)
             layout(width: width, fontScale: factor)
         }
@@ -209,6 +220,14 @@ final class TextLayout {
         return (instance.ascent * g.size * m + max(0, run.baselineOffset), instance.descent * g.size * m + max(0, -run.baselineOffset))
     }
 
+    /// Extra space between wrapped lines that a run's font asks for.
+    func leading(of run: TextRun, size: CGFloat) -> CGFloat {
+        guard let advance = run.font.lineAdvance, run.attachment == nil else { return 0 }
+        let instance = FontLibrary.shared.instance(for: run.font)
+        let scale = size / max(run.font.size, 0.001)
+        return max(0, advance * scale - (instance.ascent + instance.descent) * size * run.font.lineHeightMultiple)
+    }
+
     // MARK: Line breaking
 
     private func layout(width: CGFloat?, fontScale: CGFloat) {
@@ -222,9 +241,10 @@ final class TextLayout {
         var current: [Glyph] = []
         var currentWidth: CGFloat = 0
         var i = 0
+        var paragraphEnds = Set<Int>()
         func flush() { raw.append(current); current = []; currentWidth = 0 }
         while i < glyphs.count {
-            if glyphs[i].isNewline { flush(); i += 1; continue }
+            if glyphs[i].isNewline { flush(); paragraphEnds.insert(raw.count - 1); i += 1; continue }
             // A "word" runs up to and including the next break opportunity.
             var j = i
             var wordWidth: CGFloat = 0, trailingSpace: CGFloat = 0
@@ -253,6 +273,12 @@ final class TextLayout {
             i = j
         }
         if !current.isEmpty || raw.isEmpty || (glyphs.last?.isNewline ?? false) { flush() }
+        paragraphEnds.insert(raw.count - 1)
+        if options.avoidsOrphans, let maxWidth, options.lineLimit.map({ raw.count <= $0 }) ?? true {
+            for end in paragraphEnds.sorted() where end > 0 && !paragraphEnds.contains(end - 1) {
+                raw[end - 1...end] = ArraySlice(TextLayout.pushOut(raw[end - 1], raw[end], maxWidth: maxWidth))
+            }
+        }
 
         // Line limit and truncation.
         let limit = options.lineLimit.map { max(1, $0) }
@@ -263,7 +289,14 @@ final class TextLayout {
             isTruncated = true
         }
         for (index, var lineGlyphs) in raw.enumerated() {
-            while let last = lineGlyphs.last, last.isWhitespace, lineGlyphs.count > 1 || index < raw.count - 1 { lineGlyphs.removeLast() }
+            var trailing: CGFloat = 0
+            while let last = lineGlyphs.last, last.isWhitespace, lineGlyphs.count > 1 || index < raw.count - 1 {
+                trailing += last.advance
+                lineGlyphs.removeLast()
+            }
+            // iOS counts the space a line wrapped at in the text's width (the glyphs are still
+            // aligned without it). measured: iOS 27.0 simulator, Hello and 08_Onboarding frames.
+            if !options.avoidsOrphans || paragraphEnds.contains(index) { trailing = 0 }
             var lineWidth = lineGlyphs.reduce(0) { $0 + $1.advance }
             if let maxWidth, lineWidth > maxWidth, !lineGlyphs.isEmpty {
                 isTruncated = true
@@ -273,26 +306,29 @@ final class TextLayout {
                 lineGlyphs = truncate(lineGlyphs, to: maxWidth, fontScale: fontScale, force: true)
                 lineWidth = lineGlyphs.reduce(0) { $0 + $1.advance }
             }
-            var ascent: CGFloat = 0, descent: CGFloat = 0
+            var ascent: CGFloat = 0, descent: CGFloat = 0, leading: CGFloat = 0
             if lineGlyphs.isEmpty, let run = runs.last ?? nil {
                 let inst = FontLibrary.shared.instance(for: run.font)
                 ascent = inst.ascent * run.font.size * fontScale
                 descent = inst.descent * run.font.size * fontScale
+                leading = self.leading(of: run, size: run.font.size * fontScale)
             }
             for g in lineGlyphs {
                 let m = metrics(g)
                 ascent = max(ascent, m.ascent); descent = max(descent, m.descent)
+                leading = max(leading, self.leading(of: runs[g.run], size: g.size))
             }
-            lines.append(Line(glyphs: lineGlyphs, width: lineWidth, ascent: ascent, descent: descent))
+            lines.append(Line(glyphs: lineGlyphs, width: lineWidth, ascent: ascent, descent: descent, leading: leading,
+                              trailingSpace: trailing))
         }
 
         // Geometry. Sizes are rounded up to whole pixels, as SwiftUI does for text.
         func ceilPx(_ v: CGFloat) -> CGFloat { (v * options.scale - 0.001).rounded(.up) / options.scale }
-        let contentWidth = lines.map(\.width).max() ?? 0
+        let contentWidth = lines.map { $0.width + $0.trailingSpace }.max() ?? 0
         let boxWidth = ceilPx(contentWidth)
         var y: CGFloat = 0
         for index in lines.indices {
-            if index > 0 { y += options.lineSpacing }
+            if index > 0 { y += options.lineSpacing + lines[index].leading }
             lines[index].baseline = y + lines[index].ascent
             y += lines[index].ascent + lines[index].descent
             switch options.alignment {
@@ -304,6 +340,27 @@ final class TextLayout {
         size = CGSize(width: boxWidth, height: ceilPx(y))
         firstBaseline = lines.first?.baseline ?? 0
         lastBaseline = lines.last?.baseline ?? 0
+    }
+
+    /// Moves the last word of `previous` onto `last` when `last` holds a single word and the
+    /// result still fits.
+    private static func pushOut(_ previous: [Glyph], _ last: [Glyph], maxWidth: CGFloat) -> [[Glyph]] {
+        func trimmed(_ g: [Glyph]) -> ArraySlice<Glyph> {
+            var end = g.count
+            while end > 0, g[end - 1].isWhitespace { end -= 1 }
+            return g[..<end]
+        }
+        let lastWord = trimmed(last)
+        guard !lastWord.isEmpty, !lastWord.dropLast().contains(where: \.breakAfter),
+              !lastWord.contains(where: { $0.instance?.isColor ?? false }) else { return [previous, last] }
+        let body = trimmed(previous)
+        guard let cut = body.indices.dropLast().last(where: { body[$0].breakAfter }).map({ $0 + 1 }), cut > 0 else {
+            return [previous, last]
+        }
+        let moved = Array(previous[cut...])
+        let width = moved.reduce(0) { $0 + $1.advance } + lastWord.reduce(0) { $0 + $1.advance }
+        guard width <= maxWidth else { return [previous, last] }
+        return [Array(previous[..<cut]), moved + last]
     }
 
     private func truncate(_ glyphs: [Glyph], to maxWidth: CGFloat, fontScale: CGFloat, force: Bool = false) -> [Glyph] {

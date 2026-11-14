@@ -36,6 +36,8 @@ final class ScrollNode: Node {
     private(set) var clipRect = CGRect.zero
     /// Structural identity, so the focus engine can keep a scroll offset for this scroll view.
     var identity: IdentityPath?
+    /// Where `.scrollPosition` asks this scroll view to be (Containers/ScrollPosition.swift).
+    var request: ScrollRequest?
 
     init(content: Node, axes: Axis.Set, margins: EdgeInsets, clips: Bool) {
         self.axes = axes
@@ -67,7 +69,12 @@ final class ScrollNode: Node {
         let x = scrollsH ? margins.leading : margins.leading + (availW - c.width) / 2
         let y = scrollsV ? margins.top : margins.top + (availH - c.height) / 2
         // Scrolled by the focus engine (tvOS: the focused element is kept on screen); zero otherwise.
-        let offset = identity.flatMap { Runtime.current?.focus.scrollOffsets[$0] } ?? .zero
+        var offset = identity.flatMap { Runtime.current?.focus.scrollOffsets[$0] } ?? .zero
+        if let request, offset == .zero {
+            // `.scrollPosition`: an id is looked up in the content laid out at offset zero.
+            if request.needsLayout { content.place(at: CGPoint(x: x, y: y), size: c, ctx) }
+            offset = request.offset(content: content, contentSize: c, visible: CGSize(width: availW, height: availH), axes: axes)
+        }
         content.place(at: CGPoint(x: x - offset.x, y: y - offset.y), size: c, ctx)
         let bounds = CGRect(origin: .zero, size: size)
         clipRect = bounds.outset(by: ctx.safeAreaBleed(for: CGRect(origin: ctx.origin, size: size), edges: .all))
@@ -103,10 +110,11 @@ public struct ScrollView<Content: View>: View, PrimitiveView {
 
     func resolve(_ ctx: ResolveContext, into out: inout [Node]) {
         let margins = ctx.env.scrollContentMargins
-        let inner = ctx.with { $0.stackAxis = nil; $0.scrollContentMargins = EdgeInsets(); $0.scrollClipDisabled = false }
+        let inner = ctx.with { $0.stackAxis = nil; $0.scrollContentMargins = EdgeInsets(); $0.scrollClipDisabled = false; $0.scrollRequest = nil }
         let node = resolveSingle(content, inner.child("scrollContent"))
         let scroll = ScrollNode(content: node, axes: axes, margins: margins, clips: !ctx.env.scrollClipDisabled)
         scroll.identity = ctx.path
+        scroll.request = ctx.env.scrollRequest
         out.append(scroll)
     }
 }
@@ -235,27 +243,6 @@ extension ScrollTargetBehavior where Self == PagingScrollTargetBehavior {
     public static var paging: PagingScrollTargetBehavior { PagingScrollTargetBehavior() }
 }
 
-public struct ScrollPosition: Equatable, Sendable {
-    var id: AnyHashable?
-    public private(set) var point: CGPoint?
-    public private(set) var edge: Edge?
-    public init() {}
-    public init(id: some Hashable, anchor: UnitPoint? = nil) { self.id = AnyHashable(id) }
-    public init(x: CGFloat, y: CGFloat) { point = CGPoint(x: x, y: y) }
-    public init(point: CGPoint) { self.point = point }
-    public init(edge: Edge) { self.edge = edge }
-    public var viewID: (any Hashable)? { id?.base as? any Hashable }
-    public func viewID<T: Hashable>(type: T.Type) -> T? { id?.base as? T }
-    public var x: CGFloat? { point?.x }
-    public var y: CGFloat? { point?.y }
-    public var isPositionedByUser: Bool { false }
-    public mutating func scrollTo(id: some Hashable, anchor: UnitPoint? = nil) { self.id = AnyHashable(id) }
-    public mutating func scrollTo(x: CGFloat) { point = CGPoint(x: x, y: point?.y ?? 0) }
-    public mutating func scrollTo(y: CGFloat) { point = CGPoint(x: point?.x ?? 0, y: y) }
-    public mutating func scrollTo(point: CGPoint) { self.point = point }
-    public mutating func scrollTo(edge: Edge) { self.edge = edge }
-}
-
 public struct ContentMarginPlacement: Hashable, Sendable {
     let raw: Int
     public static let automatic = ContentMarginPlacement(raw: 0)
@@ -272,8 +259,6 @@ extension View {
     public func scrollDisabled(_ disabled: Bool) -> some View { env { $0.isScrollEnabled = !disabled } }
     public func scrollTargetBehavior<T: ScrollTargetBehavior>(_ behavior: T) -> some View { self }
     public func scrollTargetLayout(isEnabled: Bool = true) -> some View { self }
-    public func scrollPosition(id: Binding<(some Hashable)?>, anchor: UnitPoint? = nil) -> some View { self }
-    public func scrollPosition(_ position: Binding<ScrollPosition>, anchor: UnitPoint? = nil) -> some View { self }
     public func scrollBounceBehavior(_ behavior: ScrollBounceBehavior, axes: Axis.Set = [.vertical, .horizontal]) -> some View { self }
     public func scrollClipDisabled(_ disabled: Bool = true) -> some View { env { $0.scrollClipDisabled = disabled } }
     public func scrollDismissesKeyboard(_ mode: ScrollDismissesKeyboardMode) -> some View { self }

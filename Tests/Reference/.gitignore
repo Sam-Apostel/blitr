@@ -1,0 +1,3 @@
+# Simulator references are fetched into this directory on demand from the data/references branch.
+*
+!.gitignore

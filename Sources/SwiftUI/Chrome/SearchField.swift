@@ -94,6 +94,8 @@ final class SearchFieldNode: Node {
     var label: Node { children[0] }
     /// Liquid Glass look, chosen by the navigation stack during layout.
     var glassStyle: GlassSearchStyle?
+    /// The bottom bar draws one capsule for this field and a neighbouring item group: no glass of its own.
+    var glassJoined = false
     private var glassAppearance: GlassAppearance?
     /// The minimized field is a bar button: its glyph uses the label color.
     private let buttonGlyph: _Paint
@@ -125,7 +127,7 @@ final class SearchFieldNode: Node {
         textEnv.foregroundStyleLevels = nil
         let text = showsText ? Text(verbatim: configuration.text) : (configuration.prompt ?? Text(verbatim: "Search"))
         var nodes: [Node] = [text.makeNode(textEnv)]
-        if env.designLanguage.isGlass && !isTV {
+        if env.designLanguage.isGlass && !isTV && NavigationGlassMetrics.search.showsMicrophone {
             var micEnv = env
             micEnv.font = .system(size: 17)
             micEnv.imageScale = .medium
@@ -134,6 +136,8 @@ final class SearchFieldNode: Node {
             let mic = ImageNode(content: Image(systemName: "mic.fill").content(in: micEnv), isResizable: false)
             mic.isDecorative = true
             nodes.append(mic)
+        }
+        if env.designLanguage.isGlass && !isTV {
             glassAppearance = GlassAppearance.system(.regular, scheme: scheme, design: env.designLanguage)
         }
         super.init(children: nodes)
@@ -214,13 +218,14 @@ final class SearchFieldNode: Node {
         let outline = GlassOutline.roundedRect(bounds, radius: bounds.height / 2)
         if style == .drawer {
             p.fill(outline.path, with: fill, in: bounds)
-        } else if let glassAppearance {
+        } else if let glassAppearance, !glassJoined {
             p.fillGlass(outline, appearance: glassAppearance)
         }
         // Magnifying glass: a ring with a short handle towards the bottom right.
         let r = g.glyphRadius
         let c = CGPoint(x: style == .minimized ? bounds.midX - 1.2 : g.glyphCenterX, y: bounds.midY - 1.2)
-        let paint = style == .minimized ? buttonGlyph : glass
+        // The glass field's magnifying glass uses the label color. measured: iOS 27.0 simulator
+        let paint = style == .drawer ? glass : buttonGlyph
         p.stroke(Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)), with: paint,
                  style: StrokeStyle(lineWidth: g.glyphLineWidth), in: bounds)
         let d = r / 2.squareRoot()

@@ -1,73 +1,90 @@
 // Color, including the iOS system palette with its light/dark variants.
 
 /// Non-premultiplied sRGB (gamma-encoded) components.
-struct RGBA: Hashable, Sendable {
-    var r: Double, g: Double, b: Double, a: Double
-    init(_ r: Double, _ g: Double, _ b: Double, _ a: Double = 1) { self.r = r; self.g = g; self.b = b; self.a = a }
+package struct RGBA: Hashable, Sendable {
+    package var r: Double, g: Double, b: Double, a: Double
+    package init(_ r: Double, _ g: Double, _ b: Double, _ a: Double = 1) { self.r = r; self.g = g; self.b = b; self.a = a }
     init(hex: UInt32, alpha: Double = 1) {
         self.init(Double((hex >> 16) & 0xFF) / 255, Double((hex >> 8) & 0xFF) / 255, Double(hex & 0xFF) / 255, alpha)
     }
-    static let clear = RGBA(0, 0, 0, 0)
-    static let black = RGBA(0, 0, 0, 1)
-    static let white = RGBA(1, 1, 1, 1)
+    package static let clear = RGBA(0, 0, 0, 0)
+    package static let black = RGBA(0, 0, 0, 1)
+    package static let white = RGBA(1, 1, 1, 1)
     func opacity(_ o: Double) -> RGBA { RGBA(r, g, b, a * o) }
     func mix(_ other: RGBA, _ t: Double) -> RGBA {
         RGBA(r + (other.r - r) * t, g + (other.g - g) * t, b + (other.b - b) * t, a + (other.a - a) * t)
     }
     /// Relative luminance, used to pick contrasting foregrounds.
-    var luminance: Double { 0.2126 * r + 0.7152 * g + 0.0722 * b }
+    package var luminance: Double { 0.2126 * r + 0.7152 * g + 0.0722 * b }
 }
 
 /// A color with separate light and dark appearances.
-struct DynamicColor: Hashable, Sendable {
-    var light: RGBA, dark: RGBA
-    init(_ light: UInt32, _ dark: UInt32, alpha: Double = 1, darkAlpha: Double? = nil) {
+package struct DynamicColor: Hashable, Sendable {
+    package var light: RGBA, dark: RGBA
+    package init(_ light: UInt32, _ dark: UInt32, alpha: Double = 1, darkAlpha: Double? = nil) {
         self.light = RGBA(hex: light, alpha: alpha)
         self.dark = RGBA(hex: dark, alpha: darkAlpha ?? alpha)
     }
+    /// The iOS 26+ (Liquid Glass) values where the palette changed; nil keeps `light`/`dark`.
+    var glassLight: RGBA? = nil, glassDark: RGBA? = nil
+    init(_ light: UInt32, _ dark: UInt32, glass glassLight: UInt32, _ glassDark: UInt32) {
+        self.init(light, dark)
+        self.glassLight = RGBA(hex: glassLight)
+        self.glassDark = RGBA(hex: glassDark)
+    }
     func resolve(_ scheme: ColorScheme) -> RGBA { scheme == .dark ? dark : light }
+    /// Picks the iOS 26+ palette when the environment draws that design on iOS.
+    func resolve(in env: EnvironmentValues) -> RGBA {
+        // tvOS keeps its palette, also where its controls resolve colours in a fresh environment.
+        if env.designLanguage.isGlass, env.renderPlatform != .tvOS,
+           MainActor.assumeIsolated({ Runtime.current?.config.platform }) != .tvOS,
+           let glass = env.colorScheme == .dark ? glassDark : glassLight { return glass }
+        return resolve(env.colorScheme)
+    }
 }
 
-/// The UIKit semantic palette (values from the iOS system colors).
-enum SystemColor {
-    static let red = DynamicColor(0xFF3B30, 0xFF453A)
-    static let orange = DynamicColor(0xFF9500, 0xFF9F0A)
-    static let yellow = DynamicColor(0xFFCC00, 0xFFD60A)
-    static let green = DynamicColor(0x34C759, 0x30D158)
-    static let mint = DynamicColor(0x00C7BE, 0x63E6E2)
-    static let teal = DynamicColor(0x30B0C7, 0x40C8E0)
-    static let cyan = DynamicColor(0x32ADE6, 0x64D2FF)
-    static let blue = DynamicColor(0x007AFF, 0x0A84FF)
-    static let indigo = DynamicColor(0x5856D6, 0x5E5CE6)
-    static let purple = DynamicColor(0xAF52DE, 0xBF5AF2)
-    static let pink = DynamicColor(0xFF2D55, 0xFF375F)
-    static let brown = DynamicColor(0xA2845E, 0xAC8E68)
-    static let gray = DynamicColor(0x8E8E93, 0x8E8E93)
-    static let gray2 = DynamicColor(0xAEAEB2, 0x636366)
-    static let gray3 = DynamicColor(0xC7C7CC, 0x48484A)
-    static let gray4 = DynamicColor(0xD1D1D6, 0x3A3A3C)
-    static let gray5 = DynamicColor(0xE5E5EA, 0x2C2C2E)
-    static let gray6 = DynamicColor(0xF2F2F7, 0x1C1C1E)
-    static let label = DynamicColor(0x000000, 0xFFFFFF)
-    static let secondaryLabel = DynamicColor(0x3C3C43, 0xEBEBF5, alpha: 0.6)
-    static let tertiaryLabel = DynamicColor(0x3C3C43, 0xEBEBF5, alpha: 0.3)
-    static let quaternaryLabel = DynamicColor(0x3C3C43, 0xEBEBF5, alpha: 0.18, darkAlpha: 0.16)
-    static let placeholderText = DynamicColor(0x3C3C43, 0xEBEBF5, alpha: 0.3)
-    static let separator = DynamicColor(0x3C3C43, 0x545458, alpha: 0.29, darkAlpha: 0.6)
-    static let opaqueSeparator = DynamicColor(0xC6C6C8, 0x38383A)
-    static let link = DynamicColor(0x007AFF, 0x0984FF)
-    static let background = DynamicColor(0xFFFFFF, 0x000000)
-    static let secondaryBackground = DynamicColor(0xF2F2F7, 0x1C1C1E)
-    static let tertiaryBackground = DynamicColor(0xFFFFFF, 0x2C2C2E)
-    static let groupedBackground = DynamicColor(0xF2F2F7, 0x000000)
-    static let secondaryGroupedBackground = DynamicColor(0xFFFFFF, 0x1C1C1E)
-    static let tertiaryGroupedBackground = DynamicColor(0xF2F2F7, 0x2C2C2E)
-    static let fill = DynamicColor(0x787880, 0x787880, alpha: 0.2, darkAlpha: 0.36)
-    static let secondaryFill = DynamicColor(0x787880, 0x787880, alpha: 0.16, darkAlpha: 0.32)
-    static let tertiaryFill = DynamicColor(0x767680, 0x767680, alpha: 0.12, darkAlpha: 0.24)
-    static let quaternaryFill = DynamicColor(0x747480, 0x767680, alpha: 0.08, darkAlpha: 0.18)
-    static let white = DynamicColor(0xFFFFFF, 0xFFFFFF)
-    static let black = DynamicColor(0x000000, 0x000000)
+/// The UIKit semantic palette (values from the iOS system colors). The `glass:` values are the
+/// iOS 26+ palette; measured: iOS 27.0 simulator for blue (0088FF / 0091FF), red (FF383C /
+/// FF4245) and orange (FF8D28 / FF9230) from button fills; the rest from Apple's iOS 26 color table.
+package enum SystemColor {
+    package static let red = DynamicColor(0xFF3B30, 0xFF453A, glass: 0xFF383C, 0xFF4245)
+    package static let orange = DynamicColor(0xFF9500, 0xFF9F0A, glass: 0xFF8D28, 0xFF9230)
+    package static let yellow = DynamicColor(0xFFCC00, 0xFFD60A, glass: 0xFFCC00, 0xFFD600)
+    package static let green = DynamicColor(0x34C759, 0x30D158, glass: 0x34C759, 0x30D158)
+    package static let mint = DynamicColor(0x00C7BE, 0x63E6E2, glass: 0x00C8B3, 0x00DAC3)
+    package static let teal = DynamicColor(0x30B0C7, 0x40C8E0, glass: 0x00C3D0, 0x00D2E0)
+    package static let cyan = DynamicColor(0x32ADE6, 0x64D2FF, glass: 0x00C0E8, 0x3CD3FE)
+    package static let blue = DynamicColor(0x007AFF, 0x0A84FF, glass: 0x0088FF, 0x0091FF)
+    package static let indigo = DynamicColor(0x5856D6, 0x5E5CE6, glass: 0x6155F5, 0x6D7CFF)
+    package static let purple = DynamicColor(0xAF52DE, 0xBF5AF2, glass: 0xCB30E0, 0xDB34F2)
+    package static let pink = DynamicColor(0xFF2D55, 0xFF375F, glass: 0xFF2D55, 0xFF375F)
+    package static let brown = DynamicColor(0xA2845E, 0xAC8E68, glass: 0xAC7F5E, 0xB78A66)
+    package static let gray = DynamicColor(0x8E8E93, 0x8E8E93)
+    package static let gray2 = DynamicColor(0xAEAEB2, 0x636366)
+    package static let gray3 = DynamicColor(0xC7C7CC, 0x48484A)
+    package static let gray4 = DynamicColor(0xD1D1D6, 0x3A3A3C)
+    package static let gray5 = DynamicColor(0xE5E5EA, 0x2C2C2E)
+    package static let gray6 = DynamicColor(0xF2F2F7, 0x1C1C1E)
+    package static let label = DynamicColor(0x000000, 0xFFFFFF)
+    package static let secondaryLabel = DynamicColor(0x3C3C43, 0xEBEBF5, alpha: 0.6)
+    package static let tertiaryLabel = DynamicColor(0x3C3C43, 0xEBEBF5, alpha: 0.3)
+    package static let quaternaryLabel = DynamicColor(0x3C3C43, 0xEBEBF5, alpha: 0.18, darkAlpha: 0.16)
+    package static let placeholderText = DynamicColor(0x3C3C43, 0xEBEBF5, alpha: 0.3)
+    package static let separator = DynamicColor(0x3C3C43, 0x545458, alpha: 0.29, darkAlpha: 0.6)
+    package static let opaqueSeparator = DynamicColor(0xC6C6C8, 0x38383A)
+    package static let link = DynamicColor(0x007AFF, 0x0984FF)
+    package static let background = DynamicColor(0xFFFFFF, 0x000000)
+    package static let secondaryBackground = DynamicColor(0xF2F2F7, 0x1C1C1E)
+    package static let tertiaryBackground = DynamicColor(0xFFFFFF, 0x2C2C2E)
+    package static let groupedBackground = DynamicColor(0xF2F2F7, 0x000000)
+    package static let secondaryGroupedBackground = DynamicColor(0xFFFFFF, 0x1C1C1E)
+    package static let tertiaryGroupedBackground = DynamicColor(0xF2F2F7, 0x2C2C2E)
+    package static let fill = DynamicColor(0x787880, 0x787880, alpha: 0.2, darkAlpha: 0.36)
+    package static let secondaryFill = DynamicColor(0x787880, 0x787880, alpha: 0.16, darkAlpha: 0.32)
+    package static let tertiaryFill = DynamicColor(0x767680, 0x767680, alpha: 0.12, darkAlpha: 0.24)
+    package static let quaternaryFill = DynamicColor(0x747480, 0x767680, alpha: 0.08, darkAlpha: 0.18)
+    package static let white = DynamicColor(0xFFFFFF, 0xFFFFFF)
+    package static let black = DynamicColor(0x000000, 0x000000)
 }
 
 public struct Color: Hashable, Sendable {
@@ -82,8 +99,8 @@ public struct Color: Hashable, Sendable {
     let storage: Storage
 
     init(_ storage: Storage) { self.storage = storage }
-    init(_ rgba: RGBA) { storage = .rgba(rgba) }
-    init(_ dynamic: DynamicColor) { storage = .dynamic(dynamic) }
+    package init(_ rgba: RGBA) { storage = .rgba(rgba) }
+    package init(_ dynamic: DynamicColor) { storage = .dynamic(dynamic) }
 
     public enum RGBColorSpace: Hashable, Sendable { case sRGB, sRGBLinear, displayP3 }
 
@@ -142,12 +159,12 @@ public struct Color: Hashable, Sendable {
     public static let secondary = Color(SystemColor.secondaryLabel)
     public static let accentColor = Color(.accent)
 
-    func rgba(in env: EnvironmentValues) -> RGBA { Color.resolve(storage, env) }
+    package func rgba(in env: EnvironmentValues) -> RGBA { Color.resolve(storage, env) }
 
     private static func resolve(_ storage: Storage, _ env: EnvironmentValues) -> RGBA {
         switch storage {
         case .rgba(let c): return c
-        case .dynamic(let d): return d.resolve(env.colorScheme)
+        case .dynamic(let d): return d.resolve(in: env)
         case .opacity(let base, let o): return resolve(base, env).opacity(o)
         case .mix(let a, let b, let t): return resolve(a, env).mix(resolve(b, env), t)
         case .accent: return (env.accentColor ?? Color.blue).rgba(in: env)

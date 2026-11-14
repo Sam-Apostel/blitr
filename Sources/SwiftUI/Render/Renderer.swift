@@ -2,17 +2,19 @@ internal import CSkia
 
 // Entry point of a render: View -> node tree -> layout -> pixels -> PNG.
 
-struct RenderConfiguration {
+package struct RenderConfiguration {
     enum Layout { case device, sizeThatFits, fixed }
     var layout: Layout = .device
-    var device = DeviceProfile.all["iphone-16"]!
+    package var device = DeviceProfile.all["iphone-16"]!
     /// Overrides the canvas size (`fixed`), or caps the proposed width (`sizeThatFits`).
-    var width: CGFloat?
-    var height: CGFloat?
-    var scale: CGFloat?
-    var colorScheme: ColorScheme = .light
+    package var width: CGFloat?
+    package var height: CGFloat?
+    package var scale: CGFloat?
+    package var colorScheme: ColorScheme = .light
     var dynamicTypeSize: DynamicTypeSize = .large
     var showsDeviceChrome = true
+    /// TipKit tips display (`--show-tips`); otherwise only after `Tips.showAllTipsForTesting()` and friends.
+    package var showsTips = false
     /// Clip the image to the device's rounded display, corners transparent.
     var roundedCorners = false
     /// Draw the notch / Dynamic Island on top of the content.
@@ -40,6 +42,9 @@ enum Renderer {
         let runtime = Runtime(config: config)
         Runtime.current = runtime
         defer { Runtime.current = nil }
+        // Scripted steps and animation capture (Interaction/); nil for a plain render.
+        let session = try InteractionSession.begin(runtime: runtime)
+        defer { InteractionSession.end() }
         FontLibrary.shared.directories = config.fontDirectories
         AssetCatalog.shared.directories = config.assetDirectories
         let scale = config.scale ?? config.device.scale
@@ -72,6 +77,7 @@ enum Renderer {
             runtime.pendingActions = []
             runtime.postLayoutActions = []
             runtime.activations.reset()
+            session?.passWillBegin()
             let ctx = ResolveContext(env: env, path: IdentityPath(), runtime: runtime)
             root = resolveSingle(view, ctx)
             // Sheets, alerts and dialogs presented anywhere in the tree are drawn above the root.
@@ -101,6 +107,7 @@ enum Renderer {
                 env.colorScheme = preferred
                 continue
             }
+            session?.passDidLayout(root)
             if runtime.focus.afterLayout(root, screen: container, runtime: runtime) { runtime.needsAnotherPass = true }
             let postLayout = runtime.postLayoutActions
             runtime.postLayoutActions = []
@@ -163,6 +170,9 @@ enum Renderer {
             }
         }
         drawFrame()
+        try session?.run(RenderHost(runtime: runtime, settle: settle, root: { root }, draw: drawFrame, surface: surface,
+                                    canvasSize: { canvasSize }, scale: scale, colorScheme: { env.colorScheme }, environment: { env },
+                                    background: background))
 
         guard let image = sk_surface_new_image_snapshot(surface) else { throw RenderError("Could not snapshot the surface") }
         defer { sk_image_unref(image) }

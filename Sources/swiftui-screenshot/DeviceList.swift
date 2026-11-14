@@ -13,18 +13,15 @@ func listDevices(_ installation: Installation) -> Never {
 /// modes that need the module (and Skia) but no user code: `--list-devices`, `--compare`.
 func utilityRunner(_ installation: Installation) -> String {
     guard !installation.swiftc.isEmpty else { fail("swiftc not found. Install a Swift 6 toolchain and put it on PATH, or set SWIFTC.") }
-    let moduleStamp = (try? FileManager.default.attributesOfItem(atPath: installation.sdk + "/libSwiftUI.so"))
-        .map { "\($0[.size] ?? 0)-\(($0[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0)" } ?? ""
     let cacheRoot = ProcessInfo.processInfo.environment["SWIFTUI_SCREENSHOT_CACHE"] ?? (NSHomeDirectory() + "/.cache/swiftui-screenshot")
-    let work = cacheRoot + "/devices-" + hash(["devices", moduleStamp, installation.swiftc])
+    let work = cacheRoot + "/devices-" + hash(["devices", installation.stamp, installation.swiftc])
     let runner = work + "/runner"
     if !FileManager.default.isExecutableFile(atPath: runner) {
         try? FileManager.default.createDirectory(atPath: work, withIntermediateDirectories: true)
         let main = work + "/main.swift"
         try? "import SwiftUI\n\nMainActor.assumeIsolated { SwiftUI._ScreenshotRunner.run([]) }\n".write(toFile: main, atomically: true, encoding: .utf8)
-        let result = run(installation.swiftc, ["-swift-version", "5", "-Onone", "-module-name", "App", "-no-color-diagnostics",
-                                               "-I", installation.sdk, "-L", installation.sdk, "-lSwiftUI", "-lCombine", "-lUIKit",
-                                               "-Xlinker", "-rpath", "-Xlinker", installation.sdk, main, "-o", runner])
+        let result = run(installation.swiftc, ["-swift-version", "5", "-Onone", "-module-name", "App", "-no-color-diagnostics"]
+                                               + installation.linkFlags + [main, "-o", runner])
         guard result.status == 0 else {
             FileHandle.standardError.write(Data((result.stderr + result.stdout).utf8))
             fail("could not build the device listing runner")

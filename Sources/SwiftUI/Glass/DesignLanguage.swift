@@ -1,7 +1,7 @@
 // Which iOS release's look is being rendered.
 
 /// The visual language of system components.
-enum DesignLanguage: Equatable {
+package enum DesignLanguage: Equatable {
     /// iOS 18 and earlier: opaque bars and cards, materials.
     case flat
     /// iOS 26: Liquid Glass.
@@ -12,7 +12,7 @@ enum DesignLanguage: Equatable {
     init(osVersion: Int) {
         self = osVersion >= 27 ? .liquidGlass27 : osVersion >= 26 ? .liquidGlass26 : .flat
     }
-    var isGlass: Bool { self != .flat }
+    package var isGlass: Bool { self != .flat }
 }
 
 enum PlatformVersionKey: EnvironmentKey { static let defaultValue = RenderedPlatform.defaultVersion }
@@ -23,12 +23,12 @@ extension EnvironmentValues {
         get { self[PlatformVersionKey.self] }
         set { self[PlatformVersionKey.self] = newValue }
     }
-    var designLanguage: DesignLanguage { DesignLanguage(osVersion: platformVersion) }
+    package var designLanguage: DesignLanguage { DesignLanguage(osVersion: platformVersion) }
 }
 
 /// The Apple platform whose look and conventions are rendered. Chosen before compilation,
 /// because `#if os(...)` in user code is resolved by the compiler.
-enum RenderPlatform: String, CaseIterable, Sendable {
+package enum RenderPlatform: String, CaseIterable, Sendable {
     case iOS, tvOS, watchOS, macOS, visionOS
 
     init?(argument: String) {
@@ -40,7 +40,7 @@ enum RenderPlatform: String, CaseIterable, Sendable {
 enum RenderPlatformKey: EnvironmentKey { static let defaultValue = RenderPlatform.iOS }
 
 extension EnvironmentValues {
-    var renderPlatform: RenderPlatform {
+    package var renderPlatform: RenderPlatform {
         get { self[RenderPlatformKey.self] }
         set { self[RenderPlatformKey.self] = newValue }
     }

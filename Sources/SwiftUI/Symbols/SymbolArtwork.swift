@@ -214,3 +214,31 @@ final class SymbolArtwork {
         return (CGSize(width: Self.box, height: Self.box), out)
     }
 }
+
+extension SymbolGlyph {
+    /// Stand-in artwork cropped to its ink (plus `pad` points above and below, as `AppleSymbols` pads real
+    /// outlines), at `unit` points per viewBox unit. Real SF Symbols lay out at
+    /// their outline's bounds (an `ellipsis` at `.title` is 25.7 x 5.3pt, measured: iOS 27.0 simulator), so
+    /// a stand-in drawn next to them takes the size of its ink, not of its square viewBox.
+    @MainActor static func inkCropped(viewBox: CGSize, layers: [Layer], unit: CGFloat, verticalPadding pad: CGFloat = 0) -> SymbolGlyph? {
+        var ink: CGRect?
+        for layer in layers {
+            let outline = layer.stroke.map { layer.path.stroke($0) } ?? layer.path
+            let r = outline.boundingRect
+            guard r.width > 0 || r.height > 0 else { continue }
+            ink = ink.map { $0.union(r) } ?? r
+        }
+        guard let ink, ink.width > 0, ink.height > 0 else { return nil }
+        let padUnits = pad / max(unit, 0.0001)
+        let t = CGAffineTransform(translationX: -ink.minX, y: padUnits - ink.minY)
+        let moved = layers.map { layer -> Layer in
+            var out = layer
+            out.path = layer.path.applying(t)
+            return out
+        }
+        var glyph = SymbolGlyph(size: CGSize(width: ink.width * unit, height: ink.height * unit + 2 * pad),
+                                viewBox: CGSize(width: ink.width, height: ink.height + 2 * padUnits), layers: moved)
+        glyph.inkInsets = (pad, 0, pad, 0)
+        return glyph
+    }
+}

@@ -46,8 +46,71 @@ enum DeviceChrome {
     }
 
     /// Notch and Dynamic Island phones: time in the left ear, indicators in the right one.
+    /// Dynamic Island status bar. measured: iOS 27.0 simulator, iPhone 16 (393pt wide): the
+    /// time in 18pt semibold centred at x 70.17 (0.1785 of the width), its digits centred on
+    /// y 29 (top inset - 30); signal bars from x 278.33 (width - 114.67), 3.33pt wide, 5.67pt
+    /// apart, 6.33/8.67/11/13.67pt tall on a common bottom at y 36.33; Wi-Fi 19 x 14.33pt from
+    /// x 307 with 2.67pt arcs; battery 27 x 13.67pt from x 334.33 plus a 1.5pt cap.
+    enum IslandStatusBar {
+        static let timeSize: CGFloat = 18
+        static let timeCenterX: CGFloat = 0.1802   // frame centre; the ink lands at 70.17
+        static let centerFromTop: CGFloat = 30
+        static let signalFromRight: CGFloat = 114.67
+        static let signalBar = CGSize(width: 3.33, height: 13.67)
+        static let signalPitch: CGFloat = 5.67
+        static let signalHeights: [CGFloat] = [6.33, 8.67, 11, 13.67]
+        static let wifiOffset: CGFloat = 28.67
+        static let wifiSize = CGSize(width: 19, height: 14.33)
+        static let wifiLine: CGFloat = 2.67
+        static let batteryOffset: CGFloat = 27.33
+        static let battery = CGSize(width: 27, height: 13.67)
+    }
+
+    private static func drawIslandStatusBar(_ p: Painter, device: DeviceProfile, size: CGSize, scheme: ColorScheme, color: _Paint) {
+        let m = IslandStatusBar.self
+        let centerY = device.safeArea.top - m.centerFromTop
+        drawText(p, "9:41", size: m.timeSize, weight: .semibold, x: size.width * m.timeCenterX, centerY: centerY + 0.33, anchor: .center, canvas: size, scheme: scheme)
+        let bottom = centerY + 7.33
+        var x = size.width - m.signalFromRight
+        for (i, h) in m.signalHeights.enumerated() {
+            let bar = CGRect(x: x + CGFloat(i) * m.signalPitch, y: bottom - h, width: m.signalBar.width, height: h)
+            p.fill(Path(roundedRect: bar, cornerRadius: 1.1, style: .circular), with: color, in: bar)
+        }
+        x += m.wifiOffset
+        // Three sectors of one circle centred at the bottom: two arcs and the dot.
+        let apex = CGPoint(x: x + m.wifiSize.width / 2, y: bottom)
+        let outer = m.wifiSize.height
+        let half = asin(min(1, (m.wifiSize.width / 2) / outer)) * 180 / .pi
+        let start = Angle.degrees(-90 - half), end = Angle.degrees(-90 + half)
+        for (i, r) in [outer, outer - 2 * m.wifiLine + 0.33, outer - 4 * m.wifiLine + 0.66].enumerated() {
+            if i == 2 {
+                var dot = Path()
+                dot.move(to: apex)
+                dot.addArc(center: apex, radius: r, startAngle: start, endAngle: end, clockwise: false)
+                dot.closeSubpath()
+                p.fill(dot, with: color, in: .zero)
+            } else {
+                var arc = Path()
+                arc.addArc(center: apex, radius: r - m.wifiLine / 2, startAngle: start, endAngle: end, clockwise: false)
+                p.stroke(arc, with: color, style: StrokeStyle(lineWidth: m.wifiLine, lineCap: .butt), in: .zero)
+            }
+        }
+        x += m.batteryOffset
+        let body = CGRect(x: x, y: centerY - 7, width: m.battery.width, height: m.battery.height)
+        p.stroke(Path(roundedRect: body.insetBy(dx: 0.5, dy: 0.5), cornerRadius: 4.3, style: .continuous),
+                 with: _Paint(.opacity(color.kind, 0.4)), style: StrokeStyle(lineWidth: 1), in: body)
+        let fill = body.insetBy(dx: 2, dy: 2)
+        p.fill(Path(roundedRect: fill, cornerRadius: 2.6, style: .continuous), with: color, in: fill)
+        let cap = CGRect(x: body.maxX + 0.5, y: body.midY - 2.2, width: 1.5, height: 4.4)
+        p.fill(Path(roundedRect: cap, cornerRadius: 0.75, style: .circular), with: _Paint(.opacity(color.kind, 0.4)), in: cap)
+    }
+
     private static func drawPhoneStatusBar(_ p: Painter, device: DeviceProfile, size: CGSize, scheme: ColorScheme, color: _Paint, notchWidth: CGFloat?) {
         let island = notchWidth == nil
+        if island, device.orientation == .portrait {
+            drawIslandStatusBar(p, device: device, size: size, scheme: scheme, color: color)
+            return
+        }
         let top = device.safeArea.top
         let centerY: CGFloat = island ? top - 27 : top - 23
         let fontSize: CGFloat = island ? 17 : 15

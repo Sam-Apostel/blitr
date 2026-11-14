@@ -179,14 +179,15 @@ struct ButtonMetrics {
     init(_ size: ControlSize, design: DesignLanguage = .flat) {
         minHeight = nil
         if design.isGlass {
-            // iOS 26: capsule buttons with fixed heights; the horizontal padding grows with the rounder ends.
-            // All estimates (est.), shared by iOS 26 and 27.
+            // iOS 26/27: capsule buttons, regular-weight labels. measured: iOS 27.0 simulator
+            // (ControlsButtons, GlassControls): regular 34.33pt tall with a 17pt label (12/7 padding),
+            // small and mini both 28pt with a 15pt label (10/5), large and extraLarge 50.33pt (20/15).
             switch size {
-            case .mini: (h, v, radius, font, weight, minHeight) = (10, 3, 12, .system(size: 12), nil, 24)
-            case .small: (h, v, radius, font, weight, minHeight) = (12, 4, 14, .system(size: 15), nil, 28)
-            case .regular: (h, v, radius, font, weight, minHeight) = (16, 7, 18, nil, nil, 36)
-            case .large: (h, v, radius, font, weight, minHeight) = (24, 14, 26, nil, .semibold, 52)
-            case .extraLarge: (h, v, radius, font, weight, minHeight) = (28, 16, 30, .system(size: 20), .semibold, 60)
+            case .mini: (h, v, radius, font, weight, minHeight) = (10, 5, 14, .system(size: 15), nil, 28)
+            case .small: (h, v, radius, font, weight, minHeight) = (10, 5, 14, .system(size: 15), nil, 28)
+            case .regular: (h, v, radius, font, weight, minHeight) = (12, 7, 17, nil, nil, nil)
+            case .large: (h, v, radius, font, weight, minHeight) = (20, 15, 25, nil, nil, nil)
+            case .extraLarge: (h, v, radius, font, weight, minHeight) = (20, 15, 25, nil, nil, nil)  // measured: same as large
             }
             return
         }
@@ -198,6 +199,15 @@ struct ButtonMetrics {
         case .extraLarge: (h, v, radius, font, weight) = (24, 16, 14, .system(size: 20), .semibold)
         }
     }
+}
+
+/// Bordered button colours on iOS 26/27. measured: iOS 27.0 simulator (ControlsButtons):
+/// a green-tinted fill is DAF5E1 on white and 0C3416 on black; a disabled label is C2C2C5 on
+/// the light gray fill and 525257 on the dark one.
+enum ButtonColors {
+    static let tintedFillLight = 0.18
+    static let tintedFillDark = 0.25
+    static let disabledOnFill = DynamicColor(0x3C3C43, 0xEBEBF5, alpha: 0.225)
 }
 
 // MARK: - Glass styles and sizing (iOS 26)
@@ -255,6 +265,7 @@ struct _ButtonVisual: View {
     @Environment(\.foregroundStyle) private var explicitForeground
     @Environment(\.font) private var userFont
     @Environment(\.renderPlatform) private var platform
+    @Environment(\.colorScheme) private var colorScheme
 
     private var destructive: Bool { role == .destructive }
 
@@ -289,14 +300,27 @@ struct _ButtonVisual: View {
             return AnyView(content.foregroundStyle(Color.accentColor))
         case .bordered:
             // Before iOS 26 the glass styles look like their bordered counterparts.
-            let fill = tinted ? Color.accentColor.opacity(0.15) : Color(SystemColor.tertiaryFill)
-            let foreground: Color = isEnabled ? Color.accentColor : disabledColor
+            var fill = tinted ? Color.accentColor.opacity(0.15) : Color(SystemColor.tertiaryFill)
+            var foreground: Color = isEnabled ? Color.accentColor : disabledColor
+            if design.isGlass {
+                // measured: iOS 27.0 simulator. Gray secondary fill (also for destructive and
+                // disabled buttons), a tint at 18% (light) / 25% (dark) when one is set.
+                fill = explicitAccent != nil && isEnabled
+                    ? Color.accentColor.opacity(colorScheme == .dark ? ButtonColors.tintedFillDark : ButtonColors.tintedFillLight)
+                    : Color(SystemColor.secondaryFill)
+                if !isEnabled { foreground = Color(ButtonColors.disabledOnFill) }
+            }
             return AnyView(
                 padded(content.foregroundStyle(foreground), m)
                     .background(fill, in: shape(m)))
         case .prominent:
-            let fill: Color = isEnabled ? Color.accentColor : Color(SystemColor.tertiaryFill)
-            let foreground: Color = isEnabled ? .white : disabledColor
+            var fill: Color = isEnabled ? Color.accentColor : Color(SystemColor.tertiaryFill)
+            var foreground: Color = isEnabled ? .white : disabledColor
+            if design.isGlass, !isEnabled {
+                // measured: iOS 27.0 simulator: disabled looks like a disabled bordered button.
+                fill = Color(SystemColor.secondaryFill)
+                foreground = Color(ButtonColors.disabledOnFill)
+            }
             return AnyView(
                 padded(content.foregroundStyle(foreground), m)
                     .background(fill, in: shape(m)))
@@ -309,9 +333,9 @@ struct _ButtonVisual: View {
         case .glassProminent:
             guard design.isGlass else { return AnyView(_ButtonVisual(kind: .prominent, label: label, role: role)) }
             let foreground: Color = isEnabled ? .white : disabledColor
-            let semibold = design == .liquidGlass27
+            // measured: iOS 27.0 simulator: the label keeps its regular weight (82pt wide "Regular").
             return AnyView(
-                padded(semibold ? AnyView(content.fontWeight(.semibold).foregroundStyle(foreground)) : AnyView(content.foregroundStyle(foreground)), m)
+                padded(content.foregroundStyle(foreground), m)
                     .modifier(ControlGlassSurface(prominent: true, borderShape: borderShape, enabled: isEnabled)))
         }
     }
@@ -319,6 +343,15 @@ struct _ButtonVisual: View {
     /// The label with the style's padding; glass designs add the fixed control height, and
     /// `.buttonSizing(.flexible)` stretches the button over the available width.
     private func padded<V: View>(_ content: V, _ m: ButtonMetrics) -> AnyView {
+        if design.isGlass, borderShape.kind == .circle {
+            // A circle is as wide as it is tall unless the label is wider (measured: iOS 27.0
+            // simulator, a glass "Icon" circle button is 34.33 x 34.33pt).
+            let size = (userFont ?? m.font)?.resolve(in: EnvironmentValues()).size ?? 17
+            let side = m.minHeight ?? ((size * 1.193359 * 3).rounded(.up) / 3 + 2 * m.v)
+            // It still takes 6pt either side in layout (measured: the next button sits 14pt away
+            // in an HStack with 8pt spacing).
+            return AnyView(content.padding(.vertical, m.v).frame(minWidth: side, minHeight: m.minHeight).padding(.horizontal, 6))
+        }
         let padded = content.padding(.horizontal, m.h).padding(.vertical, m.v)
         switch (m.minHeight, sizing.kind) {
         case (nil, .flexible): return AnyView(padded.frame(maxWidth: .infinity))
@@ -443,6 +476,8 @@ public struct Menu<Label: View, Content: View>: View {
     let label: Label
     let content: Content
     let primaryAction: (@MainActor () -> Void)?
+    @Environment(\.menuStyleBox) private var customStyle
+    var forceDefault = false
 
     public init(@ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label) {
         self.content = content()
@@ -457,8 +492,12 @@ public struct Menu<Label: View, Content: View>: View {
 
     /// A closed menu looks like a button with the menu's label; the items are not shown.
     public var body: some View {
-        Button(action: primaryAction ?? {}) { label }
-            .axInfo(shared: true) { $0.addTraits = [.hasPopup] }
+        if let custom = customStyle, !forceDefault {
+            custom.make(AnyView(label), AnyView(content))
+        } else {
+            Button(action: primaryAction ?? {}) { _MenuLabel(label: label) }
+                .axInfo(shared: true) { $0.addTraits = [.hasPopup] }
+        }
     }
 }
 
@@ -478,15 +517,4 @@ extension Menu where Label == SwiftUI.Label<Text, Image> {
     public init<S: StringProtocol>(_ title: S, systemImage name: String, @ViewBuilder content: () -> Content) {
         self.init(content: content) { SwiftUI.Label(title, systemImage: name) }
     }
-}
-
-public struct MenuStyle: Sendable {
-    let raw: Int
-    public static let automatic = MenuStyle(raw: 0)
-    public static let button = MenuStyle(raw: 1)
-    public static let borderlessButton = MenuStyle(raw: 2)
-}
-extension View {
-    /// Menus are always drawn closed, so the style has no effect on a screenshot.
-    public func menuStyle(_ style: MenuStyle) -> some View { self }
 }

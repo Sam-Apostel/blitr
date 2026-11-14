@@ -43,11 +43,16 @@ def resolve(row, confirm):
         return "app", None
     if confirm.get(api) == "compiles":
         return "covered", None
+    # The generic snippet of a modifier passes no arguments: "missing argument" means the name and its
+    # labels exist (the real call sites pass the arguments).
+    exists = confirm.get(api, "").startswith("other-error: missing argument")
     if api in CUR:
-        return "swiftui_gap", CUR[api]
+        return ("covered", None) if exists else ("swiftui_gap", CUR[api])
     if st.startswith("other:3p:"):
         return "other", "third-party: " + st[9:]
     if st == "other:Xcode previews":
+        if exists:
+            return "covered", None
         return "swiftui_gap", {"cls": "b", "group": "Xcode preview modifiers (.previewLayout/.previewDevice/.previewDisplayName/.previewContext)",
                                "note": "preview-only metadata; layout and device are covered by the tool's --layout/--device flags"}
     if st.startswith("other:"):
@@ -71,6 +76,10 @@ def main():
     cmp = json.load(open(cmp_path))
     confirm = json.load(open(conf_path))
     manual = json.load(open(man_path))
+    # A realistic manual snippet named after an API settles it (for calls the generic snippets cannot express).
+    for name, result in manual.items():
+        if result == "compiles":
+            confirm[name] = "compiles"
     private = set(cmp["private"])
     rows = cmp["rows"]
 

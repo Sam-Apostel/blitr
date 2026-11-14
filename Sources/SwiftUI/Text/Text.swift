@@ -67,13 +67,13 @@ public struct Text: Equatable, Sendable {
         case .time: return date.formatted(date: .omitted, time: .shortened)
         case .date: return date.formatted(date: .long, time: .omitted)
         case .relative, .offset:
-            let seconds = Int(abs(date.timeIntervalSince(Runtime.referenceDate)))
+            let seconds = Int(abs(date.timeIntervalSince(Runtime.now)))
             if seconds < 60 { return "\(seconds) sec" }
             if seconds < 3600 { return "\(seconds / 60) min" }
             if seconds < 86400 { return "\(seconds / 3600) hr" }
             return "\(seconds / 86400) days"
         case .timer:
-            let seconds = Int(abs(date.timeIntervalSince(Runtime.referenceDate)))
+            let seconds = Int(abs(date.timeIntervalSince(Runtime.now)))
             return seconds >= 3600
                 ? String(format: "%d:%02d:%02d", seconds / 3600, seconds / 60 % 60, seconds % 60)
                 : String(format: "%d:%02d", seconds / 60, seconds % 60)
@@ -85,7 +85,7 @@ public struct Text: Equatable, Sendable {
     public static func + (lhs: Text, rhs: Text) -> Text { Text(storage: .concatenated(lhs, rhs)) }
 
     /// The text without styling (used for accessibility labels, titles, measuring).
-    var plainString: String {
+    package var plainString: String {
         switch storage {
         case .verbatim(let s): return s
         case .localized(let key): return key.plainString
@@ -233,7 +233,8 @@ final class TextNode: Node {
     let runs: [TextRun]
     let options: TextLayoutOptions
     let reservesSpace: Bool
-    private var layouts: [CGFloat?: TextLayout] = [:]
+    private var layouts: [LayoutKey: TextLayout] = [:]
+    private struct LayoutKey: Hashable { var width: CGFloat?; var height: CGFloat? }
 
     init(runs: [TextRun], options: TextLayoutOptions, reservesSpace: Bool = false) {
         self.runs = runs
@@ -242,19 +243,22 @@ final class TextNode: Node {
         super.init()
     }
 
-    func textLayout(width: CGFloat?) -> TextLayout {
-        let key = width.map { $0.isFinite ? $0 : nil } ?? nil
+    func textLayout(width: CGFloat?, height: CGFloat? = nil) -> TextLayout {
+        let width = width.map { $0.isFinite ? $0 : nil } ?? nil
+        // The height only matters to text that may shrink to fit it.
+        let height = options.minimumScaleFactor < 1 ? (height.map { $0.isFinite ? $0 : nil } ?? nil) : nil
+        let key = LayoutKey(width: width, height: height)
         if let cached = layouts[key] { return cached }
-        let layout = TextLayout(runs: runs, width: key, options: options)
+        let layout = TextLayout(runs: runs, width: width, height: height, options: options)
         layouts[key] = layout
         return layout
     }
 
     override func measure(_ proposal: ProposedViewSize) -> CGSize {
-        var size = textLayout(width: proposal.width).size
+        var size = textLayout(width: proposal.width, height: proposal.height).size
         if reservesSpace, let limit = options.lineLimit, let line = textLayout(width: nil).lines.first {
             let lineHeight = line.ascent + line.descent
-            size.height = max(size.height, lineHeight * CGFloat(limit) + options.lineSpacing * CGFloat(limit - 1))
+            size.height = max(size.height, lineHeight * CGFloat(limit) + (options.lineSpacing + line.leading) * CGFloat(limit - 1))
         }
         return size
     }
@@ -267,7 +271,7 @@ final class TextNode: Node {
     }
 
     override func drawContent(_ p: Painter) {
-        textLayout(width: frame.width).draw(p, in: CGRect(origin: .zero, size: frame.size))
+        textLayout(width: frame.width, height: frame.height).draw(p, in: CGRect(origin: .zero, size: frame.size))
     }
 }
 
@@ -292,6 +296,7 @@ extension Text: View, PrimitiveView {
         options.lineSpacing = env.lineSpacing
         options.minimumScaleFactor = env.minimumScaleFactor
         options.scale = env.displayScale
+        options.avoidsOrphans = env.renderPlatform != .tvOS
         return TextNode(runs: runs(in: env), options: options, reservesSpace: env.lineLimitReservesSpace)
     }
 }

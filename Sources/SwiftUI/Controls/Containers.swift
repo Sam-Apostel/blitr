@@ -9,16 +9,6 @@ public struct DatePickerComponents: OptionSet, Sendable {
     public static let date = DatePickerComponents(rawValue: 2)
 }
 
-public protocol DatePickerStyle {}
-public struct DefaultDatePickerStyle: DatePickerStyle { public init() {} }
-public struct CompactDatePickerStyle: DatePickerStyle { public init() {} }
-public struct GraphicalDatePickerStyle: DatePickerStyle { public init() {} }
-public struct WheelDatePickerStyle: DatePickerStyle { public init() {} }
-extension DatePickerStyle where Self == DefaultDatePickerStyle { public static var automatic: DefaultDatePickerStyle { DefaultDatePickerStyle() } }
-extension DatePickerStyle where Self == CompactDatePickerStyle { public static var compact: CompactDatePickerStyle { CompactDatePickerStyle() } }
-extension DatePickerStyle where Self == GraphicalDatePickerStyle { public static var graphical: GraphicalDatePickerStyle { GraphicalDatePickerStyle() } }
-extension DatePickerStyle where Self == WheelDatePickerStyle { public static var wheel: WheelDatePickerStyle { WheelDatePickerStyle() } }
-
 enum DatePickerGraphicalKey: EnvironmentKey { static let defaultValue = false }
 extension EnvironmentValues {
     var datePickerGraphical: Bool {
@@ -26,14 +16,7 @@ extension EnvironmentValues {
         set { self[DatePickerGraphicalKey.self] = newValue }
     }
 }
-extension View {
-    /// Compact and graphical are drawn; the wheel style is drawn as compact.
-    public func datePickerStyle<S: DatePickerStyle>(_ style: S) -> some View {
-        env { $0.datePickerGraphical = style is GraphicalDatePickerStyle }
-    }
-}
-
-private func formatted(_ date: Date, _ format: String) -> String {
+func formatted(_ date: Date, _ format: String) -> String {
     let f = DateFormatter()
     f.locale = Locale(identifier: "en_US")
     f.dateFormat = format
@@ -42,11 +25,21 @@ private func formatted(_ date: Date, _ format: String) -> String {
 
 struct _DatePill: View {
     let text: String
+    /// Height of the pill on iOS 26/27 (nil: label height + 14).
+    var glassHeight: CGFloat? = nil
     @Environment(\.designLanguage) private var design
     var body: some View {
-        Text(verbatim: text)
+        if design.isGlass {
+            // measured: iOS 27.0 simulator (ControlsInputs): 12pt side padding; 34.33pt tall alone,
+            // 36pt when the time is shown too; capsule.
+            return AnyView(Text(verbatim: text)
+                .padding(.horizontal, 12).padding(.vertical, 7)
+                .frame(minHeight: glassHeight)
+                .background(Color(SystemColor.tertiaryFill), in: Capsule()))
+        }
+        return AnyView(Text(verbatim: text)
             .padding(.horizontal, 11).padding(.vertical, 7)
-            .background(Color(SystemColor.tertiaryFill), in: RoundedRectangle(cornerRadius: design.isGlass ? 18 : 8))
+            .background(Color(SystemColor.tertiaryFill), in: RoundedRectangle(cornerRadius: 8)))
     }
 }
 
@@ -99,24 +92,49 @@ struct _GraphicalCalendar: View {
 
 public struct DatePicker<Label: View>: View {
     private let _tvOSCheck = tvOSUnavailable("DatePicker")
-    let date: Date
+    let selection: Binding<Date>
     let components: DatePickerComponents
     let label: Label?
-    @Environment(\.datePickerGraphical) private var graphical
+    var minimumDate: Date?
+    var maximumDate: Date?
+    var forcedKind: DatePickerKind?
+    @Environment(\.datePickerGraphical) private var datePickerGraphical
+    @Environment(\.datePickerStyleBox) private var styleBox
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.designLanguage) private var design
 
-    init(date: Date, components: DatePickerComponents, label: Label?) {
-        self.date = date
+    var date: Date { selection.wrappedValue }
+
+    init(selection: Binding<Date>, components: DatePickerComponents, label: Label?, minimumDate: Date? = nil, maximumDate: Date? = nil) {
+        self.selection = selection
         self.components = components
         self.label = label
+        self.minimumDate = minimumDate
+        self.maximumDate = maximumDate
     }
 
     public var body: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 6) {
+        if forcedKind == nil, let make = styleBox?.make {
+            make(DatePickerStyleConfiguration(
+                label: .init(view: label.map { AnyView($0) } ?? AnyView(EmptyView())), selection: selection,
+                minimumDate: minimumDate, maximumDate: maximumDate, displayedComponents: components))
+        } else {
+            builtIn(forcedKind ?? styleBox?.kind ?? (datePickerGraphical ? .graphical : .compact))
+        }
+    }
+
+    private func builtIn(_ kind: DatePickerKind) -> some View {
+        let graphical = kind == .graphical
+        return VStack(spacing: 8) {
+            HStack(spacing: design.isGlass ? 4 : 6) {
+                let pillHeight: CGFloat? = components.contains(.hourAndMinute) ? 36 : nil
                 ControlLabel(label: label)
-                if !graphical && components.contains(.date) { _DatePill(text: formatted(date, "MMM d, yyyy")) }
-                if components.contains(.hourAndMinute) { _DatePill(text: formatted(date, "h:mm a")) }
+                if kind == .field || kind == .stepperField {
+                    _DateField(date: date, components: components, stepper: kind == .stepperField)
+                } else {
+                    if !graphical && components.contains(.date) { _DatePill(text: formatted(date, "MMM d, yyyy"), glassHeight: pillHeight) }
+                    if components.contains(.hourAndMinute) { _DatePill(text: formatted(date, "h:mm a"), glassHeight: pillHeight) }
+                }
             }
             if graphical && components.contains(.date) { _GraphicalCalendar(date: date) }
         }
@@ -138,48 +156,49 @@ public struct DatePicker<Label: View>: View {
                 $0.isEnabled = isEnabled
             }
         })
+        .interaction(.date(selection))
     }
 }
 
 extension DatePicker where Label == Text {
     public init(_ titleKey: LocalizedStringKey, selection: Binding<Date>, displayedComponents: DatePickerComponents = [.hourAndMinute, .date]) {
-        self.init(date: selection.wrappedValue, components: displayedComponents, label: Text(titleKey))
+        self.init(selection: selection, components: displayedComponents, label: Text(titleKey))
     }
     public init(_ titleKey: LocalizedStringKey, selection: Binding<Date>, in range: ClosedRange<Date>, displayedComponents: DatePickerComponents = [.hourAndMinute, .date]) {
-        self.init(date: selection.wrappedValue, components: displayedComponents, label: Text(titleKey))
+        self.init(selection: selection, components: displayedComponents, label: Text(titleKey), minimumDate: range.lowerBound, maximumDate: range.upperBound)
     }
     public init(_ titleKey: LocalizedStringKey, selection: Binding<Date>, in range: PartialRangeFrom<Date>, displayedComponents: DatePickerComponents = [.hourAndMinute, .date]) {
-        self.init(date: selection.wrappedValue, components: displayedComponents, label: Text(titleKey))
+        self.init(selection: selection, components: displayedComponents, label: Text(titleKey), minimumDate: range.lowerBound)
     }
     public init(_ titleKey: LocalizedStringKey, selection: Binding<Date>, in range: PartialRangeThrough<Date>, displayedComponents: DatePickerComponents = [.hourAndMinute, .date]) {
-        self.init(date: selection.wrappedValue, components: displayedComponents, label: Text(titleKey))
+        self.init(selection: selection, components: displayedComponents, label: Text(titleKey), maximumDate: range.upperBound)
     }
     public init<S: StringProtocol>(_ title: S, selection: Binding<Date>, displayedComponents: DatePickerComponents = [.hourAndMinute, .date]) {
-        self.init(date: selection.wrappedValue, components: displayedComponents, label: Text(title))
+        self.init(selection: selection, components: displayedComponents, label: Text(title))
     }
     public init<S: StringProtocol>(_ title: S, selection: Binding<Date>, in range: ClosedRange<Date>, displayedComponents: DatePickerComponents = [.hourAndMinute, .date]) {
-        self.init(date: selection.wrappedValue, components: displayedComponents, label: Text(title))
+        self.init(selection: selection, components: displayedComponents, label: Text(title), minimumDate: range.lowerBound, maximumDate: range.upperBound)
     }
     public init<S: StringProtocol>(_ title: S, selection: Binding<Date>, in range: PartialRangeFrom<Date>, displayedComponents: DatePickerComponents = [.hourAndMinute, .date]) {
-        self.init(date: selection.wrappedValue, components: displayedComponents, label: Text(title))
+        self.init(selection: selection, components: displayedComponents, label: Text(title), minimumDate: range.lowerBound)
     }
     public init<S: StringProtocol>(_ title: S, selection: Binding<Date>, in range: PartialRangeThrough<Date>, displayedComponents: DatePickerComponents = [.hourAndMinute, .date]) {
-        self.init(date: selection.wrappedValue, components: displayedComponents, label: Text(title))
+        self.init(selection: selection, components: displayedComponents, label: Text(title), maximumDate: range.upperBound)
     }
 }
 
 extension DatePicker {
     public init(selection: Binding<Date>, displayedComponents: DatePickerComponents = [.hourAndMinute, .date], @ViewBuilder label: () -> Label) {
-        self.init(date: selection.wrappedValue, components: displayedComponents, label: label())
+        self.init(selection: selection, components: displayedComponents, label: label())
     }
     public init(selection: Binding<Date>, in range: ClosedRange<Date>, displayedComponents: DatePickerComponents = [.hourAndMinute, .date], @ViewBuilder label: () -> Label) {
-        self.init(date: selection.wrappedValue, components: displayedComponents, label: label())
+        self.init(selection: selection, components: displayedComponents, label: label(), minimumDate: range.lowerBound, maximumDate: range.upperBound)
     }
     public init(selection: Binding<Date>, in range: PartialRangeFrom<Date>, displayedComponents: DatePickerComponents = [.hourAndMinute, .date], @ViewBuilder label: () -> Label) {
-        self.init(date: selection.wrappedValue, components: displayedComponents, label: label())
+        self.init(selection: selection, components: displayedComponents, label: label(), minimumDate: range.lowerBound)
     }
     public init(selection: Binding<Date>, in range: PartialRangeThrough<Date>, displayedComponents: DatePickerComponents = [.hourAndMinute, .date], @ViewBuilder label: () -> Label) {
-        self.init(date: selection.wrappedValue, components: displayedComponents, label: label())
+        self.init(selection: selection, components: displayedComponents, label: label(), maximumDate: range.upperBound)
     }
 }
 
@@ -187,14 +206,18 @@ extension DatePicker {
 
 struct ColorWell: View {
     let color: Color
+    @Environment(\.designLanguage) private var design
     var body: some View {
-        ZStack {
+        // measured: iOS 27.0 simulator (ControlsInputs): the well is 28pt on iOS 26/27.
+        let side: CGFloat = design.isGlass ? 28 : 30
+        let k = side / 30
+        return ZStack {
             Circle().fill(AngularGradient(colors: [.red, .yellow, .green, .cyan, .blue, .purple, .pink, .red], center: .center, startAngle: .degrees(0), endAngle: .degrees(360)))
-                .frame(width: 30, height: 30)
-            Circle().fill(Color(SystemColor.background)).frame(width: 24, height: 24)
-            Circle().fill(color).frame(width: 21, height: 21)
+                .frame(width: side, height: side)
+            Circle().fill(Color(SystemColor.background)).frame(width: 24 * k, height: 24 * k)
+            Circle().fill(color).frame(width: 21 * k, height: 21 * k)
         }
-        .frame(width: 30, height: 30)
+        .frame(width: side, height: side)
     }
 }
 
@@ -244,6 +267,8 @@ public struct DisclosureGroup<Label: View, Content: View>: View {
     let content: Content
     let binding: Binding<Bool>?
     @State private var local = false
+    @Environment(\.disclosureGroupStyleBox) private var customStyle
+    var forceDefault = false
 
     public init(isExpanded: Binding<Bool>, @ViewBuilder content: @escaping () -> Content, @ViewBuilder label: () -> Label) {
         self.binding = isExpanded
@@ -256,9 +281,42 @@ public struct DisclosureGroup<Label: View, Content: View>: View {
         self.label = label()
     }
 
+    @Environment(\.designLanguage) private var design
+    @Environment(\.renderPlatform) private var platform
+
     public var body: some View {
+        if let custom = customStyle, !forceDefault {
+            custom.make(AnyView(label), AnyView(content), Binding(
+                get: { binding?.wrappedValue ?? local },
+                set: { if let binding { binding.wrappedValue = $0 } else { local = $0 } }))
+        } else {
+            defaultBody
+        }
+    }
+
+    private var defaultBody: some View {
         let expanded = binding?.wrappedValue ?? local
-        return VStack(alignment: .leading, spacing: 8) {
+        if design.isGlass && platform != .tvOS {
+            // measured: iOS 27.0 simulator (ControlsInputs): a 28.33pt row with the label in the
+            // tint and a primary-coloured chevron, the content right under it, centred.
+            return AnyView(VStack(spacing: 0) {
+                HStack {
+                    label.foregroundStyle(Color.accentColor)
+                    Spacer(minLength: 8)
+                    Chevron(direction: expanded ? .down : .right, width: 7, height: 12, weight: 2.2, color: AnyShapeStyle(Color.primary))
+                }
+                .padding(.vertical, 4)
+                .axInfo {
+                    $0.isElement = true
+                    $0.addTraits = [.button]
+                    $0.children = .combine
+                    $0.value = expanded ? "expanded" : "collapsed"
+                    $0.isTapTarget = true
+                }
+                if expanded { content.frame(maxWidth: .infinity) }
+            })
+        }
+        return AnyView(VStack(alignment: .leading, spacing: 8) {
             HStack {
                 label
                 Spacer(minLength: 8)
@@ -272,7 +330,7 @@ public struct DisclosureGroup<Label: View, Content: View>: View {
                 $0.isTapTarget = true
             }
             if expanded { content }
-        }
+        })
     }
 }
 
@@ -298,6 +356,8 @@ public struct GroupBox<Label: View, Content: View>: View {
     let label: Label
     let content: Content
     @Environment(\.designLanguage) private var design
+    @Environment(\.groupBoxStyleBox) private var customStyle
+    var forceDefault = false
 
     public init(@ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label) {
         self.content = content()
@@ -309,14 +369,32 @@ public struct GroupBox<Label: View, Content: View>: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        if let custom = customStyle, !forceDefault {
+            custom.make(AnyView(label), AnyView(content))
+        } else {
+            defaultBody
+        }
+    }
+
+    private var defaultBody: some View {
+        if design.isGlass {
+            // measured: iOS 27.0 simulator (ControlsInputs): 16pt padding, the content 2pt under
+            // the label and centred, an 8pt corner.
+            return AnyView(VStack(alignment: .leading, spacing: 2) {
+                if !(Label.self is EmptyView.Type) { label.font(.headline) }
+                content.frame(maxWidth: .infinity)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(SystemColor.secondaryBackground), in: RoundedRectangle(cornerRadius: ControlGlassMetrics.groupBoxRadius)))
+        }
+        return AnyView(VStack(alignment: .leading, spacing: 8) {
             if !(Label.self is EmptyView.Type) { label.font(.headline) }
             content
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(SystemColor.secondaryBackground),
-                    in: RoundedRectangle(cornerRadius: design.isGlass ? ControlGlassMetrics.groupBoxRadius : 8))
+        .background(Color(SystemColor.secondaryBackground), in: RoundedRectangle(cornerRadius: 8)))
     }
 }
 
@@ -340,13 +418,33 @@ extension GroupBox where Label == Text {
 public struct ControlGroup<Content: View>: View, PrimitiveView {
     public typealias Body = Never
     let content: Content
+    var labelView: AnyView?
+    var forceDefault = false
 
     public init(@ViewBuilder content: () -> Content) { self.content = content() }
     public init<C: View, L: View>(@ViewBuilder content: () -> C, @ViewBuilder label: () -> L) where Content == C {
         self.content = content()
+        self.labelView = AnyView(label())
     }
 
     func resolve(_ ctx: ResolveContext, into out: inout [Node]) {
+        if !forceDefault, let box = ctx.env.controlGroupStyleBox, let styled = _styledControlGroup(box, content: AnyView(content), label: labelView) {
+            resolveView(styled, ctx.child("styled"), into: &out)
+            return
+        }
+        if ctx.env.designLanguage.isGlass, ctx.env.renderPlatform != .tvOS {
+            // measured: iOS 27.0 simulator (ControlsInputs): a 32pt capsule across the width,
+            // equal segments, 14pt primary-coloured labels, no separators.
+            let nodes = resolveNodes(content, ctx.child("group").with { $0.font = .system(size: 14); $0.foregroundStyle = AnyShapeStyle(Color.primary) })
+            let view = HStack(spacing: 0) {
+                ForEach(Array(nodes.enumerated()), id: \.offset) { pair in
+                    _NodeView(pair.element).frame(maxWidth: .infinity).frame(height: 32)
+                }
+            }
+            .background(Color(SystemColor.tertiaryFill), in: Capsule())
+            resolveView(view, ctx.child("view"), into: &out)
+            return
+        }
         let nodes = resolveNodes(content, ctx.child("group"))
         let view = HStack(spacing: 0) {
             ForEach(Array(nodes.enumerated()), id: \.offset) { pair in

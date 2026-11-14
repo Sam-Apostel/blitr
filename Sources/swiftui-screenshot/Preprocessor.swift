@@ -3,11 +3,19 @@ import Foundation
 /// Rewrites SwiftUI sources so they can be compiled into a headless runner:
 ///
 ///     #Preview("Name", ...) { body }  ->  @MainActor let __preview_N = SwiftUI._PreviewEntry("Name") { body }
-///     #Preview(as: .systemSmall) { W() } timeline: { ... }  ->  ... = SwiftUI._WidgetPreview(as: .systemSmall) { W() } timeline: { ... }
+///     #Preview(as: .systemSmall) { W() } timeline: { ... }  ->  ... = WidgetKit._WidgetPreview(as: .systemSmall) { W() } timeline: { ... }
 ///                                     (widget and Live Activity previews keep their arguments; see docs/WIDGETS.md)
 ///     @Previewable                     ->  (removed)
 ///     @main                            ->  (removed; the generated main.swift is the entry point)
 ///     #if os(iOS)                      ->  #if os(Linux)   (for the platform being rendered: its branches are kept)
+///     #if os(Linux)                    ->  #if false       (the code is rendered as an Apple platform)
+///     #if canImport(UIKit)             ->  #if false       (on platforms without the framework; see frameworkPlatforms)
+///     import SwiftUI                   ->  import SwiftUI; import UIKit   (iOS, tvOS, visionOS: SwiftUI re-exports UIKit there)
+///     @objc, @IBAction, @IBOutlet      ->  (removed: there is no Objective-C runtime on Linux)
+///     .accessoryCorner                 ->  ._accessoryCorner   (WidgetKit's watchOS family; see WidgetFamily)
+///     #Rule(Self.$x) { ... }           ->  TipKit.Tips.Rule(Self.$x) { ... }   (TipKit's macro)
+///     #selector(tap(_:))               ->  Selector("tap(_:)")   (ObjectiveC's Selector, which UIKit re-exports)
+///     import CoreImage.CIFilterBuiltins ->  import CoreImage   (the shims are Swift modules, without submodules)
 ///     @Entry var x: T = v              ->  an explicit EnvironmentKey + computed property
 ///     #available(iOS 26, *)            ->  SwiftUI.RenderedPlatform.isAtLeast(iOS: 26)
 ///     #unavailable(iOS 26)             ->  !SwiftUI.RenderedPlatform.isAtLeast(iOS: 26)
@@ -57,15 +65,16 @@ struct Preprocessor {
             entries = ["SwiftUI._PreviewEntry(app: \(app)())"]
         } else if entries.isEmpty, !bundleTypes.isEmpty || !widgetTypes.isEmpty {
             // A widget extension without previews: render its widgets from their providers.
-            entries = bundleTypes.first.map { ["SwiftUI._WidgetPreview(bundle: \($0)())"] }
-                ?? widgetTypes.map { "SwiftUI._WidgetPreview(widget: \($0)())" }
+            entries = bundleTypes.first.map { ["WidgetKit._WidgetPreview(bundle: \($0)())"] }
+                ?? widgetTypes.map { "WidgetKit._WidgetPreview(widget: \($0)())" }
             hasWidgetPreviews = true
         }
 
         var main = "import SwiftUI\n\nMainActor.assumeIsolated {\n    SwiftUI._ScreenshotRunner.run([\n"
         if hasWidgetPreviews {
             // Widget previews expand to one image per family, timeline entry or content state.
-            main = "import SwiftUI\n\nMainActor.assumeIsolated {\n    SwiftUI._ScreenshotRunner.run(([\n"
+            // `_WidgetPreview` is WidgetKit's, which declares the widget API.
+            main = "import SwiftUI\nimport WidgetKit\n\nMainActor.assumeIsolated {\n    SwiftUI._ScreenshotRunner.run(([\n"
         }
         for entry in entries { main += "        \(entry),\n" }
         main += hasWidgetPreviews ? "    ] as [any SwiftUI._PreviewEntryGroup]).flatMap { $0._previewEntries })\n}\n" : "    ])\n}\n"
@@ -219,13 +228,13 @@ struct Preprocessor {
             if owner == "FocusedValues" {
                 if let type {
                     let value = type.hasSuffix("?") ? String(type.dropLast()) : type
-                    replacement = "struct \(key): FocusedValueKey { typealias Value = \(value) }\n    \(mods)var \(name): \(type) \(accessor)"
+                    replacement = "struct \(key): FocusedValueKey { typealias Value = \(value) }; \(mods)var \(name): \(type) \(accessor)"
                 }
             } else {
                 if defaultValue == nil, let type, type.hasSuffix("?") { defaultValue = "nil" }
                 if let defaultValue {
                     let annotation = type.map { ": " + $0 } ?? ""
-                    replacement = "struct \(key): EnvironmentKey { static let defaultValue\(annotation) = \(defaultValue) }\n    \(mods)var \(name): \(type ?? key + ".Value") \(accessor)"
+                    replacement = "struct \(key): EnvironmentKey { static let defaultValue\(annotation) = \(defaultValue) }; \(mods)var \(name): \(type ?? key + ".Value") \(accessor)"
                 }
             }
             guard let replacement else { scan += 1; continue }
@@ -253,6 +262,42 @@ struct Preprocessor {
             result += ", layout: \"fixed\", width: \(ns.substring(with: match.range(at: 1))), height: \(ns.substring(with: match.range(at: 2)))"
         }
         return result
+    }
+
+    /// Platforms whose SwiftUI re-exports UIKit.
+    static let uiKitPlatforms: Set<String> = ["iOS", "tvOS", "visionOS"]
+
+    /// Frameworks the SDK has a module for that Apple does not ship on every platform: `canImport` of one is
+    /// false when another platform is rendered.
+    static let frameworkPlatforms: [String: Set<String>] = [
+        // watchOS ships a small UIKit (UIImage, UIColor, UIFont) that is importable, though SwiftUI does not re-export it there.
+        "UIKit": uiKitPlatforms.union(["watchOS"]),
+        "ActivityKit": ["iOS"],
+        "WidgetKit": ["iOS", "macOS", "watchOS", "visionOS"],
+        "AppKit": ["macOS"],
+        "PhotosUI": ["iOS", "macOS", "tvOS", "visionOS"],
+        "WatchConnectivity": ["iOS", "watchOS"],
+        "WatchKit": ["watchOS"],
+        "EventKitUI": ["iOS", "visionOS"],
+        "ContactsUI": ["iOS", "macOS", "visionOS"],
+        "PassKit": ["iOS", "macOS", "watchOS", "visionOS"],
+        "VisionKit": ["iOS", "macOS", "visionOS"],
+        "PDFKit": ["iOS", "macOS", "visionOS"],
+        "QuickLook": ["iOS", "macOS", "visionOS"],
+        "MessageUI": ["iOS", "visionOS"],
+        "SafariServices": ["iOS", "macOS", "visionOS"],
+        "CoreMotion": ["iOS", "watchOS", "visionOS"],
+        "Translation": ["iOS", "macOS", "visionOS"],
+        "CoreSpotlight": ["iOS", "macOS", "visionOS"],
+    ]
+
+    /// Modules of the SDK whose Apple counterparts have submodules (`import CoreImage.CIFilterBuiltins`).
+    static let submoduleParents: Set<String> = ["os", "CoreImage", "UIKit", "AppKit", "CoreGraphics", "QuartzCore", "ImageIO", "CoreText"]
+    /// Attributes that need the Objective-C runtime, which Swift on Linux does not have; they are dropped.
+    static let objCAttributes = ["@objcMembers", "@objc", "@nonobjc", "@IBAction", "@IBOutlet", "@IBInspectable", "@IBDesignable", "@IBSegueAction"]
+
+    private static func isIdentifierByte(_ b: UInt8) -> Bool {
+        b == UInt8(ascii: "_") || (b >= 48 && b <= 57) || (b >= 65 && b <= 90) || (b >= 97 && b <= 122)
     }
 
     private static func isRawStringStart(_ bytes: [UInt8], _ index: Int) -> Bool {
@@ -316,16 +361,98 @@ struct Preprocessor {
                     }
                 }
             }
+            // Apple's SwiftUI re-exports UIKit on iOS, tvOS and visionOS. Here UIKit is a module of its own
+            // (so macOS and watchOS code does not see it), and a file importing SwiftUI imports it as well.
+            if Self.uiKitPlatforms.contains(platform), hasToken("import SwiftUI", at: i),
+               i == 0 || !Self.isIdentifierByte(bytes[i - 1]), !(i + 14 < bytes.count && bytes[i + 14] == UInt8(ascii: ".")) {
+                let lineStart = out.lastIndex(of: UInt8(ascii: "\n")).map { $0 + 1 } ?? 0
+                let lead = String(decoding: out[lineStart...], as: UTF8.self).split(separator: " ")
+                let accessLevels: Set<Substring> = ["public", "package", "internal", "fileprivate", "private"]
+                let modifier = lead.contains("@_exported") ? "@_exported " : lead.first(where: accessLevels.contains).map { "\($0) " } ?? ""
+                out += Array("import SwiftUI; \(modifier)import UIKit".utf8)
+                i += "import SwiftUI".utf8.count
+                continue
+            }
+            // No Objective-C runtime: drop its attributes (with an `@objc(name)` argument), and make selectors plain values.
+            if bytes[i] == UInt8(ascii: "@"), i == 0 || !Self.isIdentifierByte(bytes[i - 1]),
+               let attribute = Self.objCAttributes.first(where: { hasToken($0, at: i) }) {
+                var j = i + attribute.utf8.count
+                if j < bytes.count, bytes[j] == UInt8(ascii: "("), let close = bytes[j...].firstIndex(of: UInt8(ascii: ")")) { j = close + 1 }
+                i = j
+                continue
+            }
+            // WidgetKit's watchOS-only family (see WidgetFamily.accessoryCorner).
+            if hasPrefix(".accessoryCorner", at: i), i + 16 >= bytes.count || !Self.isIdentifierByte(bytes[i + 16]) {
+                out += Array("._accessoryCorner".utf8)
+                i += 16
+                continue
+            }
+            // TipKit's `#Rule(...)` macro: the same arguments make a `Tips.Rule` here.
+            if hasPrefix("#Rule(", at: i) {
+                out += Array("TipKit.Tips.Rule(".utf8)
+                i += "#Rule(".utf8.count
+                continue
+            }
+            if hasPrefix("#selector(", at: i) {
+                var depth = 0, close = i + "#selector".utf8.count
+                while close < bytes.count {
+                    if bytes[close] == UInt8(ascii: "(") { depth += 1 }
+                    if bytes[close] == UInt8(ascii: ")") { depth -= 1; if depth == 0 { break } }
+                    if bytes[close] == UInt8(ascii: "\n") { break }
+                    close += 1
+                }
+                if close < bytes.count, bytes[close] == UInt8(ascii: ")") {
+                    let inner = String(decoding: bytes[(i + "#selector(".utf8.count)..<close], as: UTF8.self)
+                    out += Array("Selector(\"\(inner.replacingOccurrences(of: "\"", with: ""))\")".utf8)
+                    i = close + 1
+                    continue
+                }
+            }
+            if hasPrefix("import ", at: i), i == 0 || !Self.isIdentifierByte(bytes[i - 1]) {
+                var j = i + "import ".utf8.count
+                while j < bytes.count, bytes[j] == UInt8(ascii: " ") { j += 1 }
+                var k = j
+                while k < bytes.count, Self.isIdentifierByte(bytes[k]) { k += 1 }
+                let module = String(decoding: bytes[j..<k], as: UTF8.self)
+                if k < bytes.count, bytes[k] == UInt8(ascii: "."), Self.submoduleParents.contains(module) {
+                    var end = k + 1
+                    while end < bytes.count, Self.isIdentifierByte(bytes[end]) || bytes[end] == UInt8(ascii: ".") { end += 1 }
+                    out += Array("import \(module)".utf8)
+                    i = end
+                    continue
+                }
+            }
             // `#if os(<the rendered platform>)` must be the true branch; other Apple platforms stay false.
             if hasToken("os(\(platform))", at: i) {
                 out += Array("os(Linux)".utf8)
                 i += "os(\(platform))".utf8.count
                 continue
             }
+            // The code is rendered as the Apple platform, so its Linux branches are not taken.
+            if hasToken("os(Linux)", at: i), i == 0 || !Self.isIdentifierByte(bytes[i - 1]) {
+                out += Array("false".utf8)
+                i += "os(Linux)".utf8.count
+                continue
+            }
+            // `canImport` follows the rendered platform too: UIKit only where Apple ships it, and so on
+            // (Self.frameworkPlatforms). Other modules are left to the compiler, which finds the ones the
+            // SDK provides and no others.
+            if hasPrefix("canImport(", at: i), i == 0 || !Self.isIdentifierByte(bytes[i - 1]),
+               let close = bytes[i...].firstIndex(of: UInt8(ascii: ")")) {
+                let argument = String(decoding: bytes[(i + "canImport(".utf8.count)..<close], as: UTF8.self)
+                let module = argument.split(separator: ",").first.map { $0.trimmingCharacters(in: .whitespaces) } ?? ""
+                if let platforms = Self.frameworkPlatforms[module], !platforms.contains(platform) {
+                    out += Array("false".utf8)
+                    i = close + 1
+                    continue
+                }
+            }
             if hasToken("#Preview", at: i) {
                 var j = i + "#Preview".utf8.count
                 var name = "nil"
                 var traits = ""
+                // Newlines in a multi-line argument list are kept, so later lines keep their numbers.
+                var lineBreaks = ""
                 var k = j
                 while k < bytes.count, bytes[k] == UInt8(ascii: " ") || bytes[k] == UInt8(ascii: "\t") { k += 1 }
                 if k < bytes.count, bytes[k] == UInt8(ascii: "(") {
@@ -356,17 +483,18 @@ struct Preprocessor {
                             counter += 1
                             names.append(identifier)
                             hasWidgetPreviews = true
-                            out += Array("@MainActor let \(identifier) = SwiftUI._WidgetPreview(\(arguments))".utf8)
+                            out += Array("@MainActor let \(identifier) = WidgetKit._WidgetPreview(\(arguments))".utf8)
                             i = close + 1
                             continue
                         }
                     }
                     j = close + 1
+                    lineBreaks = String(repeating: "\n", count: bytes[k..<min(close, bytes.count)].filter { $0 == UInt8(ascii: "\n") }.count)
                 }
                 let identifier = "__preview_\(counter)"
                 counter += 1
                 names.append(identifier)
-                out += Array("@MainActor let \(identifier) = SwiftUI._PreviewEntry(\(name)\(traits))".utf8)
+                out += Array("@MainActor let \(identifier) = SwiftUI._PreviewEntry(\(name)\(traits)\(lineBreaks))".utf8)
                 i = j
                 continue
             }

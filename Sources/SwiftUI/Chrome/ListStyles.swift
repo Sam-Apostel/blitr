@@ -20,7 +20,7 @@ extension ListStyle {
         case is GroupedListStyle: return .grouped
         case is PlainListStyle: return .plain
         case is InsetListStyle: return .inset
-        default: return nil
+        default: return _platformKind
         }
     }
 }
@@ -237,7 +237,7 @@ public protocol DynamicViewContent: View {
 extension ForEach: DynamicViewContent where Content: View {}
 
 extension DynamicViewContent {
-    public func onDelete(perform action: Optional<(IndexSet) -> Void>) -> some DynamicViewContent { self }
+    public func onDelete(perform action: Optional<(IndexSet) -> Void>) -> some DynamicViewContent { _EditableForEach(base: self, delete: action) }
     public func onMove(perform action: Optional<(IndexSet, Int) -> Void>) -> some DynamicViewContent { self }
 }
 

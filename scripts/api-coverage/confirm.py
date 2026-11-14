@@ -26,6 +26,10 @@ def snippet(api, status, extra):
     m = re.match(r"^conformance: (.+)$", api)
     if m:
         return f"struct _C: {m.group(1)} {{}}", m.group(1)
+    if api == "@Entry":
+        return "extension EnvironmentValues { @Entry var _confirmEntry: Int = 0 }", "Entry"
+    if api in ("@Observable", "@ObservationIgnored"):
+        return f"@Observable final class _Confirm{api[1:]} {{ @ObservationIgnored var x = 0 }}", api[1:]
     m = re.match(r"^@(\w+)$", api)
     if m:
         return f"struct _A {{ @{m.group(1)} var x: Int = 0 }}", m.group(1)
@@ -63,7 +67,7 @@ def run_manual(path, binary, work):
     items = list(json.load(open(path)).items())
     out = {}
     for start in range(0, len(items), 20):
-        lines = ["import SwiftUI", "#Preview { Text(\"x\") }"]
+        lines = ["import SwiftUI", "import WidgetKit", "import ActivityKit", "import AppIntents", "#Preview { Text(\"x\") }"]
         spans = {}
         for i, (name, code) in enumerate(items[start:start + 20]):
             decl = re.match(r"^(struct|final|@|extension|func|#Preview)", code)
@@ -102,7 +106,7 @@ def main():
     batch_size = 25    # the tool reads stderr after stdout: keep each batch's diagnostics under the pipe buffer
     result = {}
     for start in range(0, len(cand), batch_size):
-        lines = ["import SwiftUI", "#Preview { Text(\"x\") }"]
+        lines = ["import SwiftUI", "import WidgetKit", "import ActivityKit", "import AppIntents", "#Preview { Text(\"x\") }"]
         index = {}
         for i, r in enumerate(cand[start:start + batch_size]):
             code, token = snippet(r["api"], r["status"], r["extra"])

@@ -315,11 +315,21 @@ extension View {
 
     public func onLongPressGesture(minimumDuration: Double = 0.5, maximumDistance: CGFloat = 10,
                                    perform action: @escaping () -> Void,
-                                   onPressingChanged: ((Bool) -> Void)? = nil) -> some View { axTappable() }
+                                   onPressingChanged: ((Bool) -> Void)? = nil) -> some View {
+        axTappable().interaction { _ in var h = InteractionHandlers(); h.longPress = { action() }; return h }
+    }
     @_disfavoredOverload
     public func onLongPressGesture(minimumDuration: Double = 0.5, maximumDistance: CGFloat = 10,
                                    pressing onPressingChanged: ((Bool) -> Void)? = nil,
-                                   perform action: @escaping () -> Void) -> some View { axTappable() }
+                                   perform action: @escaping () -> Void) -> some View {
+        axTappable().interaction { _ in var h = InteractionHandlers(); h.longPress = { action() }; return h }
+    }
 
     public func allowsHitTesting(_ enabled: Bool) -> some View { self }
+}
+
+/// `cond ? someGesture : nil` is a gesture in SwiftUI: an absent gesture does nothing.
+extension Optional: Gesture where Wrapped: Gesture {
+    public typealias Value = Wrapped.Value
+    public typealias Body = Never
 }

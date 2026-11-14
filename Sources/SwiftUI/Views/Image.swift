@@ -3,9 +3,9 @@ internal import CSkia
 // Image: bitmap assets and system symbols.
 
 /// A decoded bitmap (Skia image) with its point size.
-final class Bitmap: @unchecked Sendable {
-    let image: OpaquePointer
-    let pointSize: CGSize
+package final class Bitmap: @unchecked Sendable {
+    package let image: OpaquePointer
+    package let pointSize: CGSize
     init?(path: String, scale: CGFloat) {
         guard let data = sk_data_new_from_file(path) else { return nil }
         defer { sk_data_unref(data) }
@@ -13,14 +13,19 @@ final class Bitmap: @unchecked Sendable {
         self.image = image
         pointSize = CGSize(width: CGFloat(sk_image_get_width(image)) / scale, height: CGFloat(sk_image_get_height(image)) / scale)
     }
+    /// Takes ownership of a Skia image (ImageRenderer output).
+    init(image: OpaquePointer, pointSize: CGSize) {
+        self.image = image
+        self.pointSize = pointSize
+    }
     deinit { sk_image_unref(image) }
 }
 
 /// Finds named images and colors in the asset directories given to the renderer:
 /// `.xcassets` catalogs (imagesets / colorsets) and loose image files.
 @MainActor
-final class AssetCatalog {
-    static let shared = AssetCatalog()
+package final class AssetCatalog {
+    package static let shared = AssetCatalog()
     var directories: [String] = [] { didSet { index = nil; bitmaps = [:] } }
     private var index: [String: [String]]?
     private var bitmaps: [String: Bitmap?] = [:]
@@ -49,7 +54,7 @@ final class AssetCatalog {
         return result
     }
 
-    func bitmap(named name: String, scheme: ColorScheme) -> Bitmap? {
+    package func bitmap(named name: String, scheme: ColorScheme) -> Bitmap? {
         let key = name + (scheme == .dark ? "#dark" : "")
         if let cached = bitmaps[key] { return cached }
         if index == nil { index = buildIndex() }
@@ -60,12 +65,15 @@ final class AssetCatalog {
         // Prefer the highest-resolution variant.
         func scale(_ path: String) -> CGFloat { path.contains("@3x") ? 3 : path.contains("@2x") ? 2 : 1 }
         let best = candidates.max { scale($0) < scale($1) }
+        if best == nil, (index?[name] ?? index?[stem] ?? []).contains(where: { ["pdf", "svg"].contains(($0 as NSString).pathExtension.lowercased()) }) {
+            Runtime.current?.warn("Image asset \"\(name)\" is a vector image (PDF/SVG), which is not supported yet")
+        }
         let bitmap = best.flatMap { Bitmap(path: $0, scale: scale($0)) }
         bitmaps[key] = bitmap
         return bitmap
     }
 
-    func color(named name: String, scheme: ColorScheme) -> RGBA? {
+    package func color(named name: String, scheme: ColorScheme) -> RGBA? {
         if index == nil { index = buildIndex() }
         guard let contents = index?["color:" + name]?.first(where: { $0.hasSuffix("Contents.json") }),
               let data = FileManager.default.contents(atPath: contents),
@@ -74,8 +82,19 @@ final class AssetCatalog {
         func isDark(_ entry: [String: Any]) -> Bool {
             ((entry["appearances"] as? [[String: Any]]) ?? []).contains { ($0["value"] as? String) == "dark" }
         }
-        let entry = colors.first { isDark($0) == (scheme == .dark) } ?? colors.first { !isDark($0) } ?? colors.first
-        guard let components = (entry?["color"] as? [String: Any])?["components"] as? [String: Any] else { return nil }
+        // High-contrast variants are only for "Increase Contrast"; the standard look skips them.
+        func isHighContrast(_ entry: [String: Any]) -> Bool {
+            ((entry["appearances"] as? [[String: Any]]) ?? []).contains { ($0["appearance"] as? String) == "contrast" }
+        }
+        let standard = colors.filter { !isHighContrast($0) }
+        let candidates = standard.isEmpty ? colors : standard
+        let entry = candidates.first { isDark($0) == (scheme == .dark) } ?? candidates.first { !isDark($0) } ?? candidates.first
+        guard let color = entry?["color"] as? [String: Any] else { return nil }
+        if let reference = color["reference"] as? String {
+            Runtime.current?.warn("Color \"\(name)\" refers to the system color \(reference), which asset catalogs are not resolved for; it renders magenta")
+            return nil
+        }
+        guard let components = color["components"] as? [String: Any] else { return nil }
         func component(_ key: String) -> Double {
             guard let raw = components[key] else { return 0 }
             if let n = raw as? NSNumber { return n.doubleValue }
@@ -84,7 +103,28 @@ final class AssetCatalog {
             let v = Double(s) ?? 0
             return v > 1 ? v / 255 : v
         }
-        return RGBA(component("red"), component("green"), component("blue"), components["alpha"] == nil ? 1 : component("alpha"))
+        let alpha = components["alpha"] == nil ? 1 : component("alpha")
+        // Gray color spaces store one "white" component.
+        if components["white"] != nil, components["red"] == nil {
+            let w = component("white")
+            return RGBA(w, w, w, alpha)
+        }
+        var (r, g, b) = (component("red"), component("green"), component("blue"))
+        if (color["color-space"] as? String) == "display-p3" { (r, g, b) = AssetCatalog.displayP3ToSRGB(r, g, b) }
+        return RGBA(r, g, b, alpha)
+    }
+
+    /// Display P3 to sRGB (both with the sRGB transfer curve): linearize, convert primaries, re-encode, clamp.
+    static func displayP3ToSRGB(_ r: Double, _ g: Double, _ b: Double) -> (Double, Double, Double) {
+        func linear(_ v: Double) -> Double { v <= 0.04045 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4) }
+        func encoded(_ v: Double) -> Double {
+            let c = min(max(v, 0), 1)
+            return c <= 0.0031308 ? c * 12.92 : 1.055 * pow(c, 1 / 2.4) - 0.055
+        }
+        let (lr, lg, lb) = (linear(r), linear(g), linear(b))
+        return (encoded(1.2249401 * lr - 0.2249404 * lg + 0.0000001 * lb),
+                encoded(-0.0420569 * lr + 1.0420571 * lg - 0.0000002 * lb),
+                encoded(-0.0196376 * lr - 0.0786361 * lg + 1.0982735 * lb))
     }
 }
 
@@ -95,18 +135,20 @@ public struct Image: Equatable, Sendable {
     public enum Scale: Hashable, Sendable { case small, medium, large }
     public enum Orientation: UInt8, Hashable, Sendable { case up, upMirrored, down, downMirrored, left, leftMirrored, right, rightMirrored }
 
-    enum Source: Equatable, Sendable {
+    package enum Source: Equatable, Sendable {
         case named(String)
         case system(String)
         case file(String)
+        /// Pixels made while rendering (ImageRenderer).
+        case rendered(RenderedImage)
     }
-    var source: Source
+    package var source: Source
     /// `Image(decorative:)`: hidden from assistive technology.
     var isDecorative = false
     /// `Image(_:label:)`: the accessibility label.
     var accessibilityLabelText: String?
     var isResizable = false
-    var renderingMode: TemplateRenderingMode?
+    package var renderingMode: TemplateRenderingMode?
     var symbolMode: SymbolRenderingMode?
 
     public init(_ name: String, bundle: Bundle? = nil) { source = .named(name) }
@@ -240,7 +282,8 @@ extension Image {
         switch source {
         case .system(let name):
             let font = font ?? (env.font ?? .body).resolve(in: env)
-            if let glyph = SymbolLibrary.shared.glyph(named: name, variants: env.symbolVariants, font: font, scale: env.imageScale) {
+            if let glyph = SymbolLibrary.shared.glyph(named: name, variants: env.symbolVariants, font: font, scale: env.imageScale,
+                                                      imageBounds: env.renderPlatform != .tvOS) {
                 return .symbol(glyph, paint: foreground)
             }
             Runtime.current?.warn("SF Symbol \"\(name)\" has no open-source equivalent mapped; rendered as a placeholder")
@@ -250,6 +293,8 @@ extension Image {
         case .file(let path):
             guard let bitmap = Bitmap(path: path, scale: 1) else { return .missing(path) }
             return .bitmap(bitmap, template: renderingMode == .template ? foreground : nil)
+        case .rendered(let rendered):
+            return .bitmap(rendered.bitmap, template: renderingMode == .template ? foreground : nil)
         case .named(let name):
             guard let bitmap = AssetCatalog.shared.bitmap(named: name, scheme: env.colorScheme) else {
                 Runtime.current?.warn("Image asset \"\(name)\" not found (pass --assets <dir>); rendered as a placeholder")
@@ -292,6 +337,15 @@ final class ImageNode: Node {
         guard frame.width.isFinite, frame.height.isFinite, frame.width > 0, frame.height > 0 else { return }
         content.draw(p, in: CGRect(origin: .zero, size: frame.size))
     }
+    /// The part of `rect` (this node's frame) the symbol's outline covers.
+    func inkRect(_ rect: CGRect) -> CGRect {
+        guard case .symbol(let glyph, _) = content, !isResizable, glyph.size.width > 0, glyph.size.height > 0 else { return rect }
+        let kx = rect.width / glyph.size.width, ky = rect.height / glyph.size.height
+        let i = glyph.inkInsets
+        let w = rect.width - (i.left + i.right) * kx, h = rect.height - (i.top + i.bottom) * ky
+        guard w > 0, h > 0 else { return rect }
+        return CGRect(x: rect.minX + i.left * kx, y: rect.minY + i.top * ky, width: w, height: h)
+    }
 }
 
 extension Image: View, PrimitiveView {
@@ -321,6 +375,9 @@ struct SymbolGlyph {
     /// Paths in a `viewBox`-sized coordinate space.
     var viewBox: CGSize
     var layers: [Layer]
+    /// Empty space around the outline within `size` (Apple's symbols are as wide as their advance
+    /// and padded vertically); accessibility frames leave it out, as on iOS.
+    var inkInsets: (top: CGFloat, left: CGFloat, bottom: CGFloat, right: CGFloat) = (0, 0, 0, 0)
 
     @MainActor func draw(_ p: Painter, in rect: CGRect, paint: _Paint) {
         guard viewBox.width > 0, viewBox.height > 0 else { return }
@@ -347,7 +404,9 @@ final class SymbolLibrary {
     /// Looks up artwork for a (variant-qualified) SF Symbol name; installed by the icon set.
     var provider: ((String) -> (viewBox: CGSize, layers: [SymbolGlyph.Layer])?)?
 
-    func glyph(named name: String, variants: SymbolVariants, font: ResolvedFont, scale: Image.Scale) -> SymbolGlyph? {
+    /// `imageBounds`: size Apple's symbols like UIKit's symbol images (advance width, vertical
+    /// padding) rather than to their outline (kept for tvOS, which is not calibrated yet).
+    func glyph(named name: String, variants: SymbolVariants, font: ResolvedFont, scale: Image.Scale, imageBounds: Bool = true) -> SymbolGlyph? {
         // Without an installed provider, fall back to the bundled Phosphor-based artwork (Symbols/).
         let lookup: (String) -> (viewBox: CGSize, layers: [SymbolGlyph.Layer])? = provider
             ?? { SymbolArtwork.shared.art(named: $0, weight: font.weight) }
@@ -362,13 +421,21 @@ final class SymbolLibrary {
         // Apple's own artwork, when the user has installed SF Pro and a symbol name map.
         if provider == nil, AppleSymbols.shared.isAvailable {
             for candidate in candidates {
-                if let glyph = AppleSymbols.shared.glyph(named: candidate, weight: font.weight, pointSize: font.size * factor) { return glyph }
+                if let glyph = AppleSymbols.shared.glyph(named: candidate, weight: font.weight, pointSize: font.size * factor, imageBounds: imageBounds) { return glyph }
             }
         }
         for candidate in candidates {
             guard let art = lookup(candidate) else { continue }
             // SF Symbols are drawn roughly 1.2x the point size tall at medium scale.
             let height = font.size * 1.2 * factor
+            // Next to real SF Symbols, a hand-drawn (SF-proportioned) stand-in takes the size of its ink, as they
+            // do (iOS 26+; iOS 18 keeps its look). Open-icon artwork keeps its square: its ink is not SF-sized.
+            if provider == nil, imageBounds, AppleSymbols.shared.isAvailable, _currentConfiguration().osVersion >= 26,
+               HandDrawnSymbols.make(candidate, weight: font.weight) != nil,
+               let cropped = SymbolGlyph.inkCropped(viewBox: art.viewBox, layers: art.layers, unit: height / max(art.viewBox.height, 1),
+                                                    verticalPadding: ((AppleSymbols.verticalPadding * font.size * factor) * 3).rounded() / 3) {
+                return cropped
+            }
             let width = height * art.viewBox.width / max(art.viewBox.height, 1)
             return SymbolGlyph(size: CGSize(width: width, height: height), viewBox: art.viewBox, layers: art.layers)
         }

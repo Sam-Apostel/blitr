@@ -14,7 +14,7 @@ enum ElementDump {
         var visited = Set<ObjectIdentifier>()
         walk(window, window: window, depth: 0, into: &elements, visited: &visited)
         let screen = window.screen
-        let doc: [String: Any] = [
+        var doc: [String: Any] = [
             "version": 1,
             "device": UIDevice.current.name,
             "model": modelIdentifier(),
@@ -26,6 +26,15 @@ enum ElementDump {
                          "left": window.safeAreaInsets.left, "right": window.safeAreaInsets.right],
             "elements": elements,
         ]
+        // The focused item (tvOS, or iOS with a keyboard): its frame in window coordinates.
+        if let item = UIFocusSystem.focusSystem(for: window)?.focusedItem {
+            let space = (item as? UIView).map { $0.superview ?? $0 } as UICoordinateSpace?
+                ?? item.parentFocusEnvironment?.focusItemContainer?.coordinateSpace ?? window
+            let f = space.convert(item.frame, to: window)
+            var focused: [String: Any] = ["frame": ["x": round2(f.minX), "y": round2(f.minY), "width": round2(f.width), "height": round2(f.height)]]
+            if let object = item as? NSObject, let label = object.accessibilityLabel, !label.isEmpty { focused["label"] = label }
+            doc["focused"] = focused
+        }
         if let data = try? JSONSerialization.data(withJSONObject: doc, options: [.prettyPrinted, .sortedKeys]) {
             try? data.write(to: url)
         }

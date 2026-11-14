@@ -27,7 +27,7 @@ struct ResolveContext {
 
 /// Per-render mutable state that outlives a single resolve pass.
 @MainActor
-final class Runtime {
+package final class Runtime {
     /// Storage for @State/@StateObject, keyed by view identity so it survives re-resolving.
     var stateStore: [IdentityPath: [AnyObject]] = [:]
     /// onAppear-style actions that have already run (each runs once per identity).
@@ -51,11 +51,20 @@ final class Runtime {
     /// The value each `onChange` saw in the previous pass (tvOS: see Modifiers/Lifecycle.swift).
     var changeValues: [IdentityPath: AnyObject] = [:]
 
-    static var current: Runtime?
+    package static var current: Runtime?
 
-    init(config: RenderConfiguration) { self.config = config }
+    init(config: RenderConfiguration) {
+        self.config = config
+        // Framework shims below SwiftUI (CoreGraphics, ImageIO, ...) warn through this hook.
+        if ShimDiagnostics.handler == nil {
+            ShimDiagnostics.handler = { message in
+                if Thread.isMainThread { MainActor.assumeIsolated { Runtime.current?.warn(message) } }
+                else { DispatchQueue.main.async { Runtime.current?.warn(message) } }
+            }
+        }
+    }
 
-    func warn(_ message: String) {
+    package func warn(_ message: String) {
         if warningSet.insert(message).inserted { warnings.append(message) }
     }
 }
@@ -63,7 +72,9 @@ final class Runtime {
 @MainActor
 func resolveView<V: View>(_ view: V, _ ctx: ResolveContext, into out: inout [Node]) {
     if let primitive = view as? PrimitiveView {
+        let start = out.count
         primitive.resolve(ctx, into: &out)
+        if CaptureInfo.isRecording { CaptureInfo.stamp(out, from: start, ctx.path) }
         return
     }
     let ctx = ctx.child(ObjectIdentifier(V.self))
@@ -141,4 +152,7 @@ private func installDynamicProperties(of value: Any, _ ic: inout InstallContext)
 private func holdsDynamicProperties(_ value: Any) -> Bool {
     value is any ButtonStyle || value is any PrimitiveButtonStyle || value is any ToggleStyle
         || value is any LabelStyle || value is any ProgressViewStyle || value is any GaugeStyle
+        || value is any GroupBoxStyle || value is any LabeledContentStyle || value is any DisclosureGroupStyle
+        || value is any MenuStyle || value is any ControlGroupStyle || value is any DatePickerStyle
+        || value is any NavigationSplitViewStyle || value is any TextEditorStyle
 }

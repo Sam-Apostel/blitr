@@ -76,13 +76,18 @@ struct Chevron: View {
 /// The up/down chevron pair used by menu pickers.
 struct UpDownChevron: View {
     var color: AnyShapeStyle = AnyShapeStyle(ForegroundStyle())
+    /// Overall ink size; nil keeps the 7 x 10.5pt default.
+    var size: CGSize? = nil
     var body: some View {
+        let line: CGFloat = 1.6
+        let w = (size?.width ?? 8.6) - line, h = size.map { ($0.height - line - 2.5) / 2 } ?? 4
         VStack(spacing: 2.5) {
-            ChevronShape(direction: .up).stroke(color, style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round))
-                .frame(width: 7, height: 4)
-            ChevronShape(direction: .down).stroke(color, style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round))
-                .frame(width: 7, height: 4)
+            ChevronShape(direction: .up).stroke(color, style: StrokeStyle(lineWidth: line, lineCap: .round, lineJoin: .round))
+                .frame(width: size == nil ? 7 : w, height: h)
+            ChevronShape(direction: .down).stroke(color, style: StrokeStyle(lineWidth: line, lineCap: .round, lineJoin: .round))
+                .frame(width: size == nil ? 7 : w, height: h)
         }
+        .padding(size == nil ? 0 : line / 2)
     }
 }
 

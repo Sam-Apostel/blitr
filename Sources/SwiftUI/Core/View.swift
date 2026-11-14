@@ -93,7 +93,7 @@ public struct AnyView: View, PrimitiveView {
 }
 
 public struct Group<Content> {
-    let content: Content
+    package let content: Content
 }
 extension Group: View, PrimitiveView where Content: View {
     public typealias Body = Never

@@ -45,6 +45,7 @@ Render options:
       --background <hex> Background color, or "clear"
       --dynamic-type <s> xSmall ... xxxLarge, accessibility1 ... accessibility5
       --no-chrome        Omit the status bar and home indicator
+      --show-tips        Display TipKit tips (as Tips.showAllTipsForTesting() does); hidden by default
       --assets <dir>     Extra directory with images / .xcassets (repeatable)
       --fonts <dir>      Extra font directory, searched first (repeatable)
       --open-fonts       Use the open substitute fonts even if Apple's fonts are installed
@@ -64,9 +65,12 @@ Render options:
       --press <list>                    Siri Remote presses applied after the first frame, comma-separated:
                                         up, down, left, right, select, menu, playpause (repeatable)
       --focus <selector>                Start with focus on an element: its id, #index, or (part of) its label
+\(InteractionCLIOptions.usage)
       --json             Print one JSON object per image instead of text
       --no-cache         Recompile even if an identical build is cached
   -v, --verbose          Show the compiler invocation
+
+\(ProjectSession.usage)
 """
 
 func fail(_ message: String, code: Int32 = 1) -> Never {
@@ -124,6 +128,43 @@ struct Installation {
         }
         return Installation(sdk: (sdk as NSString).standardizingPath, fontDirectories: fonts, appleFontDirectory: appleFonts, swiftc: swiftc)
     }
+
+    /// The modules of the SDK: every `Name.swiftmodule` next to the SwiftUI module (SwiftUI, Combine and the
+    /// shim frameworks, which are linked into libSwiftUI; CoreText and the Foundation shim have their own library).
+    var modules: [String] {
+        ((try? FileManager.default.contentsOfDirectory(atPath: sdk)) ?? []).filter { $0.hasSuffix(".swiftmodule") }
+            .map { ($0 as NSString).deletingPathExtension }.sorted()
+    }
+
+    /// Identity of the SDK for build caches: size and date of every library and module file in it, so a
+    /// rebuilt SwiftUI or shim module invalidates what was compiled against the old one.
+    var stamp: String {
+        let fm = FileManager.default
+        var parts: [String] = []
+        for name in ((try? fm.contentsOfDirectory(atPath: sdk)) ?? []).sorted() {
+            let path = sdk + "/" + name
+            if name.hasPrefix("lib"), name.hasSuffix(".so") {
+                parts.append(name + fileStamp(path))
+            } else if name.hasSuffix(".swiftmodule") {
+                var isDirectory: ObjCBool = false
+                guard fm.fileExists(atPath: path, isDirectory: &isDirectory) else { continue }
+                let files = isDirectory.boolValue ? ((try? fm.contentsOfDirectory(atPath: path)) ?? []).sorted().filter { $0.hasSuffix(".swiftmodule") }.map { path + "/" + $0 } : [path]
+                parts += files.map { name + fileStamp($0) }
+            }
+        }
+        return hash(parts)
+    }
+
+    private func fileStamp(_ path: String) -> String {
+        (try? FileManager.default.attributesOfItem(atPath: path))
+            .map { "-\($0[.size] ?? 0)-\(($0[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0)" } ?? ""
+    }
+
+    /// Libraries every compile against the SDK links. The shim frameworks need no flag of their own: their code
+    /// is in libSwiftUI. CoreText and the Foundation shim are autolinked by their modules.
+    var linkFlags: [String] {
+        ["-I", sdk, "-L", sdk, "-lSwiftUI", "-Xlinker", "-rpath", "-Xlinker", sdk]
+    }
 }
 
 // MARK: - Helpers
@@ -139,9 +180,15 @@ func run(_ executable: String, _ arguments: [String], captureOutput: Bool = true
         process.standardError = err
     }
     do { try process.run() } catch { fail("could not launch \(executable): \(error.localizedDescription)") }
-    // Read before waiting so a full pipe cannot block the child.
+    // Drain both pipes at once, before waiting: reading one to the end while the child is blocked
+    // writing more than a pipe buffer (64 KB) to the other would deadlock.
+    nonisolated(unsafe) var errData = Data()
+    let drained = DispatchGroup()
+    if captureOutput {
+        DispatchQueue.global().async(group: drained) { errData = err.fileHandleForReading.readDataToEndOfFile() }
+    }
     let outData = captureOutput ? out.fileHandleForReading.readDataToEndOfFile() : Data()
-    let errData = captureOutput ? err.fileHandleForReading.readDataToEndOfFile() : Data()
+    drained.wait()
     process.waitUntilExit()
     return (process.terminationStatus, String(decoding: outData, as: UTF8.self), String(decoding: errData, as: UTF8.self))
 }
@@ -202,6 +249,7 @@ struct Options {
     var userFontDirectories: [String] = []
     var accessibility = AccessibilityCLIOptions()
     var focus = FocusCLIOptions()
+    var interaction = InteractionCLIOptions()
 }
 
 func parse(_ arguments: [String]) -> Options {
@@ -239,7 +287,7 @@ func parse(_ arguments: [String]) -> Options {
         case "--device", "--layout", "--width", "--height", "--scale", "--padding", "--background", "--dynamic-type", "--task-budget", "--ios":
             options.runnerArguments += [arg, value(arg)]
         case "--os": options.runnerArguments += ["--ios", value(arg)]
-        case "--no-chrome": options.runnerArguments.append(arg)
+        case "--no-chrome", "--show-tips": options.runnerArguments.append(arg)
         case "--orientation": options.runnerArguments += [arg, value(arg)]
         case "--rounded-corners", "--show-island": options.runnerArguments.append(arg)
         case "--widget-family", "--widget-rendering-mode": options.runnerArguments += [arg, value(arg)]
@@ -250,6 +298,7 @@ func parse(_ arguments: [String]) -> Options {
             print(usage)
             exit(0)
         default:
+            if options.interaction.record(arg, value: { value(arg) }) { continue }
             if arg.hasPrefix("-") { fail("unknown option \(arg)\n\n\(usage)", code: 2) }
             options.inputs.append(arg)
         }
@@ -271,6 +320,7 @@ struct Build {
 }
 
 func build(_ options: Options, _ installation: Installation) -> Build {
+    if ProjectSession.current != nil { return ProjectSession.build(options, installation) }
     guard !options.inputs.isEmpty else { fail("no input files\n\n\(usage)", code: 2) }
     guard !installation.swiftc.isEmpty else { fail("swiftc not found. Install a Swift 6 toolchain and put it on PATH, or set SWIFTC.") }
     let (paths, _) = collectSources(options.inputs)
@@ -288,9 +338,7 @@ func build(_ options: Options, _ installation: Installation) -> Build {
     }
 
     // Cache key: the rewritten sources plus the identity of the module they are compiled against.
-    let moduleStamp = (try? FileManager.default.attributesOfItem(atPath: installation.sdk + "/libSwiftUI.so"))
-        .map { "\($0[.size] ?? 0)-\(($0[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0)" } ?? ""
-    let key = hash(output.files.flatMap { [$0.name, $0.contents] } + [moduleStamp, installation.swiftc])
+    let key = hash(output.files.flatMap { [$0.name, $0.contents] } + [installation.stamp, installation.swiftc])
     let cacheRoot = ProcessInfo.processInfo.environment["SWIFTUI_SCREENSHOT_CACHE"]
         ?? (NSHomeDirectory() + "/.cache/swiftui-screenshot")
     let work = cacheRoot + "/" + key
@@ -309,9 +357,7 @@ func build(_ options: Options, _ installation: Installation) -> Build {
             written.append(path)
             if index < sources.count { originalPath[path] = sources[index].path }
         }
-        var arguments = ["-swift-version", "5", "-Onone", "-module-name", "App", "-no-color-diagnostics",
-                         "-I", installation.sdk, "-L", installation.sdk, "-lSwiftUI", "-lCombine", "-lUIKit",
-                         "-Xlinker", "-rpath", "-Xlinker", installation.sdk]
+        var arguments = ["-swift-version", "5", "-Onone", "-module-name", "App", "-no-color-diagnostics"] + installation.linkFlags
         arguments += written + ["-o", runner]
         if options.verbose { note(([installation.swiftc] + arguments).joined(separator: " ")) }
         let result = run(installation.swiftc, arguments)
@@ -322,6 +368,8 @@ func build(_ options: Options, _ installation: Installation) -> Build {
             FileHandle.standardError.write(Data(diagnostics.utf8))
             try? FileManager.default.removeItem(atPath: work)
             if let mismatch = compilerMismatch(installation) { fail(mismatch) }
+            let report = UnsupportedReport(diagnostics: diagnostics, stubbedModules: [:])
+            if !report.isEmpty { note(report.text()) }
             fail("the sources did not compile against the Linux SwiftUI module. Errors about unknown members usually mean an API this renderer does not implement yet.")
         }
     }
@@ -341,7 +389,7 @@ func build(_ options: Options, _ installation: Installation) -> Build {
 
 func render(_ options: Options, _ installation: Installation) {
     let built = build(options, installation)
-    let (_, autoAssets) = collectSources(options.inputs)
+    let (_, autoAssets) = ProjectSession.current == nil ? collectSources(options.inputs) : ([], [])
 
     var selected = built.previews
     if !options.all {
@@ -382,6 +430,7 @@ func render(_ options: Options, _ installation: Installation) {
             var arguments = ["--out", path, "--preview", "\(preview.index)", "--scheme", scheme] + options.runnerArguments
             arguments += options.accessibility.arguments(png: path, stem: stem, multiple: multiple, outDir: options.outDir)
             arguments += options.focus.arguments(png: path, stem: stem, multiple: multiple, outDir: options.outDir)
+            arguments += options.interaction.arguments(png: path, stem: stem, multiple: multiple, outDir: options.outDir)
             let apple = options.openFonts ? [] : [installation.appleFontDirectory].compactMap { $0 }
             for dir in options.userFontDirectories + apple + installation.fontDirectories { arguments += ["--fonts", dir] }
             for dir in options.userAssetDirectories + autoAssets { arguments += ["--assets", dir] }
@@ -403,6 +452,7 @@ func render(_ options: Options, _ installation: Installation) {
             }
             options.accessibility.report(line, json: options.json)
             options.focus.report(line, json: options.json)
+            options.interaction.report(line, json: options.json)
             if !result.stderr.isEmpty { note(result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)) }
         }
     }
@@ -479,12 +529,15 @@ enum Tool {
             exit(2)
         }
         arguments.removeFirst()
+        arguments = ProjectSession.takeFlags(arguments)
 
         switch command {
         case "render":
-            render(parse(arguments), Installation.locate())
+            render(ProjectSession.prepare(parse(arguments), command: command), Installation.locate())
+        case "check":
+            CheckCommand.run(arguments)
         case "list":
-            let options = parse(arguments)
+            let options = ProjectSession.prepare(parse(arguments), command: command)
             for preview in build(options, Installation.locate()).previews {
                 print("\(preview.index)\t\(preview.name.isEmpty ? "(unnamed)" : preview.name)")
             }

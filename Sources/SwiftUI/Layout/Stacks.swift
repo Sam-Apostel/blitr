@@ -106,7 +106,14 @@ final class StackNode: Node {
     override func measure(_ proposal: ProposedViewSize) -> CGSize { compute(proposal).size }
 
     override func layout(size: CGSize, _ ctx: PlaceContext) {
-        let r = compute(proposal(forSize: size))
+        var p = proposal(forSize: size)
+        // A stack wider than it was offered (a rigid child overflowing it) places its children
+        // across its real width, as SwiftUI does: the other children then stretch to it too
+        // (measured: iOS 27.0 simulator, 09_MusicPlayer: a 402pt transport row widens the sliders).
+        if let offered = p[axis.cross], size[axis.cross] > offered + 0.01 {
+            p = ProposedViewSize(axis: axis, main: p[axis], cross: size[axis.cross])
+        }
+        let r = compute(p)
         // If the stack was given more cross-axis room than it needs, keep children aligned within it.
         for (i, child) in children.enumerated() {
             child.place(at: CGPoint(axis: axis, main: r.mainOffsets[i], cross: r.crossOffsets[i]), size: r.sizes[i], ctx)

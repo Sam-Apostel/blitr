@@ -4,7 +4,11 @@
 
 public struct DismissAction {
     public init() {}
-    public func callAsFunction() {}
+    /// Inert in a still render; during an interaction capture it dismisses the topmost presentation,
+    /// or pops the top pushed screen.
+    public func callAsFunction() {
+        MainActor.assumeIsolated { InteractionSession.current?.dismissFromEnvironment() }
+    }
 }
 
 public struct OpenURLAction {
@@ -80,7 +84,7 @@ extension UserInterfaceSizeClass {
 }
 
 /// The device profile's size class, unless the canvas was resized with --width/--height (then the canvas decides).
-func _currentSizeClass(horizontal: Bool) -> UserInterfaceSizeClass {
+package func _currentSizeClass(horizontal: Bool) -> UserInterfaceSizeClass {
     let config = _currentConfiguration()
     if config.width != nil || config.height != nil {
         return UserInterfaceSizeClass.forCanvas { horizontal ? ($0.width >= 700 ? .regular : .compact) : ($0.height >= 500 ? .regular : .compact) }
@@ -89,12 +93,12 @@ func _currentSizeClass(horizontal: Bool) -> UserInterfaceSizeClass {
 }
 
 /// The canvas size of the render in progress (the default device when none is).
-func _currentCanvasSize() -> CGSize {
+package func _currentCanvasSize() -> CGSize {
     let config = _currentConfiguration()
     return CGSize(width: config.width ?? config.device.size.width, height: config.height ?? config.device.size.height)
 }
 
-func _currentConfiguration() -> RenderConfiguration {
+package func _currentConfiguration() -> RenderConfiguration {
     guard Thread.isMainThread else { return RenderConfiguration() }
     return MainActor.assumeIsolated { Runtime.current?.config ?? RenderConfiguration() }
 }

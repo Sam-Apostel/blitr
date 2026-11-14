@@ -3,9 +3,72 @@
 
 // used by onDrag/onDrop/draggable/dropDestination/fileImporter/userActivity.
 open class NSItemProvider: NSObject {
+    public typealias CompletionHandler = (NSSecureCoding?, Error?) -> Void
+    /// Registered representations (type identifier -> value); a provider made here holds what it was given.
+    private var items: [String: Any] = [:]
     public override init() { super.init() }
-    public convenience init(object: Any) { self.init() }
+    public convenience init(object: Any) {
+        self.init()
+        if let s = object as? String { items[UTType.plainText.identifier] = s }
+        if let u = object as? URL { items[UTType.url.identifier] = u }
+    }
+    public convenience init(item: NSSecureCoding?, typeIdentifier: String?) {
+        self.init()
+        if let item, let typeIdentifier { items[typeIdentifier] = item }
+    }
+    public convenience init?(contentsOf fileURL: URL) {
+        self.init()
+        items[UTType.fileURL.identifier] = fileURL
+    }
+    open var registeredTypeIdentifiers: [String] { Array(items.keys) }
+    open var suggestedName: String?
+    open func registeredContentTypes(conformingTo contentType: UTType) -> [UTType] {
+        items.keys.compactMap { UTType($0) }.filter { $0.conforms(to: contentType) }
+    }
+    open func hasItemConformingToTypeIdentifier(_ typeIdentifier: String) -> Bool {
+        let wanted = UTType(typeIdentifier)
+        return items.keys.contains { $0 == typeIdentifier || (wanted != nil && UTType($0)?.conforms(to: wanted!) == true) }
+    }
+    open func hasRepresentationConforming(toTypeIdentifier typeIdentifier: String, fileOptions: Int = 0) -> Bool {
+        hasItemConformingToTypeIdentifier(typeIdentifier)
+    }
+    open func registerDataRepresentation(forTypeIdentifier typeIdentifier: String, visibility: Int = 0,
+                                         loadHandler: @escaping (@escaping (Data?, Error?) -> Void) -> Progress?) {}
+    open func loadItem(forTypeIdentifier typeIdentifier: String, options: [AnyHashable: Any]? = nil, completionHandler: CompletionHandler? = nil) {
+        completionHandler?(items[typeIdentifier] as? NSSecureCoding, nil)
+    }
+    open func loadItem(forTypeIdentifier typeIdentifier: String, options: [AnyHashable: Any]? = nil) async throws -> NSSecureCoding {
+        guard let item = items[typeIdentifier] as? NSSecureCoding else { throw CocoaError(.fileReadNoSuchFile) }
+        return item
+    }
+    @discardableResult
+    open func loadDataRepresentation(forTypeIdentifier typeIdentifier: String, completionHandler: @escaping (Data?, Error?) -> Void) -> Progress {
+        completionHandler(items[typeIdentifier] as? Data, nil)
+        return Progress(totalUnitCount: 0)
+    }
+    @discardableResult
+    open func loadFileRepresentation(forTypeIdentifier typeIdentifier: String, completionHandler: @escaping (URL?, Error?) -> Void) -> Progress {
+        completionHandler(items[typeIdentifier] as? URL, nil)
+        return Progress(totalUnitCount: 0)
+    }
+    @discardableResult
+    open func loadInPlaceFileRepresentation(forTypeIdentifier typeIdentifier: String, completionHandler: @escaping (URL?, Bool, Error?) -> Void) -> Progress {
+        completionHandler(items[typeIdentifier] as? URL, false, nil)
+        return Progress(totalUnitCount: 0)
+    }
+    open func canLoadObject(ofClass aClass: Any.Type) -> Bool { false }
+    @discardableResult
+    open func loadFileRepresentation(for contentType: UTType, openInPlace: Bool = false,
+                                     completionHandler: @escaping (URL?, Bool, Error?) -> Void) -> Progress {
+        loadInPlaceFileRepresentation(forTypeIdentifier: contentType.identifier, completionHandler: completionHandler)
+    }
+    @discardableResult
+    open func loadDataRepresentation(for contentType: UTType, completionHandler: @escaping (Data?, Error?) -> Void) -> Progress {
+        loadDataRepresentation(forTypeIdentifier: contentType.identifier, completionHandler: completionHandler)
+    }
 }
+
+public let NSUserActivityTypeBrowsingWeb = "NSUserActivityTypeBrowsingWeb"
 
 open class NSUserActivity: NSObject {
     public let activityType: String
@@ -20,36 +83,7 @@ open class NSUserActivity: NSObject {
     open func addUserInfoEntries(from other: [AnyHashable: Any]) {}
 }
 
-public struct UTType: Hashable, Sendable {
-    public let identifier: String
-    public init?(_ identifier: String) { self.identifier = identifier }
-    public init?(filenameExtension: String) { identifier = "public.\(filenameExtension)" }
-    public init?(mimeType: String) { identifier = mimeType }
-    public init(importedAs identifier: String) { self.identifier = identifier }
-    public init(exportedAs identifier: String) { self.identifier = identifier }
-    public static let item = UTType(importedAs: "public.item")
-    public static let content = UTType(importedAs: "public.content")
-    public static let data = UTType(importedAs: "public.data")
-    public static let text = UTType(importedAs: "public.text")
-    public static let plainText = UTType(importedAs: "public.plain-text")
-    public static let utf8PlainText = UTType(importedAs: "public.utf8-plain-text")
-    public static let commaSeparatedText = UTType(importedAs: "public.comma-separated-values-text")
-    public static let json = UTType(importedAs: "public.json")
-    public static let xml = UTType(importedAs: "public.xml")
-    public static let html = UTType(importedAs: "public.html")
-    public static let url = UTType(importedAs: "public.url")
-    public static let fileURL = UTType(importedAs: "public.file-url")
-    public static let image = UTType(importedAs: "public.image")
-    public static let png = UTType(importedAs: "public.png")
-    public static let jpeg = UTType(importedAs: "public.jpeg")
-    public static let gif = UTType(importedAs: "com.compuserve.gif")
-    public static let heic = UTType(importedAs: "public.heic")
-    public static let pdf = UTType(importedAs: "com.adobe.pdf")
-    public static let movie = UTType(importedAs: "public.movie")
-    public static let audio = UTType(importedAs: "public.audio")
-    public static let folder = UTType(importedAs: "public.folder")
-    public static let zip = UTType(importedAs: "public.zip-archive")
-}
+// UTType is in the UniformTypeIdentifiers module, which SwiftUI re-exports.
 
 // Foundation's FileWrapper is missing on Linux.
 open class FileWrapper: NSObject {

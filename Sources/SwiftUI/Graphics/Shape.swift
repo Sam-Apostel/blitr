@@ -88,7 +88,9 @@ public struct _ShapeView<Content: Shape, Style: ShapeStyle>: View, PrimitiveView
     func resolve(_ ctx: ResolveContext, into out: inout [Node]) {
         let shape = self.shape
         let resolved = layers.map { ShapeNode.Layer(op: $0.op, paint: $0.style._paint(in: ctx.env)) }
-        out.append(ShapeNode(path: { shape.path(in: $0) }, size: { shape.sizeThatFits($0) }, layers: resolved))
+        let node = ShapeNode(path: { shape.path(in: $0) }, size: { shape.sizeThatFits($0) }, layers: resolved)
+        if CaptureInfo.isRecording { CaptureInfo.of(node).shape = ShapeAnimation(shape) }
+        out.append(node)
     }
 
     func adding<S: ShapeStyle>(_ op: Layer.Op, _ style: S) -> _ShapeView<Content, Style> {
@@ -169,8 +171,8 @@ extension Shape {
     public func stroke(style: StrokeStyle) -> _StrokedShape<Self> { _StrokedShape(shape: self, style: style) }
     public func stroke(lineWidth: CGFloat = 1) -> _StrokedShape<Self> { _StrokedShape(shape: self, style: StrokeStyle(lineWidth: lineWidth)) }
 
-    public func trim(from startFraction: CGFloat = 0, to endFraction: CGFloat = 1) -> _TransformedShape<Self> {
-        _TransformedShape(shape: self) { path, _ in path.trimmedPath(from: startFraction, to: endFraction) }
+    public func trim(from startFraction: CGFloat = 0, to endFraction: CGFloat = 1) -> _TrimmedShape<Self> {
+        _TrimmedShape(shape: self, from: startFraction, to: endFraction)
     }
     public func offset(_ offset: CGSize) -> _TransformedShape<Self> {
         _TransformedShape(shape: self) { path, _ in path.offsetBy(dx: offset.width, dy: offset.height) }

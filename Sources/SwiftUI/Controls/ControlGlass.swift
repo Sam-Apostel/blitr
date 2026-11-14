@@ -3,28 +3,41 @@
 // Everything here applies only when `env.designLanguage.isGlass`; iOS 26 and 27 share the values.
 
 enum ControlGlassMetrics {
-    // Toggle: wider, flatter switch with a pill knob.
-    static let toggleTrack = CGSize(width: 64, height: 28)       // est.
-    static let toggleKnob = CGSize(width: 39, height: 24)        // est.
-    static let toggleKnobInset: CGFloat = 2                      // est.
+    // Toggle: wider, flatter switch with a pill knob and no knob shadow. measured: iOS 27.0
+    // simulator (GlassControls): 63x28 track, 37x24 knob 2pt from the edges; the off track is
+    // C5C5C7 on white and 464649 on black.
+    static let toggleTrack = CGSize(width: 63, height: 28)
+    static let toggleKnob = CGSize(width: 37, height: 24)
+    static let toggleKnobInset: CGFloat = 2
+    static let toggleOffTrack = DynamicColor(0xC5C5C7, 0x464649)
+    /// The switch takes 61pt in layout; its track overhangs 2pt to the right (measured).
+    static let toggleLayoutWidth: CGFloat = 61
 
-    // Slider: 6pt track, pill thumb.
-    static let sliderTrackHeight: CGFloat = 6                    // est.
-    static let sliderThumb = CGSize(width: 38, height: 24)       // est.
-    static let sliderHeight: CGFloat = 28
+    // Slider: 6pt track, pill thumb. measured: iOS 27.0 simulator (ControlsIndicators): 31pt
+    // tall, 37x24 thumb kept inside the bounds, labels 8pt from the track, a faint thumb shadow
+    // in light mode only. The track is translucent: E6E6E6 on white, 191919 on black and
+    // 30355B over the dark blue of 09_MusicPlayer.
+    static let sliderTrackHeight: CGFloat = 6
+    static let sliderThumb = CGSize(width: 37, height: 24)
+    static let sliderHeight: CGFloat = 31
+    static let sliderTrack = DynamicColor(0x787880, 0x787880, alpha: 0.185, darkAlpha: 0.21)
+    static let sliderLabelSpacing: CGFloat = 8
     static let sliderTickSize: CGFloat = 3                       // est.
     static let sliderMaxTicks = 25
 
     // Stepper: same size as before, capsule ends.
     static let stepperSize = CGSize(width: 94, height: 32)
 
-    // Segmented picker: capsule track, capsule selection.
-    static let segmentedTrackHeight: CGFloat = 36                // est.
-    static let segmentedInset: CGFloat = 3                       // est.
+    // Segmented picker: capsule track, capsule selection. measured: iOS 27.0 simulator
+    // (ControlsInputs): 32pt track, selection inset 2pt, no separators and no selection shadow;
+    // selection white / 5A5A5F.
+    static let segmentedTrackHeight: CGFloat = 32
+    static let segmentedInset: CGFloat = 2
+    static let segmentedSelection = DynamicColor(0xFFFFFF, 0x5A5A5F)
     static let segmentedFontSize: CGFloat = 14                   // est. (13 to 14)
 
     // Containers.
-    static let groupBoxRadius: CGFloat = 20                      // est.
+    static let groupBoxRadius: CGFloat = 8                       // measured: iOS 27.0 simulator
 
     // Prominent glass: opacity of the accent tint over the backdrop.
     static let prominentTintAlpha26: Double = 0.86

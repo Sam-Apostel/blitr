@@ -25,10 +25,10 @@ extension View {
 
     /// Async work is started and given a short time budget (see `RenderConfiguration.taskBudget`);
     /// whatever state it has produced by then is what gets rendered.
-    public func task(priority: TaskPriority = .userInitiated, _ action: @escaping @Sendable () async -> Void) -> some View {
+    public func task(priority: TaskPriority = .userInitiated, _ action: @escaping @isolated(any) @Sendable () async -> Void) -> some View {
         modifier(LifecycleModifier(key: "task") { runtime in runtime.start(action) })
     }
-    public func task<T: Equatable>(id value: T, priority: TaskPriority = .userInitiated, _ action: @escaping @Sendable () async -> Void) -> some View {
+    public func task<T: Equatable>(id value: T, priority: TaskPriority = .userInitiated, _ action: @escaping @isolated(any) @Sendable () async -> Void) -> some View {
         modifier(LifecycleModifier(key: "task") { runtime in runtime.start(action) })
     }
 
@@ -78,7 +78,7 @@ struct OnChangeModifier<V: Equatable>: ViewModifier, PrimitiveModifier {
 }
 
 extension Runtime {
-    func start(_ action: @escaping @Sendable () async -> Void) {
+    func start(_ action: @escaping @isolated(any) @Sendable () async -> Void) {
         runningTasks += 1
         Task { @MainActor in
             await action()

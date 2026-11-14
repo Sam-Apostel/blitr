@@ -2,7 +2,7 @@
 
 public struct Font: Hashable, Sendable {
     public struct Weight: Hashable, Sendable {
-        let value: CGFloat
+        package let value: CGFloat
         public static let ultraLight = Weight(value: 100)
         public static let thin = Weight(value: 200)
         public static let light = Weight(value: 300)
@@ -36,11 +36,11 @@ public struct Font: Hashable, Sendable {
             case .caption2: return (23, .medium)
             }
         }
-        func metrics(for platform: RenderPlatform) -> (size: CGFloat, weight: Weight) {
+        package func metrics(for platform: RenderPlatform) -> (size: CGFloat, weight: Weight) {
             platform == .tvOS ? tvMetrics : metrics
         }
         /// Point size and default weight at the standard Dynamic Type size (Large).
-        var metrics: (size: CGFloat, weight: Weight) {
+        package var metrics: (size: CGFloat, weight: Weight) {
             switch self {
             case .extraLargeTitle: return (36, .bold)
             case .extraLargeTitle2: return (28, .bold)
@@ -55,6 +55,26 @@ public struct Font: Hashable, Sendable {
             case .footnote: return (13, .regular)
             case .caption: return (12, .regular)
             case .caption2: return (11, .regular)
+            }
+        }
+        /// Baseline-to-baseline distance of wrapped lines at the standard Dynamic Type size (Large),
+        /// on iOS. A single line is still as tall as the font (ascent + descent); the extra goes
+        /// between lines. measured: iOS 27.0 simulator (body 3 lines 64.33pt = 20.33 + 2 x 22,
+        /// subheadline 2 lines 38pt = 18 + 20, footnote 2 lines 33.67pt = 15.67 + 18); the other
+        /// styles follow Apple's typography table, which these agree with.
+        var lineAdvance: CGFloat? {
+            switch self {
+            case .extraLargeTitle, .extraLargeTitle2: return nil
+            case .largeTitle: return 41
+            case .title: return 34
+            case .title2: return 28
+            case .title3: return 25
+            case .headline, .body: return 22
+            case .callout: return 21
+            case .subheadline: return 20
+            case .footnote: return 18
+            case .caption: return 16
+            case .caption2: return 13
             }
         }
     }
@@ -141,6 +161,9 @@ struct ResolvedFont: Hashable {
     var monospacedDigit = false
     var smallCaps = false
     var lineHeightMultiple: CGFloat = 1
+    /// Baseline-to-baseline distance of wrapped lines when it exceeds the font's height
+    /// (text styles on iOS); nil stacks lines at the font's ascent + descent.
+    var lineAdvance: CGFloat? = nil
 }
 
 extension Font {
@@ -153,6 +176,9 @@ extension Font {
             r.size = (m.size * env.dynamicTypeSize.scale(for: style)).rounded()
             r.weight = (weight ?? m.weight).value
             r.family = .system(design ?? env.fontDesign ?? .default)
+            if env.renderPlatform != .tvOS, let advance = style.lineAdvance {
+                r.lineAdvance = (advance * r.size / m.size).rounded()
+            }
         case .system(let size, let weight, let design):
             r.size = size
             r.weight = (weight ?? .regular).value
@@ -205,7 +231,7 @@ public enum DynamicTypeSize: Hashable, Comparable, CaseIterable, Sendable {
     }
     var scale: CGFloat { bodySize / 17 }
     /// Smaller styles step in whole points with the body size; large titles scale less.
-    func scale(for style: Font.TextStyle) -> CGFloat {
+    package func scale(for style: Font.TextStyle) -> CGFloat {
         if self == .large { return 1 }
         let base = style.metrics.size
         let delta = bodySize - 17

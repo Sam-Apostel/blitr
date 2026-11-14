@@ -66,7 +66,7 @@ extension Section: View, PrimitiveView where Parent: View, Content: View, Footer
                 env.font = .system(size: ListMetrics.prominentHeaderFontSize, weight: .semibold)
                 env.foregroundStyle = AnyShapeStyle(Color(SystemColor.label.resolve(scheme)))
             } else if isHeader && !style.isGroupedFamily {
-                env.font = .system(size: ListMetrics.plainHeaderFontSize, weight: .semibold)
+                env.font = .system(size: ListMetrics.forDesign(env.designLanguage, style: style).plainHeaderFontSize, weight: .semibold)
                 env.foregroundStyle = secondary
             } else if isHeader {
                 // iOS 26 inset grouped headers: sentence case, semibold, larger.

@@ -13,8 +13,11 @@ public struct Slider<Label: View, ValueLabel: View>: View {
     /// Number of steps across the range (tick marks, iOS 26) and the neutral value's position, if given.
     var tickCount: Int?
     var neutralFraction: Double?
+    /// What scripted steps can do to the slider (Interaction/).
+    var handlers: InteractionHandlers?
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.designLanguage) private var design
+    @Environment(\.colorScheme) private var colorScheme
 
     init<V: BinaryFloatingPoint>(value: Binding<V>, bounds: ClosedRange<V>, minLabel: AnyView?, maxLabel: AnyView?,
                                  step: V.Stride? = nil, neutralValue: V? = nil) where V.Stride: BinaryFloatingPoint {
@@ -27,10 +30,11 @@ public struct Slider<Label: View, ValueLabel: View>: View {
             if count >= 1 && count <= ControlGlassMetrics.sliderMaxTicks { tickCount = count }
         }
         if let neutralValue, span > 0 { neutralFraction = clamp01(Double(neutralValue - bounds.lowerBound) / span) }
+        handlers = .slider(value, bounds: bounds, step: step)
     }
 
     public var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: design.isGlass ? ControlGlassMetrics.sliderLabelSpacing : 12) {
             if let minLabel { minLabel }
             track
             if let maxLabel { maxLabel }
@@ -47,6 +51,7 @@ public struct Slider<Label: View, ValueLabel: View>: View {
             $0.systemHitSlop = true
             $0.isEnabled = isEnabled
         }
+        .interaction(handlers)
     }
 
     private var track: some View {
@@ -68,7 +73,7 @@ public struct Slider<Label: View, ValueLabel: View>: View {
             let from = neutral.map { $0 * usable + thumbW / 2 } ?? 0
             let to = x + thumbW / 2
             ZStack(alignment: .topLeading) {
-                Capsule().fill(Color(SystemColor.secondaryFill)).frame(width: w, height: m.sliderTrackHeight)
+                Capsule().fill(Color(m.sliderTrack)).frame(width: w, height: m.sliderTrackHeight)
                     .offset(y: (m.sliderHeight - m.sliderTrackHeight) / 2)
                 Capsule().fill(Color.accentColor).frame(width: max(m.sliderTrackHeight, abs(to - from)), height: m.sliderTrackHeight)
                     .offset(x: min(from, to), y: (m.sliderHeight - m.sliderTrackHeight) / 2)
@@ -79,7 +84,8 @@ public struct Slider<Label: View, ValueLabel: View>: View {
                                     y: m.sliderHeight / 2 + m.sliderTrackHeight / 2 + 3)
                     }
                 }
-                Capsule().fill(Color.white).frame(width: thumbW, height: m.sliderThumb.height).knobShadow()
+                Capsule().fill(Color.white).frame(width: thumbW, height: m.sliderThumb.height)
+                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0 : 0.08), radius: 3, x: 0, y: 1)
                     .offset(x: x, y: (m.sliderHeight - m.sliderThumb.height) / 2)
             }
             .frame(width: w, height: m.sliderHeight, alignment: .topLeading)
@@ -154,14 +160,17 @@ public struct Stepper<Label: View>: View {
     let canDecrement: Bool
     let canIncrement: Bool
     var axValue: String?
+    /// What scripted steps can do to the stepper (Interaction/).
+    var handlers: InteractionHandlers?
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.designLanguage) private var design
 
-    init(label: Label, canDecrement: Bool, canIncrement: Bool, axValue: String? = nil) {
+    init(label: Label, canDecrement: Bool, canIncrement: Bool, axValue: String? = nil, handlers: InteractionHandlers? = nil) {
         self.label = label
         self.canDecrement = canDecrement
         self.canIncrement = canIncrement
         self.axValue = axValue
+        self.handlers = handlers
     }
 
     public var body: some View {
@@ -180,6 +189,7 @@ public struct Stepper<Label: View>: View {
             $0.systemHitSlop = true
             $0.isEnabled = isEnabled
         }
+        .interaction(handlers)
     }
 
     private var control: some View {
@@ -203,31 +213,31 @@ public struct Stepper<Label: View>: View {
 
 extension Stepper {
     public init<V: Strideable>(value: Binding<V>, step: V.Stride = 1, @ViewBuilder label: () -> Label, onEditingChanged: @escaping (Bool) -> Void = { _ in }) {
-        self.init(label: label(), canDecrement: true, canIncrement: true, axValue: "\(value.wrappedValue)")
+        self.init(label: label(), canDecrement: true, canIncrement: true, axValue: "\(value.wrappedValue)", handlers: .stepper(value, bounds: nil, step: step))
     }
     public init<V: Strideable>(value: Binding<V>, in bounds: ClosedRange<V>, step: V.Stride = 1, @ViewBuilder label: () -> Label, onEditingChanged: @escaping (Bool) -> Void = { _ in }) {
-        self.init(label: label(), canDecrement: value.wrappedValue > bounds.lowerBound, canIncrement: value.wrappedValue < bounds.upperBound, axValue: "\(value.wrappedValue)")
+        self.init(label: label(), canDecrement: value.wrappedValue > bounds.lowerBound, canIncrement: value.wrappedValue < bounds.upperBound, axValue: "\(value.wrappedValue)", handlers: .stepper(value, bounds: bounds, step: step))
     }
     public init(onIncrement: (() -> Void)?, onDecrement: (() -> Void)?, onEditingChanged: @escaping (Bool) -> Void = { _ in }, @ViewBuilder label: () -> Label) {
-        self.init(label: label(), canDecrement: onDecrement != nil, canIncrement: onIncrement != nil)
+        self.init(label: label(), canDecrement: onDecrement != nil, canIncrement: onIncrement != nil, handlers: .stepper(onIncrement: onIncrement, onDecrement: onDecrement))
     }
 }
 
 extension Stepper where Label == Text {
     public init<V: Strideable>(_ titleKey: LocalizedStringKey, value: Binding<V>, step: V.Stride = 1, onEditingChanged: @escaping (Bool) -> Void = { _ in }) {
-        self.init(label: Text(titleKey), canDecrement: true, canIncrement: true, axValue: "\(value.wrappedValue)")
+        self.init(label: Text(titleKey), canDecrement: true, canIncrement: true, axValue: "\(value.wrappedValue)", handlers: .stepper(value, bounds: nil, step: step))
     }
     public init<V: Strideable>(_ titleKey: LocalizedStringKey, value: Binding<V>, in bounds: ClosedRange<V>, step: V.Stride = 1, onEditingChanged: @escaping (Bool) -> Void = { _ in }) {
-        self.init(label: Text(titleKey), canDecrement: value.wrappedValue > bounds.lowerBound, canIncrement: value.wrappedValue < bounds.upperBound, axValue: "\(value.wrappedValue)")
+        self.init(label: Text(titleKey), canDecrement: value.wrappedValue > bounds.lowerBound, canIncrement: value.wrappedValue < bounds.upperBound, axValue: "\(value.wrappedValue)", handlers: .stepper(value, bounds: bounds, step: step))
     }
     public init<S: StringProtocol, V: Strideable>(_ title: S, value: Binding<V>, step: V.Stride = 1, onEditingChanged: @escaping (Bool) -> Void = { _ in }) {
-        self.init(label: Text(title), canDecrement: true, canIncrement: true, axValue: "\(value.wrappedValue)")
+        self.init(label: Text(title), canDecrement: true, canIncrement: true, axValue: "\(value.wrappedValue)", handlers: .stepper(value, bounds: nil, step: step))
     }
     public init<S: StringProtocol, V: Strideable>(_ title: S, value: Binding<V>, in bounds: ClosedRange<V>, step: V.Stride = 1, onEditingChanged: @escaping (Bool) -> Void = { _ in }) {
-        self.init(label: Text(title), canDecrement: value.wrappedValue > bounds.lowerBound, canIncrement: value.wrappedValue < bounds.upperBound, axValue: "\(value.wrappedValue)")
+        self.init(label: Text(title), canDecrement: value.wrappedValue > bounds.lowerBound, canIncrement: value.wrappedValue < bounds.upperBound, axValue: "\(value.wrappedValue)", handlers: .stepper(value, bounds: bounds, step: step))
     }
     public init(_ titleKey: LocalizedStringKey, onIncrement: (() -> Void)?, onDecrement: (() -> Void)?, onEditingChanged: @escaping (Bool) -> Void = { _ in }) {
-        self.init(label: Text(titleKey), canDecrement: onDecrement != nil, canIncrement: onIncrement != nil)
+        self.init(label: Text(titleKey), canDecrement: onDecrement != nil, canIncrement: onIncrement != nil, handlers: .stepper(onIncrement: onIncrement, onDecrement: onDecrement))
     }
 }
 
@@ -254,6 +264,7 @@ struct Spinner: View {
             }
         }
         .frame(width: 20, height: 20)
+        .modifier(ClockSpinModifier())
         .scaleEffect(size / 20)
         .frame(width: size, height: size)
     }
@@ -387,19 +398,22 @@ public struct ProgressView<Label: View, CurrentValueLabel: View>: View {
         } else {
             switch styleBox.kind {
             case .linear: linear
-            case .circular: circular
+            case .circular: if platform == .tvOS { circular } else { circularIOS }
             case .automatic:
-                if fraction == nil { circular } else { linear }
+                if fraction != nil { linear } else if platform == .tvOS { circular } else { circularIOS }
             }
         }
     }
 
     private var linear: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        // measured: iOS 27.0 simulator (ControlsIndicators): label, bar and current value 4pt
+        // apart, the current value in caption. tvOS keeps its estimate.
+        let tv = platform == .tvOS
+        return VStack(alignment: .leading, spacing: tv ? 6 : 4) {
             if let label { label }
-            LinearBar(fraction: fraction ?? 0.3, height: platform == .tvOS ? 8 : 4)
+            LinearBar(fraction: fraction ?? 0.3, height: tv ? 8 : 4)
             if let currentValueLabel {
-                currentValueLabel.font(.footnote).foregroundStyle(.secondary)
+                currentValueLabel.font(tv ? .footnote : .caption).foregroundStyle(.secondary)
             }
         }
     }
@@ -417,6 +431,16 @@ public struct ProgressView<Label: View, CurrentValueLabel: View>: View {
                 Spinner(size: platform == .tvOS ? 60 : 20)
             }
             if let label { label.font(.footnote).foregroundStyle(.secondary) }
+        }
+    }
+
+    /// iOS: the label sits under the indicator in the secondary colour, at the inherited font.
+    /// measured: iOS 27.0 simulator (ControlsIndicators): a 20pt spinner, "Loading" 6.5pt below.
+    /// A determinate circular ProgressView is drawn as a spinner too.
+    private var circularIOS: some View {
+        VStack(spacing: 6.5) {
+            Spinner(size: 20)
+            if let label { label.foregroundStyle(.secondary) }
         }
     }
 }
@@ -455,14 +479,6 @@ enum GaugeStyleKind {
     enum Kind { case linearCapacity, accessoryLinear, accessoryLinearCapacity, accessoryCircular, accessoryCircularCapacity }
 }
 
-public protocol GaugeStyle {}
-public struct DefaultGaugeStyle: GaugeStyle { public init() {} }
-public struct LinearCapacityGaugeStyle: GaugeStyle { public init() {} }
-public struct AccessoryLinearGaugeStyle: GaugeStyle { public init() {} }
-public struct AccessoryLinearCapacityGaugeStyle: GaugeStyle { public init() {} }
-public struct AccessoryCircularGaugeStyle: GaugeStyle { public init() {} }
-public struct AccessoryCircularCapacityGaugeStyle: GaugeStyle { public init() {} }
-
 extension GaugeStyle where Self == DefaultGaugeStyle { public static var automatic: DefaultGaugeStyle { DefaultGaugeStyle() } }
 extension GaugeStyle where Self == LinearCapacityGaugeStyle { public static var linearCapacity: LinearCapacityGaugeStyle { LinearCapacityGaugeStyle() } }
 extension GaugeStyle where Self == AccessoryLinearGaugeStyle { public static var accessoryLinear: AccessoryLinearGaugeStyle { AccessoryLinearGaugeStyle() } }
@@ -480,12 +496,16 @@ extension EnvironmentValues {
 extension View {
     public func gaugeStyle<S: GaugeStyle>(_ style: S) -> some View {
         env {
+            $0.gaugeCustomStyleBox = nil
             switch style {
             case is AccessoryLinearGaugeStyle: $0.gaugeStyleKind = .accessoryLinear
             case is AccessoryLinearCapacityGaugeStyle: $0.gaugeStyleKind = .accessoryLinearCapacity
-            case is AccessoryCircularGaugeStyle: $0.gaugeStyleKind = .accessoryCircular
+            case is AccessoryCircularGaugeStyle, is CircularGaugeStyle: $0.gaugeStyleKind = .accessoryCircular
             case is AccessoryCircularCapacityGaugeStyle: $0.gaugeStyleKind = .accessoryCircularCapacity
-            default: $0.gaugeStyleKind = .linearCapacity
+            case is DefaultGaugeStyle, is LinearCapacityGaugeStyle, is LinearGaugeStyle: $0.gaugeStyleKind = .linearCapacity
+            default:
+                $0.gaugeStyleKind = .linearCapacity
+                $0.gaugeCustomStyleBox = GaugeStyleBox { AnyView(_GaugeStyleApplier(style: style, configuration: $0)) }
             }
         }
     }
@@ -499,8 +519,12 @@ public struct Gauge<Label: View, CurrentValueLabel: View, BoundsLabel: View, Mar
     let minLabel: AnyView?
     let maxLabel: AnyView?
     @Environment(\.gaugeStyleKind) private var kind
+    @Environment(\.gaugeCustomStyleBox) private var customStyle
+    var forcedKind: GaugeStyleKind.Kind?
+    @Environment(\.accentColor) private var explicitTint
 
-    init(fraction: Double, label: AnyView, current: AnyView?, minLabel: AnyView?, maxLabel: AnyView?) {
+    init(fraction: Double, label: AnyView, current: AnyView?, minLabel: AnyView?, maxLabel: AnyView?, forcedKind: GaugeStyleKind.Kind? = nil) {
+        self.forcedKind = forcedKind
         self.fraction = clamp01(fraction)
         self.label = label
         self.current = current
@@ -523,10 +547,45 @@ public struct Gauge<Label: View, CurrentValueLabel: View, BoundsLabel: View, Mar
     }
 
     @ViewBuilder private var gaugeBody: some View {
-        switch kind {
-        case .linearCapacity, .accessoryLinearCapacity, .accessoryLinear: linear
+        if forcedKind == nil, let customStyle {
+            customStyle.make(GaugeStyleConfiguration(
+                value: fraction, label: .init(view: label), currentValueLabel: current.map { .init(view: $0) },
+                minimumValueLabel: minLabel.map { .init(view: $0) }, maximumValueLabel: maxLabel.map { .init(view: $0) }))
+        } else {
+            builtInBody
+        }
+    }
+
+    @ViewBuilder private var builtInBody: some View {
+        switch forcedKind ?? kind {
+        case .linearCapacity: capacity
+        case .accessoryLinearCapacity, .accessoryLinear: linear
         case .accessoryCircular: circular(open: true)
         case .accessoryCircularCapacity: circular(open: false)
+        }
+    }
+
+    /// The default (linearCapacity) gauge on iOS: label centred above a 16pt capsule bar with the
+    /// bounds labels beside it, the current value centred below. measured: iOS 27.0 simulator
+    /// (ControlsIndicators): bar 16pt, bounds labels 8pt from the bar, rows 10.67pt and 6.33pt
+    /// apart, tertiary-fill track.
+    private var capacity: some View {
+        VStack(spacing: 0) {
+            label
+            HStack(spacing: 8) {
+                if let minLabel { minLabel }
+                GeometryReader { proxy in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color(SystemColor.tertiaryFill))
+                        Capsule().fill(Color.accentColor)
+                            .frame(width: max(16, proxy.size.width * fraction))
+                    }
+                }
+                .frame(height: 16)
+                if let maxLabel { maxLabel }
+            }
+            .padding(.top, 10.67)
+            if let current { current.padding(.top, 6.33) }
         }
     }
 
@@ -549,18 +608,34 @@ public struct Gauge<Label: View, CurrentValueLabel: View, BoundsLabel: View, Mar
         }
     }
 
+    /// Accessory circular gauges. measured: iOS 27.0 simulator (ControlsIndicators): 58pt,
+    /// 6pt strokes in the primary colour (unless tinted); the open gauge is a full 270° arc with a
+    /// ring marking the value and the label under the gap, the capacity gauge a 35% track with
+    /// the filled part from the top; current value about 25pt (17.67pt cap height).
     private func circular(open: Bool) -> some View {
         let span = open ? 0.75 : 1.0
         let rotation: Double = open ? 135 : -90
+        let line: CGFloat = 6, side: CGFloat = 58
+        let color = explicitTint ?? Color.primary
+        let radius = (side - line) / 2
+        let angle = (rotation + 360 * span * fraction) * .pi / 180
         return ZStack {
-            Circle().trim(from: 0, to: span).rotation(.degrees(rotation))
-                .stroke(Color(SystemColor.secondaryFill), style: StrokeStyle(lineWidth: 5, lineCap: .round))
-            Circle().trim(from: 0, to: span * max(fraction, 0.001)).rotation(.degrees(rotation))
-                .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 5, lineCap: .round))
-            if let current { current.font(.system(size: 16, weight: .medium)) }
+            if open {
+                Circle().trim(from: 0, to: span).rotation(.degrees(rotation))
+                    .stroke(color, style: StrokeStyle(lineWidth: line, lineCap: .round))
+                Circle().fill(Color(SystemColor.background)).frame(width: line - 2, height: line - 2)
+                    .overlay(Circle().stroke(color, lineWidth: 2).frame(width: line + 2, height: line + 2))
+                    .offset(x: radius * cos(angle), y: radius * sin(angle))
+                label.font(.caption2).offset(y: radius - 2)
+            } else {
+                Circle().stroke(color.opacity(0.35), lineWidth: line)
+                Circle().trim(from: 0, to: max(fraction, 0.001)).rotation(.degrees(rotation))
+                    .stroke(color, style: StrokeStyle(lineWidth: line, lineCap: .round))
+            }
+            if let current { current.font(.system(size: 25)).lineLimit(1).minimumScaleFactor(0.5).padding(.horizontal, line + 2) }
         }
-        .padding(2.5)
-        .frame(width: 56, height: 56)
+        .padding(line / 2)
+        .frame(width: side, height: side)
     }
 }
 

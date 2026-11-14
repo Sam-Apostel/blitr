@@ -8,9 +8,14 @@ internal import CSkia
 struct GlassAppearance {
     /// Blur applied to the backdrop, in points (SwiftUI blur radius, about twice the gaussian sigma).
     var blurRadius: CGFloat
+    /// Saturation of the result (1 = unchanged), applied after the tint and `brightness`.
     var saturation: Float
     /// Flat color laid over the blurred backdrop.
     var tint: RGBA
+    /// Added to every channel after the tint (0...1): dark glass lifts what is behind it.
+    var brightness: Float = 0
+    /// tvOS: saturate the backdrop before the tint (the earlier model) instead of the result.
+    var saturatesBeforeTint = false
     /// Width of the zone along the rim where the backdrop is bent, and how far (points).
     var lensWidth: CGFloat
     var lensStrength: CGFloat
@@ -20,9 +25,42 @@ struct GlassAppearance {
     var edge: RGBA
     var shadow: (color: RGBA, radius: CGFloat, y: CGFloat)
 
+    /// The regular and clear system glass. measured: iOS 27.0 simulator, bar items over flat backgrounds:
+    /// light glass turns white into 249, gray 241 into 243.5 and yellow (255,240,178) into (255,243,187)
+    /// (61% of a 245 gray, then saturation 2.3); dark glass turns black into 31, 17 into 48 and
+    /// (77,64,0) into (105,90,13) (+32 brightness, then saturation 1.33). Light glass has a faint
+    /// shadow below it (-3 levels over ~10pt) and a dark hairline; dark glass has neither.
+    /// iOS 26 dark glass is darker. measured: iOS 26.5 simulator: it turns black into 19...25, 17 into 31 and
+    /// (77,64,0) into (51,43,2) (best linear fit: 45% of a 0.19 gray). iOS 26.5 light glass is whiter over flat
+    /// backgrounds (white -> 253, gray 241 -> 251) but no linear fit of that also matches it over colourful
+    /// content (GlassNavigation, tab bars got 2...6 points worse), so light keeps the iOS 27 values.
     static func system(_ variant: Glass.Variant, scheme: ColorScheme, design: DesignLanguage) -> GlassAppearance {
         let dark = scheme == .dark
-        let refined = design == .liquidGlass27
+        if RenderedPlatform.platform == .tvOS { return tvOS(variant, dark: dark, refined: design == .liquidGlass27) }
+        let is26 = design == .liquidGlass26
+        var a = GlassAppearance(
+            blurRadius: 14,
+            saturation: dark ? (is26 ? 1 : 1.33) : 2.3,
+            tint: is26 && dark ? RGBA(0.19, 0.19, 0.2, 0.45)
+                : dark ? RGBA(0, 0, 0, 0.06) : RGBA(0.961, 0.961, 0.961, 0.607),
+            brightness: !is26 && dark ? 0.125 : 0,
+            lensWidth: 9, lensStrength: 12,
+            highlight: dark ? (0.3, 0.1) : (0.85, 0.3),
+            edge: dark ? RGBA(0, 0, 0, 0.25) : RGBA(0, 0, 0, 0.12),
+            shadow: dark ? (.clear, 0, 0) : (RGBA(0, 0, 0, 0.035), 12, 6))
+        if variant == .clear {
+            a.blurRadius = 4
+            a.tint = a.tint.opacity(0.3)
+            a.brightness *= 0.3
+            a.saturation = 1 + (a.saturation - 1) * 0.3
+        }
+        return a
+    }
+}
+
+extension GlassAppearance {
+    /// tvOS keeps the earlier estimate (focused platters); the iOS captures do not apply to it.
+    static func tvOS(_ variant: Glass.Variant, dark: Bool, refined: Bool) -> GlassAppearance {
         var a = GlassAppearance(
             blurRadius: refined ? 18 : 14,
             saturation: 1.6,
@@ -31,12 +69,22 @@ struct GlassAppearance {
             highlight: dark ? (refined ? 0.34 : 0.26, 0.06) : (refined ? 0.85 : 0.65, 0.2),
             edge: refined ? (dark ? RGBA(1, 1, 1, 0.1) : RGBA(0, 0, 0, 0.1)) : .clear,
             shadow: refined ? (RGBA(0, 0, 0, dark ? 0.3 : 0.1), 8, 2) : (RGBA(0, 0, 0, dark ? 0.36 : 0.14), 14, 4))
+        a.saturatesBeforeTint = true
         if variant == .clear {
             a.blurRadius = 4
             a.tint = a.tint.opacity(0.3)
         }
         return a
     }
+
+    /// Brightness and saturation of the neutral glass; a colored tint (prominent glass) gets neither.
+    var finish: (brightness: Float, saturation: Float) {
+        if saturatesBeforeTint { return (0, 1) }
+        let neutral = abs(tint.r - tint.g) < 0.02 && abs(tint.g - tint.b) < 0.02
+        return neutral ? (brightness, saturation) : (0, 1)
+    }
+    /// Saturation the backdrop gets before the tint (the earlier model, kept for tvOS).
+    var preSaturation: Float { saturatesBeforeTint ? saturation : 1 }
 }
 
 /// The outline glass is drawn in. Rounded rectangles (which covers capsules and circles) get the
@@ -62,6 +110,7 @@ extension Painter {
     uniform float4 shape;    // corner radius, lens width, lens strength, unused
     uniform float4 tint;     // straight-alpha color mixed over the backdrop
     uniform float4 origin;   // xy: where the backdrop image's (0,0) sits in device space
+    uniform float4 adjust;   // x: brightness added after the tint, y: saturation of the result
 
     half4 main(float2 p) {
         float2 center = (rect.xy + rect.zw) * 0.5;
@@ -78,7 +127,11 @@ extension Painter {
         float bend = t * t * t;
         float2 src = p - n * bend * shape.z;
         half4 color = backdrop.eval(src - origin.xy);
-        color.rgb = mix(color.rgb, half3(tint.rgb), half(tint.a));
+        color.rgb = mix(color.rgb, half3(tint.rgb), half(tint.a)) + half(adjust.x);
+        if (adjust.y != 1.0) {
+            half luma = dot(color.rgb, half3(0.2126, 0.7152, 0.0722));
+            color.rgb = clamp(mix(half3(luma), color.rgb, half(adjust.y)), 0.0, 1.0);
+        }
         // The bent rim catches a little extra light.
         color.rgb += half3(bend * 0.06);
         return half4(color.rgb, 1.0);
@@ -136,7 +189,7 @@ extension Painter {
             clip(path)
             let sigma = Float(a.blurRadius / 2 * scale)
             let blur = sk_imagefilter_new_blur(sigma, sigma, CLAMP_SK_SHADER_TILEMODE, nil, nil)
-            let saturate = sk_colorfilter_new_color_matrix(Painter.saturationMatrix(a.saturation))
+            let saturate = sk_colorfilter_new_color_matrix(Painter.saturationMatrix(a.saturatesBeforeTint ? a.saturation : a.finish.saturation))
             let backdrop = sk_imagefilter_new_color_filter(saturate, blur, nil)
             sk_colorfilter_unref(saturate)
             sk_imagefilter_unref(blur)
@@ -144,6 +197,12 @@ extension Painter {
             let paint = makePaint(.color(a.tint), bounds: bounds)
             sk_canvas_draw_paint(canvas, paint)
             sk_paint_delete(paint)
+            if a.finish.brightness > 0 {
+                let lift = makePaint(.color(RGBA(1, 1, 1, Double(a.finish.brightness))), bounds: bounds)
+                sk_paint_set_blendmode(lift, PLUS_SK_BLENDMODE)
+                sk_canvas_draw_paint(canvas, lift)
+                sk_paint_delete(lift)
+            }
             restore()
             restore()
         }
@@ -184,7 +243,7 @@ extension Painter {
         defer { sk_surface_unref(scratch) }
         let sigma = Float(a.blurRadius / 2 * sx)
         let blur = sk_imagefilter_new_blur(sigma, sigma, CLAMP_SK_SHADER_TILEMODE, nil, nil)
-        let saturate = sk_colorfilter_new_color_matrix(Painter.saturationMatrix(a.saturation))
+        let saturate = sk_colorfilter_new_color_matrix(Painter.saturationMatrix(a.preSaturation))
         let filter = sk_imagefilter_new_color_filter(saturate, blur, nil)
         sk_colorfilter_unref(saturate)
         sk_imagefilter_unref(blur)
@@ -206,6 +265,7 @@ extension Painter {
             Float(radius * sx), Float(a.lensWidth * sx), Float(a.lensStrength * sx), 0,
             Float(a.tint.r), Float(a.tint.g), Float(a.tint.b), Float(a.tint.a),
             Float(region.minX), Float(region.minY), 0, 0,
+            a.finish.brightness, a.finish.saturation, 0, 0,
         ]
         let data = uniforms.withUnsafeBytes { sk_data_new_with_copy($0.baseAddress, $0.count) }
         defer { sk_data_unref(data) }

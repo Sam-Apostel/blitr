@@ -41,15 +41,19 @@ values written during layout (inside a `GeometryReader`) reach `onPreferenceChan
 | `Sources/SwiftUI/Containers` | `ScrollView`, lazy stacks, grids, `Layout` protocol, `Canvas` |
 | `Sources/SwiftUI/Chrome` | navigation and tab bars, lists, sheets, alerts (hand-drawn system UI) |
 | `Sources/SwiftUI/Symbols` | SF Symbol stand-ins (generated from Phosphor Icons by `scripts/generate-symbols.py`) |
-| `Sources/SwiftUI/Compat` | `ObservableObject`-era wrappers, `App`/`Scene`, UIKit types |
+| `Sources/SwiftUI/Compat` | `ObservableObject`-era wrappers, `App`/`Scene`, the representable placeholder |
 | `Sources/SwiftUI/Glass` | iOS design language (`--ios 18/26/27`), `glassEffect` and glass painting |
 | `Sources/SwiftUI/Accessibility` | accessibility tree, tap targets and issues (`--accessibility-*`) |
 | `Sources/SwiftUI/Focus` | tvOS focus engine: focus records on nodes, movement, `@FocusState`, remote presses, focus map (docs/FOCUS.md); the tvOS focused look (`TVFocusLook.swift`) |
+| `Sources/SwiftUI/Interaction` | scripted steps (`--steps`), element selectors, frame / filmstrip / animated outputs and their encoders (docs/INTERACTION.md) |
+| `Sources/SwiftUI/Animation` | `Animation`, `Transaction`, transitions, springs and curves, and the tweener that interpolates two node trees during a capture |
 | `Sources/SwiftUI/Controls/TV*`, `Chrome/TV` | tvOS control styles and chrome: buttons, toggles, pickers, fields, tab bar, sidebar, lists, navigation, alerts (docs/TVOS.md) |
-| `Sources/SwiftUI/Widgets` | widget and Live Activity canvases; `Kits/` holds the WidgetKit, ActivityKit and AppIntents API (docs/WIDGETS.md) |
+| `Sources/SwiftUI/Widgets` | widget and Live Activity canvases, the engine side of WidgetKit (docs/WIDGETS.md) |
 | `Sources/SwiftUI/Render` | `Renderer`, runner entry point, device profiles and chrome, image comparison for `compare` |
 | `Sources/SwiftUI/Inert` | APIs with no effect on a static frame: gestures, animation; accessibility modifiers record into the tree |
-| `Sources/Combine`, `Sources/UIKit`, `Sources/WidgetKit`, `Sources/ActivityKit`, `Sources/AppIntents` | shim modules so those imports resolve |
+| `Sources/UIKit`, `MapKit`, `CoreLocation`, `WidgetKit`, `ActivityKit`, `AppIntents` | shim framework modules (see "Shim modules"; docs/MAPS.md, docs/WIDGETS.md) |
+| `Sources/Combine`, `SwiftUIScreenshotFoundation` | Combine; Foundation API missing on Linux (localization, formatters, ...) |
+| `Sources/CoreGraphics`, `ImageIO`, `CoreImage`, `CoreText`, `UniformTypeIdentifiers` and the other framework modules | Apple frameworks beyond SwiftUI (docs/FRAMEWORKS.md); CoreGraphics and UniformTypeIdentifiers sit below SwiftUI |
 | `Sources/swiftui-screenshot` | the command-line tool and source preprocessor |
 | `Tests/Corpus` | realistic screens rendered in CI as acceptance tests |
 
@@ -88,6 +92,38 @@ A modifier applied to multi-view content applies to each view separately (as in 
 `measure`, `layout`, and optionally `drawContent`, `spacing`, `explicitAlignment`.
 Resolve styles (`style._paint(in: env)`, fonts) at resolve time and store the result in the
 node; nodes do not see the environment later.
+
+## Shim modules
+
+Apple frameworks that app code imports next to SwiftUI (`UIKit`, `MapKit`, `CoreLocation`, `WidgetKit`,
+`ActivityKit`, `AppIntents`) are each a Swift module of their own under `Sources/<Framework>`, so their
+names are only visible where they are imported, as on Apple platforms: an app may declare its own
+`Activity` or `Map` in a file that imports only SwiftUI (`Examples/NameCollisions.swift`).
+
+Their code is linked into **libSwiftUI.so**, not into libraries of their own: the `SwiftUI` product in
+`Package.swift` lists them (`shimModules`). SwiftPM links a target's dependencies into every dynamic
+product, so a `.dynamic` product per shim would carry a second copy of SwiftUI, and with two copies in a
+process conformance lookups fail at run time ("Text does not conform to View"). One library means every
+compile links `-lSwiftUI` only (`Installation.linkFlags`) and a runner maps exactly one SwiftUI.
+`SwiftUIScreenshotFoundation` does not use SwiftUI and keeps a library of its own (autolinked
+with `-module-link-name`).
+
+To add a shim for framework `Foo`:
+
+1. Create `Sources/Foo/Foo.swift` with the module's re-exports (`@_exported import Foundation`, and the
+   frameworks Apple's `Foo` re-exports), and put the API in further files there. Each file imports what it
+   uses (`import SwiftUI`, `import UIKit`, ...); imports are per file.
+2. Add `.target(name: "Foo", dependencies: ["SwiftUI", ...], swiftSettings: moduleSettings)` and add `"Foo"`
+   to `shimModules` in `Package.swift`, and add `Foo` to the module list in `scripts/make-dist.sh`.
+3. Keep in SwiftUI what Apple's SwiftUI declares, unless it needs the shim's types: SwiftUI cannot import
+   the shim (the shim imports SwiftUI), so API like `Image(uiImage:)` lives in the shim, next to the
+   type it takes. Where the engine has to draw for the shim, the shim builds on public views or on an
+   underscored public hook in SwiftUI (`_WidgetCanvas`, `_RepresentablePlaceholder`).
+4. Engine internals the shim needs are `package` (visible to the modules of this package, never to app
+   code): mark the declaration `package`, or add an initializer to `Core/ShimSupport.swift` when a
+   shim extends a SwiftUI struct (a resilient struct cannot be initialised from another module).
+5. If Apple ships `Foo` only on some platforms, list them in `Preprocessor.frameworkPlatforms` so
+   `#if canImport(Foo)` follows the rendered platform.
 
 ## Conventions
 

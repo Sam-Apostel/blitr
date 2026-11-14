@@ -19,7 +19,7 @@ extension _PreviewEntry: _PreviewEntryGroup {
 extension Text {
     /// A timer counting down to (or up from) the interval's bounds, as of the render's fixed "now".
     public init(timerInterval: ClosedRange<Date>, pauseTime: Date? = nil, countsDown: Bool = true, showsHours: Bool = true) {
-        var now = Runtime.referenceDate
+        var now = Runtime.now
         if let pauseTime, pauseTime < now { now = pauseTime }
         let clamped = min(max(now, timerInterval.lowerBound), timerInterval.upperBound)
         let seconds = Int((countsDown ? timerInterval.upperBound.timeIntervalSince(clamped) : clamped.timeIntervalSince(timerInterval.lowerBound)).rounded())
@@ -46,7 +46,7 @@ extension ProgressView {
     static func timerFraction(_ interval: ClosedRange<Date>, countsDown: Bool) -> Double {
         let total = interval.upperBound.timeIntervalSince(interval.lowerBound)
         guard total > 0 else { return countsDown ? 0 : 1 }
-        let elapsed = min(max(Runtime.referenceDate.timeIntervalSince(interval.lowerBound), 0), total) / total
+        let elapsed = min(max(Runtime.now.timeIntervalSince(interval.lowerBound), 0), total) / total
         return countsDown ? 1 - elapsed : elapsed
     }
 
@@ -73,35 +73,6 @@ extension ProgressView where Label == EmptyView, CurrentValueLabel == DefaultDat
 
 // MARK: - LocalizedStringResource
 
-/// Foundation's `LocalizedStringResource` is missing from swift-corelibs-foundation; app intents
-/// and widgets use it for titles. Lookups return the default value (no string tables are loaded).
-public struct LocalizedStringResource: Hashable, Sendable, Codable, CustomStringConvertible,
-                                       ExpressibleByStringLiteral, ExpressibleByStringInterpolation {
-    public var key: String
-    public var defaultValue: String
-    public var table: String?
-    public var locale: Locale = .current
-
-    public init(stringLiteral value: String) {
-        key = value
-        defaultValue = value
-    }
-    public init(stringInterpolation: DefaultStringInterpolation) {
-        let value = String(stringInterpolation: stringInterpolation)
-        key = value
-        defaultValue = value
-    }
-    public init(_ key: StaticString, defaultValue: String? = nil, table: String? = nil, locale: Locale = .current, comment: StaticString? = nil) {
-        self.key = "\(key)"
-        self.defaultValue = defaultValue ?? "\(key)"
-        self.table = table
-        self.locale = locale
-    }
-    public var description: String { defaultValue }
-
-    enum CodingKeys: String, CodingKey { case key, defaultValue, table }
-}
-
-extension String {
-    public init(localized resource: LocalizedStringResource) { self = resource.defaultValue }
-}
+// Foundation's `LocalizedStringResource` and `String(localized:)` are missing from
+// swift-corelibs-foundation; they live in the SwiftUIScreenshotFoundation module, which SwiftUI
+// re-exports (Compat/Localization.swift), and resolve through the project's string table.

@@ -16,7 +16,7 @@ jobs:
       - name: Install system packages
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends libharfbuzz-dev curl unzip binutils ca-certificates
+          apt-get install -y --no-install-recommends libharfbuzz-dev curl unzip binutils ca-certificates python3
 
       - name: Fetch pinned Skia and fonts
         run: scripts/bootstrap.sh
@@ -37,6 +37,15 @@ jobs:
             "$bin/swiftui-screenshot" render "$file" --all --out-dir "out/$(dirname "$file")" --scheme both $device
             echo "::endgroup::"
           done
+
+      - name: Project mode (XcodeGen, Xcode project and Swift package fixture)
+        run: Tests/Projects/run.sh out/Projects
+
+      - name: Framework shims (known-answer checks)
+        run: Tests/Frameworks/run.sh out/Frameworks
+
+      - name: Interaction capture (frame counts, determinism)
+        run: Tests/Interaction/run.sh out/Interaction
 
       - name: Upload screenshots
         uses: actions/upload-artifact@v4

@@ -16,7 +16,10 @@ final class CompatStore {
     }
 
     static func markChanged() {
-        guard Thread.isMainThread else { return }
+        guard Thread.isMainThread else {
+            DispatchQueue.main.async { MainActor.assumeIsolated { Runtime.current?.needsAnotherPass = true } }
+            return
+        }
         MainActor.assumeIsolated { Runtime.current?.needsAnotherPass = true }
     }
 }
