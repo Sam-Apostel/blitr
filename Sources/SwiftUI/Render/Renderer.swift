@@ -2,27 +2,6 @@ internal import CSkia
 
 // Entry point of a render: View -> node tree -> layout -> pixels -> PNG.
 
-struct DeviceProfile {
-    var name: String
-    var size: CGSize
-    var safeArea: EdgeInsets
-    var scale: CGFloat
-    var cornerRadius: CGFloat
-
-    static let all: [String: DeviceProfile] = [
-        "iphone-se": DeviceProfile(name: "iPhone SE", size: CGSize(width: 375, height: 667), safeArea: EdgeInsets(top: 20, leading: 0, bottom: 0, trailing: 0), scale: 2, cornerRadius: 0),
-        "iphone-16": DeviceProfile(name: "iPhone 16", size: CGSize(width: 393, height: 852), safeArea: EdgeInsets(top: 59, leading: 0, bottom: 34, trailing: 0), scale: 3, cornerRadius: 55),
-        "iphone-16-plus": DeviceProfile(name: "iPhone 16 Plus", size: CGSize(width: 430, height: 932), safeArea: EdgeInsets(top: 59, leading: 0, bottom: 34, trailing: 0), scale: 3, cornerRadius: 55),
-        "iphone-16-pro": DeviceProfile(name: "iPhone 16 Pro", size: CGSize(width: 402, height: 874), safeArea: EdgeInsets(top: 62, leading: 0, bottom: 34, trailing: 0), scale: 3, cornerRadius: 62),
-        "iphone-16-pro-max": DeviceProfile(name: "iPhone 16 Pro Max", size: CGSize(width: 440, height: 956), safeArea: EdgeInsets(top: 62, leading: 0, bottom: 34, trailing: 0), scale: 3, cornerRadius: 62),
-        "iphone-17": DeviceProfile(name: "iPhone 17", size: CGSize(width: 402, height: 874), safeArea: EdgeInsets(top: 62, leading: 0, bottom: 34, trailing: 0), scale: 3, cornerRadius: 62),
-        "iphone-17-pro": DeviceProfile(name: "iPhone 17 Pro", size: CGSize(width: 402, height: 874), safeArea: EdgeInsets(top: 62, leading: 0, bottom: 34, trailing: 0), scale: 3, cornerRadius: 62),
-        "iphone-17-pro-max": DeviceProfile(name: "iPhone 17 Pro Max", size: CGSize(width: 440, height: 956), safeArea: EdgeInsets(top: 62, leading: 0, bottom: 34, trailing: 0), scale: 3, cornerRadius: 62),
-        "ipad": DeviceProfile(name: "iPad (11th generation)", size: CGSize(width: 820, height: 1180), safeArea: EdgeInsets(top: 24, leading: 0, bottom: 20, trailing: 0), scale: 2, cornerRadius: 18),
-        "ipad-pro-11": DeviceProfile(name: "iPad Pro 11-inch", size: CGSize(width: 834, height: 1210), safeArea: EdgeInsets(top: 24, leading: 0, bottom: 20, trailing: 0), scale: 2, cornerRadius: 18),
-    ]
-}
-
 struct RenderConfiguration {
     enum Layout { case device, sizeThatFits, fixed }
     var layout: Layout = .device
@@ -34,6 +13,10 @@ struct RenderConfiguration {
     var colorScheme: ColorScheme = .light
     var dynamicTypeSize: DynamicTypeSize = .large
     var showsDeviceChrome = true
+    /// Clip the image to the device's rounded display, corners transparent.
+    var roundedCorners = false
+    /// Draw the notch / Dynamic Island on top of the content.
+    var showsSensorHousing = false
     var background: RGBA?
     var fontDirectories: [String] = []
     var assetDirectories: [String] = []
@@ -127,6 +110,9 @@ enum Renderer {
         }
         defer { sk_surface_unref(surface) }
 
+        if config.roundedCorners, config.layout == .device, config.width == nil, config.height == nil {
+            DeviceChrome.clipToDisplay(canvas: canvas, device: config.device, size: canvasSize, scale: scale)
+        }
         let background = config.background ?? (config.layout == .sizeThatFits ? RGBA.clear : SystemColor.background.resolve(env.colorScheme))
         sk_canvas_clear(canvas, Painter.skColor(background))
         let painter = Painter(canvas: canvas, scale: scale)
@@ -137,7 +123,7 @@ enum Renderer {
             // the home indicator sits over the bottom of the screen and follows the interface style.
             DeviceChrome.draw(painter, device: config.device, size: canvasSize,
                               statusBarScheme: root.preferences[StatusBarSchemeKey.self] ?? env.colorScheme,
-                              homeIndicatorScheme: env.colorScheme)
+                              homeIndicatorScheme: env.colorScheme, showsHousing: config.showsSensorHousing)
         }
 
         guard let image = sk_surface_new_image_snapshot(surface) else { throw RenderError("Could not snapshot the surface") }
@@ -167,56 +153,3 @@ enum StatusBarSchemeKey: PreferenceKey {
     static func reduce(value: inout ColorScheme?, nextValue: () -> ColorScheme?) { value = nextValue() ?? value }
 }
 
-/// The parts of the screen iOS draws itself: status bar and home indicator.
-@MainActor
-enum DeviceChrome {
-    static func draw(_ p: Painter, device: DeviceProfile, size: CGSize, statusBarScheme scheme: ColorScheme, homeIndicatorScheme: ColorScheme) {
-        let color = _Paint.color(scheme == .dark ? .white : .black)
-        if device.safeArea.bottom > 0 {
-            let bar = CGRect(x: (size.width - 139) / 2, y: size.height - 8 - 5, width: 139, height: 5)
-            p.fill(Path(roundedRect: bar, cornerRadius: 2.5, style: .circular),
-                   with: .color(homeIndicatorScheme == .dark ? .white : .black), in: bar)
-        }
-        guard device.safeArea.top > 0 else { return }
-        let island = device.safeArea.top >= 50
-        let centerY: CGFloat = island ? device.safeArea.top - 27 : device.safeArea.top / 2
-        var env = EnvironmentValues()
-        env.colorScheme = scheme
-        env.foregroundStyle = AnyShapeStyle(scheme == .dark ? Color.white : Color.black)
-        let time = Text("9:41").font(.system(size: island ? 17 : 15, weight: .semibold)).makeNode(env)
-        let timeSize = time.sizeThatFits(.unspecified)
-        let leftCenter: CGFloat = island ? size.width * 0.19 : 40
-        let ctx = PlaceContext(origin: .zero, container: CGRect(origin: .zero, size: size), safeRect: CGRect(origin: .zero, size: size), scale: p.scale)
-        time.place(at: CGPoint(x: leftCenter - timeSize.width / 2, y: centerY - timeSize.height / 2), size: timeSize, ctx)
-        time.draw(p)
-
-        // Right cluster: signal bars, Wi-Fi, battery.
-        let right: CGFloat = island ? size.width * 0.81 : size.width - 50
-        var x = right - 38
-        for i in 0..<4 {
-            let h = 4.5 + CGFloat(i) * 2.5
-            let bar = CGRect(x: x + CGFloat(i) * 4.5, y: centerY + 6 - h, width: 3, height: h)
-            p.fill(Path(roundedRect: bar, cornerRadius: 1, style: .circular), with: color, in: bar)
-        }
-        x += 23
-        let wifiCenter = CGPoint(x: x + 8, y: centerY + 5.5)
-        for (i, r) in [CGFloat(11.5), 7.5, 3.5].enumerated() {
-            var arc = Path()
-            arc.addArc(center: wifiCenter, radius: r, startAngle: .degrees(-135), endAngle: .degrees(-45), clockwise: false)
-            if i == 2 {
-                arc.addLine(to: wifiCenter); arc.closeSubpath()
-                p.fill(arc, with: color, in: .zero)
-            } else {
-                p.stroke(arc, with: color, style: StrokeStyle(lineWidth: 2.2, lineCap: .butt), in: .zero)
-            }
-        }
-        x += 23
-        let body = CGRect(x: x, y: centerY - 6.5, width: 25, height: 13)
-        p.stroke(Path(roundedRect: body.insetBy(dx: 0.5, dy: 0.5), cornerRadius: 4, style: .continuous),
-                 with: _Paint(.opacity(color.kind, 0.4)), style: StrokeStyle(lineWidth: 1), in: body)
-        let fill = body.insetBy(dx: 2, dy: 2)
-        p.fill(Path(roundedRect: fill, cornerRadius: 2.5, style: .continuous), with: color, in: fill)
-        let cap = CGRect(x: body.maxX + 1, y: centerY - 2, width: 1.5, height: 4)
-        p.fill(Path(roundedRect: cap, cornerRadius: 0.75, style: .circular), with: _Paint(.opacity(color.kind, 0.4)), in: cap)
-    }
-}

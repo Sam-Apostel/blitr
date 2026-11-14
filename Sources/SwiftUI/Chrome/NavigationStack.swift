@@ -7,7 +7,11 @@
 
 /// Every metric of the navigation bar, in points (iOS 18, compact width).
 enum NavigationBarMetrics {
-    static let barHeight = ChromeMetrics.navigationBarHeight            // 44
+    /// 44pt; 32pt on a landscape iPhone (compact height).
+    static var barHeight: CGFloat {
+        let device = _currentConfiguration().device
+        return device.idiom == .phone && device.orientation.isLandscape ? 32 : ChromeMetrics.navigationBarHeight
+    }
     static let largeTitleHeight = ChromeMetrics.largeTitleHeight        // 52
     /// Large title baseline, measured up from the bottom of the large title region.
     static let largeTitleBaselineInset: CGFloat = 8
@@ -198,6 +202,11 @@ public struct NavigationSplitView<Sidebar: View, Content: View, Detail: View>: V
     }
 
     func resolve(_ ctx: ResolveContext, into out: inout [Node]) {
+        // Regular width on an iPad shows the columns side by side.
+        if _currentConfiguration().device.idiom == .pad, ctx.env.horizontalSizeClass == .regular {
+            out.append(resolveColumns(ctx))
+            return
+        }
         // Compact width collapses the split view into one stack showing the preferred column.
         let (sidebar, content, detail, column) = (self.sidebar, self.content, self.detail, compactColumn)
         out.append(makeNavigationStack(ctx, path: []) { ctx in
@@ -355,6 +364,9 @@ final class NavigationStackNode: Node {
     private var barTop: CGFloat = 0
     private var barRegionBottom: CGFloat = 0
     private var backgroundTop: CGFloat = 0
+    /// Bars extend under the side safe areas (a landscape iPhone), like the container does.
+    private var backgroundX: CGFloat = 0
+    private var backgroundWidth: CGFloat = 0
     private var bottomBarTop: CGFloat?
     private var bottomBackgroundBottom: CGFloat = 0
     private var showsBottomBackground = false
@@ -485,6 +497,8 @@ final class NavigationStackNode: Node {
         let margin = ChromeMetrics.layoutMargin(forWidth: ctx.container.width)
         barTop = max(0, ctx.safeRect.minY - ctx.origin.y)
         backgroundTop = ctx.container.minY - ctx.origin.y
+        backgroundX = ctx.container.minX - ctx.origin.x
+        backgroundWidth = ctx.container.width
         var y = barTop
         if barVisible {
             y += m.barHeight
@@ -592,15 +606,15 @@ final class NavigationStackNode: Node {
     override func drawContent(_ p: Painter) {
         content.draw(p)
         if barVisible, let barBackground {
-            let rect = CGRect(x: 0, y: backgroundTop, width: frame.width, height: barRegionBottom - backgroundTop)
+            let rect = CGRect(x: backgroundX, y: backgroundTop, width: backgroundWidth, height: barRegionBottom - backgroundTop)
             p.fill(Path(rect), with: barBackground, in: rect)
-            let line = CGRect(x: 0, y: barRegionBottom, width: frame.width, height: ChromeMetrics.hairline)
+            let line = CGRect(x: backgroundX, y: barRegionBottom, width: backgroundWidth, height: ChromeMetrics.hairline)
             p.fill(Path(line), with: hairline, in: line)
         }
         if let barY = bottomBarTop, showsBottomBackground {
-            let rect = CGRect(x: 0, y: barY, width: frame.width, height: bottomBackgroundBottom - barY)
+            let rect = CGRect(x: backgroundX, y: barY, width: backgroundWidth, height: bottomBackgroundBottom - barY)
             p.fill(Path(rect), with: bottomBackground, in: rect)
-            let line = CGRect(x: 0, y: barY - ChromeMetrics.hairline, width: frame.width, height: ChromeMetrics.hairline)
+            let line = CGRect(x: backgroundX, y: barY - ChromeMetrics.hairline, width: backgroundWidth, height: ChromeMetrics.hairline)
             p.fill(Path(line), with: hairline, in: line)
         }
         for child in children.dropFirst() { child.draw(p) }

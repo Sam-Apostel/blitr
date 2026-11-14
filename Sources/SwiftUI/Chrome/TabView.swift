@@ -30,6 +30,21 @@ enum TabBarMetrics {
     static let pageDotsCenterFromBottom: CGFloat = 12
     static let pageDotsBackgroundHeight: CGFloat = 26
     static let pageDotInactiveOpacity: Double = 0.3
+    // iPad (regular width): the tab bar is a floating capsule of text tabs at the top. The sizes are estimates.
+    static let topBarBand: CGFloat = 50          // room reserved below the status bar
+    static let topBarGap: CGFloat = 6            // status bar to capsule
+    static let topBarHeight: CGFloat = 42
+    static let topBarInset: CGFloat = 4          // capsule edge to selection pill
+    static let topItemPadding: CGFloat = 16
+    static let topItemGap: CGFloat = 2
+    static let topTitleFont = Font.system(size: 15, weight: .medium)
+    // Compact height (landscape iPhone): 32pt bar, icon and title side by side.
+    static let compactHeight: CGFloat = 32
+    static let compactIconTitleGap: CGFloat = 5
+    static var isCompactHeight: Bool {
+        let device = _currentConfiguration().device
+        return device.idiom == .phone && device.orientation.isLandscape
+    }
 }
 
 // MARK: - Tab items and badges on views
@@ -542,9 +557,17 @@ final class TabViewNode: Node {
     let backgroundVisibility: Visibility
     let background: _Paint
     let hairline: _Paint
+    /// iPad regular width: text tabs in a capsule at the top instead of a bar at the bottom.
+    let topBar: Bool
+    private let selectedIndex: Int
+    private let scheme: ColorScheme
+    private var capsule = CGRect.zero
+    private var itemRects: [CGRect] = []
 
     private var barTop: CGFloat = 0
     private var barBottom: CGFloat = 0
+    private var backgroundX: CGFloat = 0
+    private var backgroundWidth: CGFloat = 0
     private var showsBackground = false
 
     init(entries: [TabEntry], selected: Int, ctx: ResolveContext) {
@@ -556,6 +579,10 @@ final class TabViewNode: Node {
         chrome.bars[.tabBar] = nil
         barVisible = settings.visibility != .hidden
         let scheme = (settings.colorScheme ?? nil) ?? env.colorScheme
+        self.scheme = scheme
+        selectedIndex = selected
+        let topBar = barVisible && _currentConfiguration().device.idiom == .pad && env.horizontalSizeClass == .regular
+        self.topBar = topBar
         var barEnv = env
         barEnv.colorScheme = scheme
         backgroundVisibility = settings.backgroundVisibility ?? .automatic
@@ -583,10 +610,10 @@ final class TabViewNode: Node {
                 }
                 var item = Item()
                 if let label = entry.label {
-                    item.icon = label(adjust(TabBarMetrics.iconFont)).lazy.compactMap { $0.firstDescendant(ImageNode.self) }.first
-                    item.title = label(adjust(TabBarMetrics.titleFont)).lazy.compactMap { $0.firstDescendant(TextNode.self) }.first
+                    if !topBar { item.icon = label(adjust(TabBarMetrics.iconFont)).lazy.compactMap { $0.firstDescendant(ImageNode.self) }.first }
+                    item.title = label(adjust(topBar ? TabBarMetrics.topTitleFont : TabBarMetrics.titleFont)).lazy.compactMap { $0.firstDescendant(TextNode.self) }.first
                 }
-                if let badge = entry.badge {
+                if let badge = entry.badge, !topBar {
                     var badgeEnv = barEnv
                     badgeEnv.font = TabBarMetrics.badgeFont
                     badgeEnv.foregroundStyle = AnyShapeStyle(Color.white)
@@ -609,8 +636,12 @@ final class TabViewNode: Node {
         let m = TabBarMetrics.self
         let safeTop = max(0, ctx.safeRect.minY - ctx.origin.y)
         let safeBottom = min(size.height, ctx.safeRect.maxY - ctx.origin.y)
-        barTop = barVisible ? safeBottom - m.height : safeBottom
+        if topBar { layoutTopBar(size: size, safeTop: safeTop, safeBottom: safeBottom, ctx); return }
+        let compact = m.isCompactHeight
+        barTop = barVisible ? safeBottom - (compact ? m.compactHeight : m.height) : safeBottom
         barBottom = max(size.height, ctx.container.maxY - ctx.origin.y)
+        backgroundX = ctx.container.minX - ctx.origin.x
+        backgroundWidth = ctx.container.width
 
         let area = CGRect(x: 0, y: safeTop, width: size.width, height: max(0, barTop - safeTop))
         var inner = ctx
@@ -623,6 +654,22 @@ final class TabViewNode: Node {
         for (i, item) in items.enumerated() {
             let cx = itemWidth * (CGFloat(i) + 0.5)
             var iconMidX = cx
+            if compact {
+                // Icon and title side by side, centred in the item.
+                let iconSize = item.icon?.sizeThatFits(.unspecified) ?? .zero
+                var titleSize = item.title?.sizeThatFits(ProposedViewSize(width: itemWidth - iconSize.width - 8, height: nil)) ?? .zero
+                titleSize.width = min(titleSize.width, itemWidth - iconSize.width - 8)
+                let gap = item.icon != nil && item.title != nil ? m.compactIconTitleGap : 0
+                let x0 = cx - (iconSize.width + gap + titleSize.width) / 2
+                let midY = barTop + m.compactHeight / 2
+                item.icon?.place(at: CGPoint(x: x0, y: midY - iconSize.height / 2), size: iconSize, ctx)
+                item.title?.place(at: CGPoint(x: x0 + iconSize.width + gap, y: midY - titleSize.height / 2), size: titleSize, ctx)
+                if let badge = item.badge {
+                    let s = badge.sizeThatFits(.unspecified)
+                    badge.place(at: CGPoint(x: x0 + iconSize.width - 4, y: barTop - 3), size: s, ctx)
+                }
+                continue
+            }
             if let icon = item.icon {
                 let s = icon.sizeThatFits(.unspecified)
                 icon.place(at: CGPoint(x: cx - s.width / 2, y: barTop + m.iconCenterY - s.height / 2), size: s, ctx)
@@ -646,13 +693,47 @@ final class TabViewNode: Node {
         }
     }
 
+    private func layoutTopBar(size: CGSize, safeTop: CGFloat, safeBottom: CGFloat, _ ctx: PlaceContext) {
+        let m = TabBarMetrics.self
+        let area = CGRect(x: 0, y: safeTop + m.topBarBand, width: size.width, height: max(0, safeBottom - safeTop - m.topBarBand))
+        var inner = ctx
+        inner.safeRect = CGRect(x: ctx.safeRect.minX, y: ctx.origin.y + area.minY, width: ctx.safeRect.width, height: area.height)
+        let c = content.sizeThatFits(ProposedViewSize(area.size))
+        content.place(at: CGPoint(x: area.midX - c.width / 2, y: area.midY - c.height / 2), size: c, inner)
+
+        let sizes = items.map { $0.title?.sizeThatFits(.unspecified) ?? .zero }
+        let widths = sizes.map { $0.width + m.topItemPadding * 2 }
+        let total = widths.reduce(0, +) + m.topItemGap * CGFloat(max(0, widths.count - 1)) + m.topBarInset * 2
+        capsule = CGRect(x: (size.width - total) / 2, y: safeTop + m.topBarGap, width: total, height: m.topBarHeight)
+        var x = capsule.minX + m.topBarInset
+        itemRects = []
+        for (item, (s, w)) in zip(items, zip(sizes, widths)) {
+            let rect = CGRect(x: x, y: capsule.minY + m.topBarInset, width: w, height: capsule.height - m.topBarInset * 2)
+            itemRects.append(rect)
+            item.title?.place(at: CGPoint(x: rect.midX - s.width / 2, y: rect.midY - s.height / 2), size: s, ctx)
+            x += w + m.topItemGap
+        }
+    }
+
+    private func drawTopBar(_ p: Painter) {
+        let shape = Path(roundedRect: capsule, cornerRadius: capsule.height / 2, style: .circular)
+        p.fill(shape, with: .color(SystemColor.secondaryBackground.resolve(scheme)), in: capsule)
+        p.stroke(shape, with: .color(SystemColor.separator.resolve(scheme)), style: StrokeStyle(lineWidth: ChromeMetrics.hairline), in: capsule)
+        if itemRects.indices.contains(selectedIndex) {
+            let r = itemRects[selectedIndex]
+            p.fill(Path(roundedRect: r, cornerRadius: r.height / 2, style: .circular), with: .color(SystemColor.tertiaryFill.resolve(scheme)), in: r)
+        }
+        for child in children.dropFirst() { child.draw(p) }
+    }
+
     override func drawContent(_ p: Painter) {
         content.draw(p)
         guard barVisible else { return }
+        if topBar { drawTopBar(p); return }
         if showsBackground {
-            let rect = CGRect(x: 0, y: barTop, width: frame.width, height: barBottom - barTop)
+            let rect = CGRect(x: backgroundX, y: barTop, width: backgroundWidth, height: barBottom - barTop)
             p.fill(Path(rect), with: background, in: rect)
-            let line = CGRect(x: 0, y: barTop - ChromeMetrics.hairline, width: frame.width, height: ChromeMetrics.hairline)
+            let line = CGRect(x: backgroundX, y: barTop - ChromeMetrics.hairline, width: backgroundWidth, height: ChromeMetrics.hairline)
             p.fill(Path(line), with: hairline, in: line)
         }
         for child in children.dropFirst() { child.draw(p) }

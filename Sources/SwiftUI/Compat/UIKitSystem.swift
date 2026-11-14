@@ -43,13 +43,19 @@ public final class UIDevice {
     public enum Orientation: Int, Sendable { case unknown, portrait, portraitUpsideDown, landscapeLeft, landscapeRight, faceUp, faceDown }
     public static let current = UIDevice()
     public static let orientationDidChangeNotification = Notification.Name("UIDeviceOrientationDidChangeNotification")
-    public var userInterfaceIdiom: UIUserInterfaceIdiom { _currentCanvasSize().width >= 700 ? .pad : .phone }
+    public var userInterfaceIdiom: UIUserInterfaceIdiom { _currentConfiguration().device.idiom == .pad ? .pad : .phone }
     public var name: String { userInterfaceIdiom == .pad ? "iPad" : "iPhone" }
     public var model: String { name }
     public var localizedModel: String { name }
     public var systemName: String { "iOS" }
     public var systemVersion: String { "18.0" }
-    public var orientation: Orientation { _currentCanvasSize().width > _currentCanvasSize().height ? .landscapeLeft : .portrait }
+    public var orientation: Orientation {
+        switch _currentConfiguration().device.orientation {
+        case .portrait: return .portrait
+        case .landscapeLeft: return .landscapeLeft
+        case .landscapeRight: return .landscapeRight
+        }
+    }
     public var isBatteryMonitoringEnabled = false
     public var batteryLevel: Float { 1 }
     public var batteryState: BatteryState { .unknown }

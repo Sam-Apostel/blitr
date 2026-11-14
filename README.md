@@ -61,7 +61,10 @@ What gets rendered, first match wins: `--view "ContentView()"`, a `#Preview` (pi
 |---|---|
 | `-o file.png`, `--out-dir dir` | Where to write. `--out-dir` is required when several images are produced. |
 | `--scheme light\|dark\|both` | Appearance. |
-| `--device iphone-16` | Screen size, scale and safe area. See `devices`. |
+| `--device iphone-16` | Screen size, scale, safe areas, size classes and status bar of a device: every iPhone from SE / 11 to the 17 family and Air, current iPads. Names are forgiving (`iphone-16-pro`, `"iPhone 16 Pro"`, `iphone16pro`). See `devices`. |
+| `--orientation portrait\|landscape` | `landscape-left` / `landscape-right` also work. Swaps the size, uses landscape insets; iPhones hide the status bar. `#Preview(traits: .landscapeLeft / .sizeThatFitsLayout / .fixedLayout(...))` set the defaults per preview; flags override them. |
+| `--rounded-corners` | Clip to the device's rounded display, corners transparent. |
+| `--show-island` | Draw the Dynamic Island or notch on top (simulator screenshots do not show it). |
 | `--layout device\|fit\|fixed` | Full screen with status bar; or just the view's own size; or an exact `--width`/`--height`. |
 | `--dynamic-type xxxLarge` | Dynamic Type size. |
 | `--assets dir` | Images and `.xcassets` catalogs. The directories you pass as sources are searched automatically. |

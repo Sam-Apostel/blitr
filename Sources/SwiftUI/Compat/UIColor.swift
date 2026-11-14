@@ -15,10 +15,10 @@ public class UITraitCollection {
     public init(userInterfaceStyle: UIUserInterfaceStyle) {
         let config = _currentConfiguration()
         self.userInterfaceStyle = userInterfaceStyle
-        horizontalSizeClass = (config.width ?? config.device.size.width) >= 700 ? .regular : .compact
-        verticalSizeClass = .regular
+        horizontalSizeClass = _currentSizeClass(horizontal: true) == .regular ? .regular : .compact
+        verticalSizeClass = _currentSizeClass(horizontal: false) == .regular ? .regular : .compact
         displayScale = config.scale ?? config.device.scale
-        userInterfaceIdiom = config.device.size.width >= 700 ? .pad : .phone
+        userInterfaceIdiom = config.device.idiom == .pad ? .pad : .phone
     }
     public convenience init() { self.init(userInterfaceStyle: .unspecified) }
 
