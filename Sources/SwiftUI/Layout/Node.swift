@@ -21,7 +21,33 @@ class Node {
     final var frame: CGRect = .zero
     final var absoluteOrigin: CGPoint = .zero
     final var traits = Traits()
-    final var preferences = PreferenceStore()
+    /// Preference values written on this node itself; they replace what its children report.
+    final var ownPreferences = PreferenceStore()
+    private var blockedPreferences: Set<ObjectIdentifier> = []
+
+    /// The preferences of this subtree: the children's, combined in order, overridden by the
+    /// node's own. Computed on demand, so children created during layout (GeometryReader) count.
+    final var preferences: PreferenceStore {
+        get {
+            var merged = PreferenceStore()
+            for child in children { merged.merge(child.preferences) }
+            for (key, entry) in ownPreferences.entries { merged.entries[key] = entry }
+            for key in blockedPreferences { merged.entries[key] = nil }
+            merged.touched = []
+            return merged
+        }
+        set {
+            for key in newValue.touched {
+                if let entry = newValue.entries[key] {
+                    ownPreferences.entries[key] = entry
+                    blockedPreferences.remove(key)
+                } else {
+                    ownPreferences.entries[key] = nil
+                    blockedPreferences.insert(key)
+                }
+            }
+        }
+    }
     private var sizeCache: [ProposedViewSize: CGSize] = [:]
     /// Recent (proposal -> size) answers, newest last. Placement hands a node only its final size,
     /// so this is how a node recovers the proposal that size was computed for.
@@ -29,7 +55,6 @@ class Node {
 
     init(children: [Node] = []) {
         self.children = children
-        for child in children { preferences.merge(child.preferences) }
     }
 
     // MARK: Layout

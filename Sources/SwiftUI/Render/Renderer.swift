@@ -75,6 +75,7 @@ enum Renderer {
         for _ in 0..<6 {
             runtime.needsAnotherPass = false
             runtime.pendingActions = []
+            runtime.postLayoutActions = []
             let ctx = ResolveContext(env: env, path: IdentityPath(), runtime: runtime)
             root = resolveSingle(view, ctx)
             // Sheets, alerts and dialogs presented anywhere in the tree are drawn above the root.
@@ -99,6 +100,14 @@ enum Renderer {
                 root.place(at: CGPoint(x: pad, y: pad), size: size, PlaceContext(origin: .zero, container: container, safeRect: safeRect, scale: scale))
             }
 
+            // `.preferredColorScheme` anywhere in the content restyles the whole screen.
+            if let preferred = root.preferences[PreferredColorSchemeKey.self], preferred != env.colorScheme {
+                env.colorScheme = preferred
+                continue
+            }
+            let postLayout = runtime.postLayoutActions
+            runtime.postLayoutActions = []
+            for action in postLayout { action() }
             let actions = runtime.pendingActions
             runtime.pendingActions = []
             for action in actions { action() }
@@ -118,7 +127,7 @@ enum Renderer {
         }
         defer { sk_surface_unref(surface) }
 
-        let background = config.background ?? (config.layout == .sizeThatFits ? RGBA.clear : SystemColor.background.resolve(config.colorScheme))
+        let background = config.background ?? (config.layout == .sizeThatFits ? RGBA.clear : SystemColor.background.resolve(env.colorScheme))
         sk_canvas_clear(canvas, Painter.skColor(background))
         let painter = Painter(canvas: canvas, scale: scale)
         painter.scale(scale, scale)
@@ -127,8 +136,8 @@ enum Renderer {
             // The status bar can be restyled by content (a dark toolbar, a pushed-back presenter);
             // the home indicator sits over the bottom of the screen and follows the interface style.
             DeviceChrome.draw(painter, device: config.device, size: canvasSize,
-                              statusBarScheme: root.preferences[StatusBarSchemeKey.self] ?? config.colorScheme,
-                              homeIndicatorScheme: config.colorScheme)
+                              statusBarScheme: root.preferences[StatusBarSchemeKey.self] ?? env.colorScheme,
+                              homeIndicatorScheme: env.colorScheme)
         }
 
         guard let image = sk_surface_new_image_snapshot(surface) else { throw RenderError("Could not snapshot the surface") }

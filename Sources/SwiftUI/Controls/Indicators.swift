@@ -85,8 +85,7 @@ public struct Stepper<Label: View>: View {
 
     public var body: some View {
         HStack {
-            label
-            Spacer(minLength: 8)
+            ControlLabel(label: label)
             control
         }
         .opacity(isEnabled ? 1 : 0.5)

@@ -30,13 +30,17 @@ struct PreferenceChangeModifier<K: PreferenceKey>: ViewModifier, PrimitiveModifi
     let action: (K.Value) -> Void
     func resolve(content: ModifierContent, _ ctx: ResolveContext, into out: inout [Node]) {
         let nodes = content.nodes(ctx)
-        let value = mergedPreferences(of: nodes)[K.self]
         var ic = InstallContext(ctx: ctx.child("onPreferenceChange"))
         let box = ic.storage { LastValueBox<K.Value>() }
-        if box.value != value {
+        let action = self.action
+        let runtime = ctx.runtime
+        // Read after layout: values written inside a GeometryReader only exist by then.
+        runtime.postLayoutActions.append {
+            let value = mergedPreferences(of: nodes)[K.self]
+            guard box.value != value else { return }
             box.value = value
-            let action = self.action
-            ctx.runtime.pendingActions.append { action(value) }
+            action(value)
+            runtime.needsAnotherPass = true
         }
         out.append(contentsOf: nodes)
     }
