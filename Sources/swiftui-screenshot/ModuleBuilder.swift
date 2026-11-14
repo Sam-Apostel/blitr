@@ -111,6 +111,7 @@ struct ModuleBuilder {
         var preprocessor = Preprocessor()
         preprocessor.platform = platform
         let output = preprocessor.process(stripped.map { (path: $0.0, contents: $0.1) }, viewExpression: viewExpression)
+        for warning in output.warnings { note("warning: \(warning)") }
         var files: [CompiledSource] = []
         for (index, source) in sources.enumerated() { files.append(CompiledSource(path: source.path, contents: output.files[index].contents)) }
         return (files, output.files.last?.contents ?? "", output.entries)

@@ -31,7 +31,9 @@ usual `as CFData` / `as? [CFString: Any]` casts work.
 the SDK, and `canImport` of one Apple does not ship for the rendered platform is rewritten to `false`
 (UIKit off on macOS, AppKit only on macOS, WatchConnectivity on iOS and watchOS, ...). Submodule imports
 (`import CoreImage.CIFilterBuiltins`) are rewritten to the module, and `@objc`, `@IBAction` and friends are
-dropped and `#selector(x)` becomes `Selector("x")` (there is no Objective-C runtime on Linux).
+dropped and `#selector(x)` becomes `Selector("x")` (there is no Objective-C runtime on Linux). For the same reason an `override`
+declared in an extension (`extension UIWindow { override func motionEnded(...) }`, legal on Apple platforms only for
+`@objc dynamic` members) is left out, with a warning naming it: such hooks never show in a still frame.
 
 ## What each framework does
 

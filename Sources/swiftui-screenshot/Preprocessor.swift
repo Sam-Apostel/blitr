@@ -19,6 +19,8 @@ import Foundation
 ///     @Entry var x: T = v              ->  an explicit EnvironmentKey + computed property
 ///     #available(iOS 26, *)            ->  SwiftUI.RenderedPlatform.isAtLeast(iOS: 26)
 ///     #unavailable(iOS 26)             ->  !SwiftUI.RenderedPlatform.isAtLeast(iOS: 26)
+///     extension UIWindow { override func motionEnded(...) { ... } }  ->  the override is blanked out, with a warning
+///                                     (see dropExtensionOverrides)
 ///
 /// Rewrites stay on the same line, so compiler diagnostics still point at the right line.
 struct Preprocessor {
@@ -26,6 +28,8 @@ struct Preprocessor {
         var files: [(name: String, contents: String)]
         /// Expressions producing `_PreviewEntry` values, in source order.
         var entries: [String]
+        /// One line per member left out (`file:line: ...`), for the tool to print as warnings.
+        var warnings: [String] = []
     }
 
     private var counter = 0
@@ -41,9 +45,12 @@ struct Preprocessor {
         var appTypes: [String] = []
         var widgetTypes: [String] = [], bundleTypes: [String] = []
         var usedNames: Set<String> = ["main.swift"]
+        var warnings: [String] = []
 
         for (index, source) in sources.enumerated() {
-            var (rewritten, names) = rewrite(source.contents)
+            let (kept, dropped) = Self.dropExtensionOverrides(source.contents, path: source.path)
+            warnings += dropped
+            var (rewritten, names) = rewrite(kept)
             rewritten = Self.rewriteEntries(rewritten)
             entries += names
             for type in Self.matches(of: #"struct\s+(\w+)\s*:\s*[^{]*\bPreviewProvider\b"#, in: rewritten) {
@@ -79,7 +86,97 @@ struct Preprocessor {
         for entry in entries { main += "        \(entry),\n" }
         main += hasWidgetPreviews ? "    ] as [any SwiftUI._PreviewEntryGroup]).flatMap { $0._previewEntries })\n}\n" : "    ])\n}\n"
         files.append(("main.swift", main))
-        return Output(files: files, entries: entries)
+        return Output(files: files, entries: entries, warnings: warnings)
+    }
+
+    /// Overrides declared in an extension (`extension UIWindow { override func motionEnded(...) }`) compile on Apple
+    /// platforms only because the overridden member is `@objc dynamic`: Swift accepts an override in an extension
+    /// for Objective-C members alone, which here are UIKit's and AppKit's. Linux has no Objective-C runtime, so such
+    /// an override cannot compile; it is a behaviour hook (view lifecycle, shake, key commands) that never shows in a
+    /// still frame, so it is removed, brace-matched, keeping its newlines so later lines keep their numbers. Overrides
+    /// in class bodies are untouched.
+    static func dropExtensionOverrides(_ source: String, path: String) -> (String, [String]) {
+        guard source.contains("override") else { return (source, []) }
+        var bytes = Array(source.utf8)
+        let mask = codeMask(bytes)
+        let n = bytes.count
+        func isSpace(_ b: UInt8) -> Bool { b == UInt8(ascii: " ") || b == UInt8(ascii: "\t") }
+        func word(at k: Int) -> String {
+            var e = k
+            while e < n, isIdentifierByte(bytes[e]) || bytes[e] == UInt8(ascii: ".") { e += 1 }
+            return String(decoding: bytes[k..<e], as: UTF8.self)
+        }
+        func isKeyword(_ keyword: String, at k: Int) -> Bool {
+            let t = Array(keyword.utf8)
+            guard mask[k], k + t.count <= n, Array(bytes[k..<(k + t.count)]) == t else { return false }
+            if k > 0, isIdentifierByte(bytes[k - 1]) || bytes[k - 1] == UInt8(ascii: ".") { return false }
+            return k + t.count == n || !isIdentifierByte(bytes[k + t.count])
+        }
+        enum Frame { case extensionBody(String), other }
+        var frames: [Frame] = []
+        var pendingExtension: String?
+        var removals: [(start: Int, end: Int, line: Int, type: String, signature: String)] = []
+        var i = 0
+        while i < n {
+            guard mask[i] else { i += 1; continue }
+            let b = bytes[i]
+            if b == UInt8(ascii: "{") {
+                frames.append(pendingExtension.map { .extensionBody($0) } ?? .other)
+                pendingExtension = nil
+            } else if b == UInt8(ascii: "}") {
+                _ = frames.popLast()
+            } else if isKeyword("extension", at: i) {
+                var k = i + "extension".utf8.count
+                while k < n, isSpace(bytes[k]) { k += 1 }
+                pendingExtension = word(at: k)
+            } else if isKeyword("override", at: i), case .extensionBody(let type)? = frames.last {
+                // The declaration starts at its first modifier or attribute on this line, and takes attribute-only lines above it.
+                var start = i
+                while start > 0, mask[start - 1], bytes[start - 1] != UInt8(ascii: "\n"), bytes[start - 1] != UInt8(ascii: "{"),
+                      bytes[start - 1] != UInt8(ascii: "}"), bytes[start - 1] != UInt8(ascii: ";") { start -= 1 }
+                while start < i, isSpace(bytes[start]) { start += 1 }
+                var head = start
+                while head > 0, isSpace(bytes[head - 1]) { head -= 1 }
+                while head > 0, bytes[head - 1] == UInt8(ascii: "\n") {
+                    var lineStart = head - 1
+                    while lineStart > 0, bytes[lineStart - 1] != UInt8(ascii: "\n") { lineStart -= 1 }
+                    var first = lineStart
+                    while first < head - 1, isSpace(bytes[first]) { first += 1 }
+                    guard first < head - 1, bytes[first] == UInt8(ascii: "@"), mask[first] else { break }
+                    start = first
+                    head = lineStart
+                }
+                // The body: the first `{` outside parentheses (default arguments may hold closures), brace-matched.
+                var k = i, parens = 0
+                while k < n, !(mask[k] && parens == 0 && bytes[k] == UInt8(ascii: "{")) {
+                    if mask[k], bytes[k] == UInt8(ascii: "(") { parens += 1 }
+                    if mask[k], bytes[k] == UInt8(ascii: ")") { parens -= 1 }
+                    k += 1
+                }
+                guard k < n else { break }
+                let signature = String(decoding: bytes[i..<k], as: UTF8.self)
+                    .split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+                var depth = 0, end = k
+                while end < n {
+                    if mask[end], bytes[end] == UInt8(ascii: "{") { depth += 1 }
+                    if mask[end], bytes[end] == UInt8(ascii: "}") { depth -= 1; if depth == 0 { end += 1; break } }
+                    end += 1
+                }
+                removals.append((start, end, bytes[..<i].filter { $0 == UInt8(ascii: "\n") }.count + 1, type, signature))
+                i = end
+                continue
+            }
+            i += 1
+        }
+        guard !removals.isEmpty else { return (source, []) }
+        let file = (path as NSString).lastPathComponent
+        var warnings: [String] = []
+        for removal in removals.reversed() {
+            warnings.insert("\(file):\(removal.line): left out `\(removal.signature)` in `extension \(removal.type)`: overriding from an extension needs the Objective-C runtime (a behaviour hook, not drawn in a still frame)", at: 0)
+            let newlines = bytes[removal.start..<removal.end].filter { $0 == UInt8(ascii: "\n") }
+            bytes.replaceSubrange(removal.start..<removal.end, with: newlines)
+        }
+        return (String(decoding: bytes, as: UTF8.self), warnings)
     }
 
     private static func matches(of pattern: String, in text: String) -> [String] {

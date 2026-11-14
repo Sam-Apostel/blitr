@@ -113,6 +113,10 @@ check "check passes for a screen that compiles" has "ok     target Orchard (4 fi
 echo "== diagnostics"
 run 1 render Tests/Projects/Diagnostics/LineNumbers.swift --no-project -o "$out/lines.png"
 check "errors keep their line numbers after rewriting" has "LineNumbers.swift:27:30: error"
+run 0 render Tests/Projects/Diagnostics/ExtensionOverrides.swift --no-project --open-fonts -o "$out/overrides.png"
+check "an override in an extension is left out, named, with its line" has "ExtensionOverrides.swift:10: left out \`override open func viewDidLoad()\` in \`extension UINavigationController\`"
+check "each override gets its own warning" has "ExtensionOverrides.swift:17: left out \`override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?)\` in \`extension UIWindow\`"
+check "an override in a class body is kept" lacks "left out \`override var name"
 # More than a pipe buffer (64 KB) of diagnostics used to deadlock the tool.
 many="$out/ManyErrors.swift"
 { echo "import SwiftUI"; for i in $(seq 1 1500); do echo "let wrong$i: Int = \"a string, not an integer, to make the compiler print a long diagnostic number $i\""; done; echo '#Preview { Text("x") }'; } >"$many"

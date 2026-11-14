@@ -333,6 +333,7 @@ func build(_ options: Options, _ installation: Installation) -> Build {
     var preprocessor = Preprocessor()
     preprocessor.platform = options.platform
     let output = preprocessor.process(sources, viewExpression: options.view)
+    for warning in output.warnings { note("warning: \(warning)") }
     guard !output.entries.isEmpty else {
         fail("nothing to render: no #Preview, PreviewProvider or @main App found. Pass --view \"YourView()\" to pick a view.")
     }
