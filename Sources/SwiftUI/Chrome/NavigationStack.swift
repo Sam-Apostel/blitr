@@ -597,15 +597,19 @@ final class NavigationStackNode: Node {
         bottomBackgroundVisibility = bottomBar.backgroundVisibility ?? .automatic
         hairline = .color(SystemColor.separator.resolve(barScheme))
 
-        // Scroll edge effect of glass bars: iOS 26 defaults to soft, iOS 27 to hard.
-        func isHard(_ style: ScrollEdgeEffectStyle?) -> Bool {
-            let style = style ?? .automatic
-            return style == .hard || (style == .automatic && glass?.defaultScrollEdgeHard == true)
+        // Scroll edge effect of glass bars: iOS 26 defaults to soft, iOS 27 draws none at rest.
+        func resolved(_ style: ScrollEdgeEffectStyle?) -> NavigationGlassMetrics.DefaultScrollEdge {
+            switch style ?? .automatic {
+            case .hard: return .hard
+            case .soft: return .soft
+            default: return glass?.defaultScrollEdge ?? .none
+            }
         }
-        topEdgeHard = isHard(chrome.topEdgeEffectStyle)
-        bottomEdgeHard = isHard(chrome.bottomEdgeEffectStyle)
-        topEdgeHidden = chrome.topEdgeEffectHidden ?? false
-        bottomEdgeHidden = chrome.bottomEdgeEffectHidden ?? false
+        let topEdge = resolved(chrome.topEdgeEffectStyle), bottomEdge = resolved(chrome.bottomEdgeEffectStyle)
+        topEdgeHard = topEdge == .hard
+        bottomEdgeHard = bottomEdge == .hard
+        topEdgeHidden = (chrome.topEdgeEffectHidden ?? false) || topEdge == .none
+        bottomEdgeHidden = (chrome.bottomEdgeEffectHidden ?? false) || bottomEdge == .none
         edgeTint = SystemColor.background.resolve(barScheme).opacity(glass?.softEdgeTintOpacity ?? 0)
         edgeMaterial = Material.bar._paint(in: schemeEnv)
 

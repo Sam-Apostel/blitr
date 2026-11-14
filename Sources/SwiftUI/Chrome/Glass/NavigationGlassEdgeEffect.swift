@@ -13,20 +13,22 @@ enum NavigationGlass {
         return ctx.safeRect.maxY < deviceBottom - 8
     }
 
-    /// Whether drawn content (not a full-screen background) overlaps the band `minY..<maxY` (absolute).
+    /// Whether drawn scroll content (not a full-screen background) overlaps the band `minY..<maxY` (absolute).
+    /// The edge effect belongs to scroll views: content that does not scroll gets none, even under a bar.
     @MainActor
     static func contentOverlaps(_ root: Node, minY: CGFloat, maxY: CGFloat, container: CGRect) -> Bool {
-        func visit(_ node: Node) -> Bool {
+        func visit(_ node: Node, _ inScroll: Bool) -> Bool {
+            let inScroll = inScroll || node is ScrollNode || node is ListNode
             if node.children.isEmpty {
-                if node is SpacerNode || node is EmptyNode { return false }
+                if !inScroll || node is SpacerNode || node is EmptyNode { return false }
                 let r = CGRect(origin: node.absoluteOrigin, size: node.frame.size)
                 guard r.width > 0.5, r.height > 0.5, r.maxY > minY + 0.5, r.minY < maxY - 0.5 else { return false }
                 if r.width >= container.width - 1 && r.height >= container.height * 0.5 { return false }
                 return true
             }
-            return node.children.contains(where: visit)
+            return node.children.contains { visit($0, inScroll) }
         }
-        return visit(root)
+        return visit(root, false)
     }
 }
 

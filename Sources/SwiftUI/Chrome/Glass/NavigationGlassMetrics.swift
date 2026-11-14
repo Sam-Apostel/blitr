@@ -61,12 +61,16 @@ struct NavigationGlassMetrics {
     /// Opacity of the system background wash laid into the soft edge.
     var softEdgeTintOpacity: Double = 0.55            // (est.)
 
-    /// The default scroll edge effect under bars: iOS 26 soft, iOS 27 hard.
-    var defaultScrollEdgeHard = false
+    /// What the `.automatic` scroll edge effect draws over scroll content under a bar.
+    enum DefaultScrollEdge { case none, soft, hard }
+    /// iOS 26: soft (Apple's documented default of `ScrollEdgeEffectStyle.automatic` on iOS 26).
+    /// iOS 27: nothing at rest. measured: iOS 27.0 simulator; list rows under the tab bar (NavigationTabs-Tabs)
+    /// and full-bleed content under both bars (GlassNavigation) are neither blurred nor dimmed.
+    var defaultScrollEdge = DefaultScrollEdge.soft
 
     static func forDesign(_ design: DesignLanguage) -> NavigationGlassMetrics {
         var m = NavigationGlassMetrics()
-        if design == .liquidGlass27 { m.defaultScrollEdgeHard = true }
+        if design == .liquidGlass27 { m.defaultScrollEdge = .none }
         return m
     }
 
