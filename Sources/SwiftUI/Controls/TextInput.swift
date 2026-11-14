@@ -94,37 +94,41 @@ enum TextFieldMetrics {
 public struct TextField<Label: View>: View {
     let text: String
     let placeholder: AnyView?
+    /// Scripted steps type into the binding (Interaction/).
+    var binding: Binding<String>?
 
-    init(text: String, placeholder: AnyView?) {
+    init(text: String, placeholder: AnyView?, binding: Binding<String>? = nil) {
         self.text = text
         self.placeholder = placeholder
+        self.binding = binding
     }
 
     public var body: some View {
         _FieldBody(text: text, placeholder: placeholder)
             .axInfo(context: { ctx in .textInput(role: "textField", text: text, placeholder: placeholder, ctx) })
             .focusElement(role: "textField", activate: { Runtime.current?.warn("select on a text field would open the tvOS keyboard; text entry is not simulated") })
+            .interaction { ctx in .textInput(binding, kind: "text field", ctx) }
     }
 }
 
 extension TextField where Label == Text {
     public init(_ titleKey: LocalizedStringKey, text: Binding<String>, axis: Axis? = nil) {
-        self.init(text: text.wrappedValue, placeholder: AnyView(Text(titleKey)))
+        self.init(text: text.wrappedValue, placeholder: AnyView(Text(titleKey)), binding: text)
     }
     public init(_ titleKey: LocalizedStringKey, text: Binding<String>, prompt: Text?, axis: Axis? = nil) {
-        self.init(text: text.wrappedValue, placeholder: AnyView(prompt ?? Text(titleKey)))
+        self.init(text: text.wrappedValue, placeholder: AnyView(prompt ?? Text(titleKey)), binding: text)
     }
     public init<S: StringProtocol>(_ title: S, text: Binding<String>, axis: Axis? = nil) {
-        self.init(text: text.wrappedValue, placeholder: AnyView(Text(title)))
+        self.init(text: text.wrappedValue, placeholder: AnyView(Text(title)), binding: text)
     }
     public init<S: StringProtocol>(_ title: S, text: Binding<String>, prompt: Text?, axis: Axis? = nil) {
-        self.init(text: text.wrappedValue, placeholder: AnyView(prompt ?? Text(title)))
+        self.init(text: text.wrappedValue, placeholder: AnyView(prompt ?? Text(title)), binding: text)
     }
     public init(_ titleKey: LocalizedStringKey, text: Binding<String>, onEditingChanged: @escaping (Bool) -> Void, onCommit: @escaping () -> Void = {}) {
-        self.init(text: text.wrappedValue, placeholder: AnyView(Text(titleKey)))
+        self.init(text: text.wrappedValue, placeholder: AnyView(Text(titleKey)), binding: text)
     }
     public init(_ titleKey: LocalizedStringKey, text: Binding<String>, onCommit: @escaping () -> Void) {
-        self.init(text: text.wrappedValue, placeholder: AnyView(Text(titleKey)))
+        self.init(text: text.wrappedValue, placeholder: AnyView(Text(titleKey)), binding: text)
     }
     public init<F: ParseableFormatStyle>(_ titleKey: LocalizedStringKey, value: Binding<F.FormatInput>, format: F, prompt: Text? = nil)
     where F.FormatOutput == String {
@@ -144,7 +148,7 @@ extension TextField where Label == Text {
 
 extension TextField {
     public init(text: Binding<String>, prompt: Text? = nil, axis: Axis? = nil, @ViewBuilder label: () -> Label) {
-        self.init(text: text.wrappedValue, placeholder: prompt.map { AnyView($0) } ?? AnyView(label()))
+        self.init(text: text.wrappedValue, placeholder: prompt.map { AnyView($0) } ?? AnyView(label()), binding: text)
     }
     public init<F: ParseableFormatStyle>(value: Binding<F.FormatInput>, format: F, prompt: Text? = nil, @ViewBuilder label: () -> Label)
     where F.FormatOutput == String {
@@ -157,37 +161,40 @@ extension TextField {
 public struct SecureField<Label: View>: View {
     let text: String
     let placeholder: AnyView?
+    var binding: Binding<String>?
 
-    init(text: String, placeholder: AnyView?) {
+    init(text: String, placeholder: AnyView?, binding: Binding<String>? = nil) {
         self.text = text
         self.placeholder = placeholder
+        self.binding = binding
     }
 
     public var body: some View {
         _FieldBody(text: text, placeholder: placeholder, secure: true)
             .axInfo(context: { ctx in .textInput(role: "secureTextField", text: text, placeholder: placeholder, ctx) })
             .focusElement(role: "secureField", activate: { Runtime.current?.warn("select on a text field would open the tvOS keyboard; text entry is not simulated") })
+            .interaction { ctx in .textInput(binding, kind: "secure field", ctx) }
     }
 }
 
 extension SecureField where Label == Text {
     public init(_ titleKey: LocalizedStringKey, text: Binding<String>) {
-        self.init(text: text.wrappedValue, placeholder: AnyView(Text(titleKey)))
+        self.init(text: text.wrappedValue, placeholder: AnyView(Text(titleKey)), binding: text)
     }
     public init(_ titleKey: LocalizedStringKey, text: Binding<String>, prompt: Text?) {
-        self.init(text: text.wrappedValue, placeholder: AnyView(prompt ?? Text(titleKey)))
+        self.init(text: text.wrappedValue, placeholder: AnyView(prompt ?? Text(titleKey)), binding: text)
     }
     public init<S: StringProtocol>(_ title: S, text: Binding<String>) {
-        self.init(text: text.wrappedValue, placeholder: AnyView(Text(title)))
+        self.init(text: text.wrappedValue, placeholder: AnyView(Text(title)), binding: text)
     }
     public init<S: StringProtocol>(_ title: S, text: Binding<String>, prompt: Text?) {
-        self.init(text: text.wrappedValue, placeholder: AnyView(prompt ?? Text(title)))
+        self.init(text: text.wrappedValue, placeholder: AnyView(prompt ?? Text(title)), binding: text)
     }
 }
 
 extension SecureField {
     public init(text: Binding<String>, prompt: Text? = nil, @ViewBuilder label: () -> Label) {
-        self.init(text: text.wrappedValue, placeholder: prompt.map { AnyView($0) } ?? AnyView(label()))
+        self.init(text: text.wrappedValue, placeholder: prompt.map { AnyView($0) } ?? AnyView(label()), binding: text)
     }
 }
 
@@ -196,7 +203,8 @@ extension SecureField {
 public struct TextEditor: View {
     private let _tvOSCheck = tvOSUnavailable("TextEditor")
     let text: String
-    public init(text: Binding<String>) { self.text = text.wrappedValue }
+    var binding: Binding<String>?
+    public init(text: Binding<String>) { self.text = text.wrappedValue; self.binding = text }
 
     public var body: some View {
         Text(verbatim: text)
@@ -206,5 +214,6 @@ public struct TextEditor: View {
             .modifier(_TextEditorBorder())
             .axInfo(context: { ctx in .textInput(role: "textEditor", text: text, placeholder: nil, ctx) })
             .focusElement(role: "textEditor", activate: { Runtime.current?.warn("select on a text field would open the tvOS keyboard; text entry is not simulated") })
+            .interaction { ctx in .textInput(binding, kind: "text editor", ctx) }
     }
 }

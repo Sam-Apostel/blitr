@@ -40,6 +40,9 @@ enum Renderer {
         let runtime = Runtime(config: config)
         Runtime.current = runtime
         defer { Runtime.current = nil }
+        // Scripted steps and animation capture (Interaction/); nil for a plain render.
+        let session = try InteractionSession.begin(runtime: runtime)
+        defer { InteractionSession.end() }
         FontLibrary.shared.directories = config.fontDirectories
         AssetCatalog.shared.directories = config.assetDirectories
         let scale = config.scale ?? config.device.scale
@@ -72,6 +75,7 @@ enum Renderer {
             runtime.pendingActions = []
             runtime.postLayoutActions = []
             runtime.activations.reset()
+            session?.passWillBegin()
             let ctx = ResolveContext(env: env, path: IdentityPath(), runtime: runtime)
             root = resolveSingle(view, ctx)
             // Sheets, alerts and dialogs presented anywhere in the tree are drawn above the root.
@@ -101,6 +105,7 @@ enum Renderer {
                 env.colorScheme = preferred
                 continue
             }
+            session?.passDidLayout(root)
             if runtime.focus.afterLayout(root, screen: container, runtime: runtime) { runtime.needsAnotherPass = true }
             let postLayout = runtime.postLayoutActions
             runtime.postLayoutActions = []
@@ -163,6 +168,8 @@ enum Renderer {
             }
         }
         drawFrame()
+        try session?.run(RenderHost(runtime: runtime, settle: settle, root: { root }, draw: drawFrame, surface: surface,
+                                    canvasSize: { canvasSize }, scale: scale, colorScheme: { env.colorScheme }, environment: { env }))
 
         guard let image = sk_surface_new_image_snapshot(surface) else { throw RenderError("Could not snapshot the surface") }
         defer { sk_image_unref(image) }

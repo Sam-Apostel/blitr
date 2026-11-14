@@ -64,6 +64,7 @@ Render options:
       --press <list>                    Siri Remote presses applied after the first frame, comma-separated:
                                         up, down, left, right, select, menu, playpause (repeatable)
       --focus <selector>                Start with focus on an element: its id, #index, or (part of) its label
+\(InteractionCLIOptions.usage)
       --json             Print one JSON object per image instead of text
       --no-cache         Recompile even if an identical build is cached
   -v, --verbose          Show the compiler invocation
@@ -247,6 +248,7 @@ struct Options {
     var userFontDirectories: [String] = []
     var accessibility = AccessibilityCLIOptions()
     var focus = FocusCLIOptions()
+    var interaction = InteractionCLIOptions()
 }
 
 func parse(_ arguments: [String]) -> Options {
@@ -295,6 +297,7 @@ func parse(_ arguments: [String]) -> Options {
             print(usage)
             exit(0)
         default:
+            if options.interaction.record(arg, value: { value(arg) }) { continue }
             if arg.hasPrefix("-") { fail("unknown option \(arg)\n\n\(usage)", code: 2) }
             options.inputs.append(arg)
         }
@@ -426,6 +429,7 @@ func render(_ options: Options, _ installation: Installation) {
             var arguments = ["--out", path, "--preview", "\(preview.index)", "--scheme", scheme] + options.runnerArguments
             arguments += options.accessibility.arguments(png: path, stem: stem, multiple: multiple, outDir: options.outDir)
             arguments += options.focus.arguments(png: path, stem: stem, multiple: multiple, outDir: options.outDir)
+            arguments += options.interaction.arguments(png: path, stem: stem, multiple: multiple, outDir: options.outDir)
             let apple = options.openFonts ? [] : [installation.appleFontDirectory].compactMap { $0 }
             for dir in options.userFontDirectories + apple + installation.fontDirectories { arguments += ["--fonts", dir] }
             for dir in options.userAssetDirectories + autoAssets { arguments += ["--assets", dir] }
@@ -447,6 +451,7 @@ func render(_ options: Options, _ installation: Installation) {
             }
             options.accessibility.report(line, json: options.json)
             options.focus.report(line, json: options.json)
+            options.interaction.report(line, json: options.json)
             if !result.stderr.isEmpty { note(result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)) }
         }
     }

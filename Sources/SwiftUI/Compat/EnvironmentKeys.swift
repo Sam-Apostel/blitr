@@ -4,7 +4,11 @@
 
 public struct DismissAction {
     public init() {}
-    public func callAsFunction() {}
+    /// Inert in a still render; during an interaction capture it dismisses the topmost presentation,
+    /// or pops the top pushed screen.
+    public func callAsFunction() {
+        MainActor.assumeIsolated { InteractionSession.current?.dismissFromEnvironment() }
+    }
 }
 
 public struct OpenURLAction {

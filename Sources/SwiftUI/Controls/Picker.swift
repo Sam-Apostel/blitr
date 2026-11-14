@@ -228,7 +228,11 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
                 }
             }
         }
-        let described = result.modifier(AXModifier(shared: true) { _ in info })
+        // Scripted steps choose an option by its title (Interaction/).
+        let described = result.modifier(AXModifier(shared: true) { _ in info }).interaction { _ in
+            let plain = options({ _ in }, key: "interaction")
+            return .picker(labels: plain.map { axText([$0]) }, select: selector(plain))
+        }
         switch kind {
         case .segmented, .inline:
             // Each option is focusable on its own.

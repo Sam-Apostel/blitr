@@ -79,7 +79,9 @@ public struct SubmitLabel: Hashable, Sendable {
 }
 
 extension View {
-    public func onSubmit(of triggers: SubmitTriggers = .text, _ action: @escaping (() -> Void)) -> some View { self }
+    public func onSubmit(of triggers: SubmitTriggers = .text, _ action: @escaping (() -> Void)) -> some View {
+        env { $0.submitActions.append({ action() }) }
+    }
     public func submitLabel(_ submitLabel: SubmitLabel) -> some View { self }
     public func submitScope(_ isBlocking: Bool = true) -> some View { self }
 }

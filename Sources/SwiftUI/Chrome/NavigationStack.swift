@@ -133,6 +133,8 @@ public struct NavigationStack<Data, Root: View>: View, PrimitiveView {
     public typealias Body = Never
     let root: Root
     let path: () -> [AnyHashable]
+    /// Removes the last element of a bound path (scripted `back`, Interaction/); false when it is empty.
+    var popPath: (@MainActor () -> Bool)?
 
     public init(@ViewBuilder root: () -> Root) where Data == NavigationPath {
         self.root = root()
@@ -141,15 +143,18 @@ public struct NavigationStack<Data, Root: View>: View, PrimitiveView {
     public init(path: Binding<NavigationPath>, @ViewBuilder root: () -> Root) where Data == NavigationPath {
         self.root = root()
         self.path = { path.wrappedValue.elements }
+        popPath = { if path.wrappedValue.isEmpty { return false }; path.wrappedValue.removeLast(); return true }
     }
     public init(path: Binding<Data>, @ViewBuilder root: () -> Root)
     where Data: MutableCollection, Data: RandomAccessCollection, Data: RangeReplaceableCollection, Data.Element: Hashable {
         self.root = root()
         self.path = { path.wrappedValue.map { AnyHashable($0) } }
+        popPath = { if path.wrappedValue.isEmpty { return false }; path.wrappedValue.removeLast(); return true }
     }
 
     func resolve(_ ctx: ResolveContext, into out: inout [Node]) {
         let root = self.root
+        InteractionRegistry.notePathPop(ctx.path, popPath)
         out.append(makeNavigationStack(ctx, path: path()) { resolveSingle(root, $0) })
     }
 }
@@ -306,6 +311,7 @@ func makeNavigationStack(_ ctx: ResolveContext, path: [AnyHashable], root: (Reso
     if pages.count == 1, chrome.search == nil { chrome.search = outerSearch }
     let previousTitle: String? = pages.count > 1 ? (pages[pages.count - 2].chrome.title?.plain ?? "") : nil
     let node = NavigationStackNode(content: top.node, chrome: chrome, displayMode: mode, previousTitle: previousTitle, ctx: ctx)
+    InteractionRegistry.noteStack(node, ctx.path)
     return node
 }
 

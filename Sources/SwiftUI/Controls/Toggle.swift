@@ -196,6 +196,7 @@ public struct Toggle<Label: View>: View {
                 }
             })
             .focusElement(role: "toggle", activate: { isOn.wrappedValue.toggle() })
+            .interaction(.toggle(isOn))
     }
 }
 

@@ -608,6 +608,12 @@ public struct TabView<SelectionValue: Hashable, Content: View>: View, PrimitiveV
                                        mode: mode, background: ctx.env.pageIndexBackground)
             if ctx.env.renderPlatform == .tvOS { page.dotScale = TVMetrics.pageDotScale }
             out.append(page)
+            // Scripted `swipe` turns the page (Interaction/).
+            InteractionRegistry.notePager(out[out.count - 1], count: entries.count, selected: selected) {
+                [tags = entries.map(\.tag), path = ctx.path, setSelection = self.setSelection, runtime = ctx.runtime] index in
+                if let setSelection { if let tag = tags[index] { _ = setSelection(tag) } } else { runtime.focus.tabSelections[path] = index }
+                runtime.needsAnotherPass = true
+            }
         } else {
             let accessoryNode: Node? = accessory.flatMap { resolver in
                 guard ctx.env.designLanguage.isGlass else { return nil }

@@ -13,6 +13,8 @@ public struct Slider<Label: View, ValueLabel: View>: View {
     /// Number of steps across the range (tick marks, iOS 26) and the neutral value's position, if given.
     var tickCount: Int?
     var neutralFraction: Double?
+    /// What scripted steps can do to the slider (Interaction/).
+    var handlers: InteractionHandlers?
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.designLanguage) private var design
     @Environment(\.colorScheme) private var colorScheme
@@ -28,6 +30,7 @@ public struct Slider<Label: View, ValueLabel: View>: View {
             if count >= 1 && count <= ControlGlassMetrics.sliderMaxTicks { tickCount = count }
         }
         if let neutralValue, span > 0 { neutralFraction = clamp01(Double(neutralValue - bounds.lowerBound) / span) }
+        handlers = .slider(value, bounds: bounds, step: step)
     }
 
     public var body: some View {
@@ -48,6 +51,7 @@ public struct Slider<Label: View, ValueLabel: View>: View {
             $0.systemHitSlop = true
             $0.isEnabled = isEnabled
         }
+        .interaction(handlers)
     }
 
     private var track: some View {
@@ -156,14 +160,17 @@ public struct Stepper<Label: View>: View {
     let canDecrement: Bool
     let canIncrement: Bool
     var axValue: String?
+    /// What scripted steps can do to the stepper (Interaction/).
+    var handlers: InteractionHandlers?
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.designLanguage) private var design
 
-    init(label: Label, canDecrement: Bool, canIncrement: Bool, axValue: String? = nil) {
+    init(label: Label, canDecrement: Bool, canIncrement: Bool, axValue: String? = nil, handlers: InteractionHandlers? = nil) {
         self.label = label
         self.canDecrement = canDecrement
         self.canIncrement = canIncrement
         self.axValue = axValue
+        self.handlers = handlers
     }
 
     public var body: some View {
@@ -182,6 +189,7 @@ public struct Stepper<Label: View>: View {
             $0.systemHitSlop = true
             $0.isEnabled = isEnabled
         }
+        .interaction(handlers)
     }
 
     private var control: some View {
@@ -205,31 +213,31 @@ public struct Stepper<Label: View>: View {
 
 extension Stepper {
     public init<V: Strideable>(value: Binding<V>, step: V.Stride = 1, @ViewBuilder label: () -> Label, onEditingChanged: @escaping (Bool) -> Void = { _ in }) {
-        self.init(label: label(), canDecrement: true, canIncrement: true, axValue: "\(value.wrappedValue)")
+        self.init(label: label(), canDecrement: true, canIncrement: true, axValue: "\(value.wrappedValue)", handlers: .stepper(value, bounds: nil, step: step))
     }
     public init<V: Strideable>(value: Binding<V>, in bounds: ClosedRange<V>, step: V.Stride = 1, @ViewBuilder label: () -> Label, onEditingChanged: @escaping (Bool) -> Void = { _ in }) {
-        self.init(label: label(), canDecrement: value.wrappedValue > bounds.lowerBound, canIncrement: value.wrappedValue < bounds.upperBound, axValue: "\(value.wrappedValue)")
+        self.init(label: label(), canDecrement: value.wrappedValue > bounds.lowerBound, canIncrement: value.wrappedValue < bounds.upperBound, axValue: "\(value.wrappedValue)", handlers: .stepper(value, bounds: bounds, step: step))
     }
     public init(onIncrement: (() -> Void)?, onDecrement: (() -> Void)?, onEditingChanged: @escaping (Bool) -> Void = { _ in }, @ViewBuilder label: () -> Label) {
-        self.init(label: label(), canDecrement: onDecrement != nil, canIncrement: onIncrement != nil)
+        self.init(label: label(), canDecrement: onDecrement != nil, canIncrement: onIncrement != nil, handlers: .stepper(onIncrement: onIncrement, onDecrement: onDecrement))
     }
 }
 
 extension Stepper where Label == Text {
     public init<V: Strideable>(_ titleKey: LocalizedStringKey, value: Binding<V>, step: V.Stride = 1, onEditingChanged: @escaping (Bool) -> Void = { _ in }) {
-        self.init(label: Text(titleKey), canDecrement: true, canIncrement: true, axValue: "\(value.wrappedValue)")
+        self.init(label: Text(titleKey), canDecrement: true, canIncrement: true, axValue: "\(value.wrappedValue)", handlers: .stepper(value, bounds: nil, step: step))
     }
     public init<V: Strideable>(_ titleKey: LocalizedStringKey, value: Binding<V>, in bounds: ClosedRange<V>, step: V.Stride = 1, onEditingChanged: @escaping (Bool) -> Void = { _ in }) {
-        self.init(label: Text(titleKey), canDecrement: value.wrappedValue > bounds.lowerBound, canIncrement: value.wrappedValue < bounds.upperBound, axValue: "\(value.wrappedValue)")
+        self.init(label: Text(titleKey), canDecrement: value.wrappedValue > bounds.lowerBound, canIncrement: value.wrappedValue < bounds.upperBound, axValue: "\(value.wrappedValue)", handlers: .stepper(value, bounds: bounds, step: step))
     }
     public init<S: StringProtocol, V: Strideable>(_ title: S, value: Binding<V>, step: V.Stride = 1, onEditingChanged: @escaping (Bool) -> Void = { _ in }) {
-        self.init(label: Text(title), canDecrement: true, canIncrement: true, axValue: "\(value.wrappedValue)")
+        self.init(label: Text(title), canDecrement: true, canIncrement: true, axValue: "\(value.wrappedValue)", handlers: .stepper(value, bounds: nil, step: step))
     }
     public init<S: StringProtocol, V: Strideable>(_ title: S, value: Binding<V>, in bounds: ClosedRange<V>, step: V.Stride = 1, onEditingChanged: @escaping (Bool) -> Void = { _ in }) {
-        self.init(label: Text(title), canDecrement: value.wrappedValue > bounds.lowerBound, canIncrement: value.wrappedValue < bounds.upperBound, axValue: "\(value.wrappedValue)")
+        self.init(label: Text(title), canDecrement: value.wrappedValue > bounds.lowerBound, canIncrement: value.wrappedValue < bounds.upperBound, axValue: "\(value.wrappedValue)", handlers: .stepper(value, bounds: bounds, step: step))
     }
     public init(_ titleKey: LocalizedStringKey, onIncrement: (() -> Void)?, onDecrement: (() -> Void)?, onEditingChanged: @escaping (Bool) -> Void = { _ in }) {
-        self.init(label: Text(titleKey), canDecrement: onDecrement != nil, canIncrement: onIncrement != nil)
+        self.init(label: Text(titleKey), canDecrement: onDecrement != nil, canIncrement: onIncrement != nil, handlers: .stepper(onIncrement: onIncrement, onDecrement: onDecrement))
     }
 }
 

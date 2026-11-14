@@ -156,6 +156,7 @@ public struct DatePicker<Label: View>: View {
                 $0.isEnabled = isEnabled
             }
         })
+        .interaction(.date(selection))
     }
 }
 
