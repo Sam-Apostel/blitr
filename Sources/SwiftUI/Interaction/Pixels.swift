@@ -26,9 +26,20 @@ enum FramePixels {
                        colorType: RGBA_8888_SK_COLORTYPE, alphaType: premultiplied ? PREMUL_SK_ALPHATYPE : UNPREMUL_SK_ALPHATYPE)
     }
 
-    /// Writes what is on the surface as a PNG, encoded exactly like the main screenshot.
-    static func writePNG(surface: OpaquePointer, to path: String) throws {
-        guard let image = sk_surface_new_image_snapshot(surface) else { throw RenderError("Could not snapshot the surface") }
+    /// A snapshot of a rendered screen, inside the device frame when one was asked for (the caller unrefs it).
+    private static func framedSnapshot(_ surface: OpaquePointer) throws -> OpaquePointer {
+        guard let screen = sk_surface_new_image_snapshot(surface) else { throw RenderError("Could not snapshot the surface") }
+        guard let frame = DeviceFrame.current else { return screen }
+        defer { sk_image_unref(screen) }
+        return try frame.compose(screen)
+    }
+
+    /// Writes what is on the surface as a PNG, encoded exactly like the main screenshot. A rendered
+    /// screen (`framed`) gets the device frame when one was asked for.
+    static func writePNG(surface: OpaquePointer, to path: String, framed: Bool = false) throws {
+        guard let image = framed ? try framedSnapshot(surface) : sk_surface_new_image_snapshot(surface) else {
+            throw RenderError("Could not snapshot the surface")
+        }
         defer { sk_image_unref(image) }
         let pixmap = sk_pixmap_new()
         defer { sk_pixmap_destructor(pixmap) }
@@ -42,9 +53,11 @@ enum FramePixels {
         guard ok else { throw RenderError("PNG encoding failed for \(path)") }
     }
 
-    /// The surface's pixels, scaled by `factor` (1 keeps them).
-    static func grab(surface: OpaquePointer, factor: Double = 1) throws -> FrameImage {
-        guard let image = sk_surface_new_image_snapshot(surface) else { throw RenderError("Could not snapshot the surface") }
+    /// The surface's pixels, scaled by `factor` (1 keeps them); `framed` as in `writePNG`.
+    static func grab(surface: OpaquePointer, factor: Double = 1, framed: Bool = false) throws -> FrameImage {
+        guard let image = framed ? try framedSnapshot(surface) : sk_surface_new_image_snapshot(surface) else {
+            throw RenderError("Could not snapshot the surface")
+        }
         defer { sk_image_unref(image) }
         let w = Int(sk_image_get_width(image)), h = Int(sk_image_get_height(image))
         let outW = max(1, Int((Double(w) * factor).rounded())), outH = max(1, Int((Double(h) * factor).rounded()))

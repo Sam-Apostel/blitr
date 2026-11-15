@@ -172,13 +172,13 @@ final class InteractionSession {
             if wanted {
                 let label = slug(name ?? caption)
                 let path = directory + "/" + String(format: "%03d", writtenFrames.count + 1) + (label.isEmpty ? "" : "-" + label) + ".png"
-                try FramePixels.writePNG(surface: host.surface, to: path)
+                try FramePixels.writePNG(surface: host.surface, to: path, framed: true)
                 writtenFrames.append(path)
             }
         }
         let ms = max(1, Int((seconds * 1000).rounded()))
         if request.animatedPath != nil || wantsEvenFilmstrip {
-            let image = try FramePixels.grab(surface: host.surface, factor: timelineScale)
+            let image = try FramePixels.grab(surface: host.surface, factor: timelineScale, framed: true)
             if let last = timeline.last, last.image.isIdentical(to: image) {
                 timeline[timeline.count - 1].milliseconds += ms
             } else {
@@ -188,7 +188,7 @@ final class InteractionSession {
         }
         if request.filmstripPath != nil, !wantsEvenFilmstrip {
             let wanted = explicitSnapshots ? kind == .snapshot : (kind == .start || kind == .step)
-            if wanted { stripCells.append((try FramePixels.grab(surface: host.surface, factor: filmstripScale), name ?? caption)) }
+            if wanted { stripCells.append((try FramePixels.grab(surface: host.surface, factor: filmstripScale, framed: true), name ?? caption)) }
         }
     }
 

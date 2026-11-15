@@ -19,6 +19,8 @@ package struct RenderConfiguration {
     var roundedCorners = false
     /// Draw the notch / Dynamic Island on top of the content.
     var showsSensorHousing = false
+    /// Device hardware drawn around the image (`--frame`, `--frame-dir`).
+    var frame: FrameRequest?
     var background: RGBA?
     var fontDirectories: [String] = []
     var assetDirectories: [String] = []
@@ -160,6 +162,21 @@ enum Renderer {
         }
         defer { sk_surface_unref(surface) }
 
+        // The frame wraps the saved images; the surface keeps the bare screen, so taps and overlays are unaffected.
+        DeviceFrame.current = nil
+        defer { DeviceFrame.current = nil }
+        if let request = config.frame {
+            if config.layout != .device || config.width != nil || config.height != nil {
+                runtime.warn("--frame needs the full-screen device layout; the image is not framed")
+            } else {
+                DeviceFrame.current = DeviceFrame.make(request, device: config.device, scale: scale,
+                                                       screenPixels: (pixelWidth, pixelHeight), warn: runtime.warn)
+                if DeviceFrame.current != nil, InteractionSession.request.fullContentPath != nil {
+                    runtime.warn("--full-content images are not framed")
+                }
+            }
+        }
+
         if config.roundedCorners, config.layout == .device, config.width == nil, config.height == nil {
             DeviceChrome.clipToDisplay(canvas: canvas, device: config.device, size: canvasSize, scale: scale)
         }
@@ -193,7 +210,9 @@ enum Renderer {
                                     canvasSize: { canvasSize }, scale: scale, colorScheme: { env.colorScheme }, environment: { env },
                                     background: background))
 
-        guard let image = sk_surface_new_image_snapshot(surface) else { throw RenderError("Could not snapshot the surface") }
+        guard let screen = sk_surface_new_image_snapshot(surface) else { throw RenderError("Could not snapshot the surface") }
+        let image = try DeviceFrame.current?.compose(screen) ?? screen
+        if image != screen { sk_image_unref(screen) }
         defer { sk_image_unref(image) }
         let pixmap = sk_pixmap_new()
         defer { sk_pixmap_destructor(pixmap) }
@@ -209,7 +228,7 @@ enum Renderer {
                                         painter: painter, surface: surface)
         try FocusOutputs.finish(engine: runtime.focus, config: config, canvasSize: canvasSize, scale: scale, presses: pressLogs,
                                 painter: painter, surface: surface, redraw: drawFrame)
-        return RenderResult(pixelSize: (pixelWidth, pixelHeight), warnings: runtime.warnings)
+        return RenderResult(pixelSize: DeviceFrame.current?.pixelSize ?? (pixelWidth, pixelHeight), warnings: runtime.warnings)
     }
 }
 
