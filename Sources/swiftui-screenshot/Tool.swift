@@ -53,6 +53,7 @@ Render options:
       --task-timeout <s> Real seconds .task closures may run before the frame is taken (default 0.5)
       --settle-time <s>  Virtual seconds that pass before the frame is taken: Task.sleep calls that end within
                          them return at once (default 2). Sleeps that end later wait past the frame
+      --time-zone <tz>   The device's time zone, an IANA name such as Europe/Brussels (default UTC)
       --allow-network    Let the code reach the network; by default requests fail at once (offline)
       --widget-family <f>          Widgets: render this family (systemSmall, systemMedium, systemLarge,
                                    systemExtraLarge, accessoryCircular, accessoryRectangular, accessoryInline)
@@ -291,7 +292,7 @@ func parse(_ arguments: [String]) -> Options {
         case "--assets": options.userAssetDirectories.append(value(arg))
         case "--fonts": options.userFontDirectories.append(value(arg))
         case "--device", "--layout", "--width", "--height", "--scale", "--padding", "--background", "--dynamic-type", "--task-budget", "--task-timeout",
-             "--settle-time", "--ios":
+             "--settle-time", "--ios", "--time-zone":
             options.runnerArguments += [arg, value(arg)]
         case "--os": options.runnerArguments += ["--ios", value(arg)]
         case "--no-chrome", "--show-tips", "--allow-network": options.runnerArguments.append(arg)

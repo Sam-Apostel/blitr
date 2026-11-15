@@ -36,7 +36,10 @@ struct GlassAppearance {
     /// iOS 26 dark glass is darker. measured: iOS 26.5 simulator: it turns black into 19...25, 17 into 31 and
     /// (77,64,0) into (51,43,2) (best linear fit: 45% of a 0.19 gray). iOS 26.5 light glass is whiter over flat
     /// backgrounds (white -> 253, gray 241 -> 251) but no linear fit of that also matches it over colourful
-    /// content (GlassNavigation, tab bars got 2...6 points worse), so light keeps the iOS 27 values.
+    /// content (GlassNavigation, tab bars got 2...6 points worse), so light keeps the iOS 27 values. Light iOS 26
+    /// glass has no hairline but a broad, soft shadow: 7 levels darker just outside the edge, still 1...2
+    /// levels 20pt away, a little more below than above. measured: iOS 26.5 simulator (06_Chat's video button
+    /// over white)
     static func system(_ variant: Glass.Variant, scheme: ColorScheme, design: DesignLanguage) -> GlassAppearance {
         let dark = scheme == .dark
         if RenderedPlatform.platform == .tvOS { return tvOS(variant, dark: dark, refined: design == .liquidGlass27) }
@@ -49,8 +52,8 @@ struct GlassAppearance {
             brightness: !is26 && dark ? 0.129 : 0,
             lensWidth: 9, lensStrength: 12,
             highlight: dark ? (0.3, 0.1) : (0.85, 0.3),
-            edge: dark ? RGBA(0, 0, 0, 0.25) : RGBA(0, 0, 0, 0.12),
-            shadow: dark ? (.clear, 0, 0) : (RGBA(0, 0, 0, 0.035), 12, 6))
+            edge: dark ? RGBA(0, 0, 0, 0.25) : is26 ? .clear : RGBA(0, 0, 0, 0.12),
+            shadow: dark ? (.clear, 0, 0) : is26 ? (RGBA(0, 0, 0, 0.07), 24, 2) : (RGBA(0, 0, 0, 0.035), 12, 6))
         if variant == .clear {
             a.blurRadius = 4
             a.tint = a.tint.opacity(0.3)

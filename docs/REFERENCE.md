@@ -73,6 +73,9 @@ swiftui-screenshot compare <reference> <candidate> [options]
 (files present on one side only are listed). The suggested layout for references is
 `Tests/Reference/<ios>/<device>/<scheme>/<name>.png` with an optional `<name>.json` of element frames; render
 with `--accessibility-tree <name>.json` next to the candidate PNG and both trees are picked up automatically.
+`scripts/calibrate.py` does the whole loop for a reference set: it renders every captured preview at the set's
+OS version, device, scheme and time zone (`--time-zone`, from the manifest's `simulatorTimeZone`; Europe/Brussels
+for sets that record none) and compares the two directories.
 
 | Option | Meaning |
 |---|---|

@@ -30,11 +30,13 @@ enum TabBarMetrics {
     static let pageDotsCenterFromBottom: CGFloat = 12
     static let pageDotsBackgroundHeight: CGFloat = 26
     static let pageDotInactiveOpacity: Double = 0.3
-    /// iOS 27 page control. measured: iOS 27.0 simulator (NavigationTabs-Pages, dark): 7.67pt dots 17.67pt
-    /// apart, centred 13pt above the bottom of the screen, inactive dots 45% white.
+    /// Liquid Glass page control. measured: iOS 27.0 and 26.5 simulators (NavigationTabs-Pages, dark): 7.67pt
+    /// dots 17.67pt apart, inactive dots 45% white, centred 13pt above the bottom of the screen on iOS 27
+    /// and 25pt on iOS 26.5 (just below the safe area there).
     static let pageDotDiameter27: CGFloat = 7.67
     static let pageDotPitch27: CGFloat = 17.67
     static let pageDotsCenterFromBottom27: CGFloat = 13
+    static let pageDotsCenterFromBottom26: CGFloat = 25     // measured: iOS 26.5 simulator
     static let pageDotInactiveOpacity27: Double = 0.45
     // iPad (regular width): the tab bar is a floating capsule of text tabs at the top. The sizes are estimates.
     static let topBarBand: CGFloat = 50          // room reserved below the status bar
@@ -636,7 +638,9 @@ public struct TabView<SelectionValue: Hashable, Content: View>: View, PrimitiveV
             let page = PageTabViewNode(content: entries[selected].content(), count: entries.count, selected: selected,
                                        mode: mode, background: ctx.env.pageIndexBackground)
             if ctx.env.renderPlatform == .tvOS { page.dotScale = TVMetrics.pageDotScale }
-            page.refined = ctx.env.renderPlatform == .iOS && ctx.env.designLanguage == .liquidGlass27
+            page.refined = ctx.env.renderPlatform == .iOS && ctx.env.designLanguage.isGlass
+            page.dotsCenterFromBottom = ctx.env.designLanguage == .liquidGlass26 ? TabBarMetrics.pageDotsCenterFromBottom26
+                : TabBarMetrics.pageDotsCenterFromBottom27
             page.vertical = ctx.env[TabViewVerticalPageKey.self]
             if let background = page.content.preferences[TabContainerBackgroundKey.self] {
                 page.containerBackground = resolveSingle(background, ctx.child("containerBackground"))
@@ -1155,10 +1159,13 @@ final class PageTabViewNode: Node {
     var vertical = false
     /// `containerBackground(_:for: .tabView)` of the page: fills the screen behind it.
     var containerBackground: Node?
-    /// iOS 27: each page is hosted inside the device's safe area, even when the TabView ignores it (the
-    /// page's content stops at the status bar and the home indicator), and the dots sit at the bottom of the
-    /// screen. measured: iOS 27.0 simulator (NavigationTabs-Pages: the page fills y 59...818pt).
+    /// Liquid Glass (iOS 26 and 27): each page is hosted inside the device's safe area, even when the TabView
+    /// ignores it (the page's content stops at the status bar and the home indicator), and the dots sit near
+    /// the bottom of the screen. measured: iOS 27.0 and 26.5 simulators (NavigationTabs-Pages: the page
+    /// fills y 59...818pt).
     var refined = false
+    /// With `refined`: the dots' centre, measured from the bottom of the screen.
+    var dotsCenterFromBottom = TabBarMetrics.pageDotsCenterFromBottom27
 
     init(content: Node, count: Int, selected: Int, mode: PageTabViewStyle.IndexDisplayMode,
          background: PageIndexViewStyle.BackgroundDisplayMode) {
@@ -1192,7 +1199,7 @@ final class PageTabViewNode: Node {
             containerBackground.place(at: full.origin, size: full.size, ctx)
         }
         if refined {
-            dotsCenterY = min(size.height, ctx.container.maxY - ctx.origin.y) - TabBarMetrics.pageDotsCenterFromBottom27
+            dotsCenterY = min(size.height, ctx.container.maxY - ctx.origin.y) - dotsCenterFromBottom
         } else {
             let bottom = min(size.height, ctx.safeRect.maxY - ctx.origin.y)
             dotsCenterY = bottom - TabBarMetrics.pageDotsCenterFromBottom * dotScale

@@ -198,7 +198,8 @@ A capture has its own clock. It only advances by the frame interval, never from 
 `--date` uses a fixed date (2025-06-09T09:41:00Z), so the same input gives the same bytes. User code that
 calls `Date()` or `Date.now` itself is not affected and stays non-deterministic. `.task` work still runs
 within `--task-timeout` of real time, as in a still render, with `Task.sleep` on the virtual clock
-(docs/ARCHITECTURE.md, "Tasks, time and network"); each `wait` step moves that clock on.
+(docs/ARCHITECTURE.md, "Tasks, time and network"); each `wait` step moves that clock on. Times are shown in
+`--time-zone` (UTC unless given).
 
 ## Scrolling
 
