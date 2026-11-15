@@ -47,6 +47,37 @@ cmp -s "$out/tasks/tasks.png" "$out/tasks/tasks-wait.png" && fail "wait 5 did no
 grep -q 'after 1 s, Done' "$out/tasks/tasks.json" && echo "ok    clock.sleep is virtual" || fail "clock.sleep(for:) did not finish: $(cat "$out/tasks/tasks.json" | head -c 400)"
 [ "$(grep -o 'Offline' "$out/tasks/tasks.json" | wc -l | tr -d ' ')" -ge 2 ] && echo "ok    own sessions are offline" || fail "a session with its own configuration was not offline"
 
+# Device frames: --frame wraps the screenshot, every frame and the filmstrip cells (iPhone 16 at 1x:
+# 393x852 screen, 18pt of border and band per side, 3pt for the side buttons). --frame-dir takes the
+# user's image and puts the screen in its transparent hole. --full-content stays unframed, with a warning.
+mkdir -p "$out/frame/user"
+"$bin" render Examples/Interactions.swift --preview Counter --open-fonts --scale 1 --frame -o "$out/frame/counter.png" --json \
+  --frames "$out/frame/frames" --frames-every-step --steps 'tap "Increment"' >"$out/frame/counter.json" 2>&1 || fail "framed counter"
+grep -q '"height":888' "$out/frame/counter.json" && grep -q '"width":435' "$out/frame/counter.json" \
+  && echo "ok    framed size 435x888" || fail "framed size: $(cat "$out/frame/counter.json")"
+for f in "$out"/frame/frames/*.png; do
+  python3 -c 'import struct,sys; d=open(sys.argv[1],"rb").read(24); sys.exit(struct.unpack(">II", d[16:24]) != (435, 888))' "$f" \
+    || fail "$(basename "$f") is not framed"
+done
+# A 433x892 frame image: opaque grey with a 393x852 transparent hole at (20, 20).
+python3 - "$out/frame/user/iphone-16.png" <<'PY'
+import struct, sys, zlib
+w, h = 433, 892
+rows = b"".join(b"\0" + b"".join(b"\0\0\0\0" if 20 <= x < 413 and 20 <= y < 872 else b"\x40\x40\x44\xff" for x in range(w)) for y in range(h))
+def chunk(t, d): return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d))
+open(sys.argv[1], "wb").write(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0))
+                              + chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b""))
+PY
+"$bin" render Examples/Interactions.swift --preview Counter --open-fonts --scale 1 --frame-dir "$out/frame/user" -o "$out/frame/user.png" --json \
+  >"$out/frame/user.json" 2>&1 || fail "--frame-dir render"
+grep -q '"width":433' "$out/frame/user.json" && echo "ok    --frame-dir uses the image" || fail "--frame-dir: $(cat "$out/frame/user.json")"
+"$bin" render Examples/Interactions.swift --preview Counter --open-fonts --scale 1 --device iphone-17 --frame-dir "$out/frame/user" \
+  -o "$out/frame/fallback.png" >"$out/frame/fallback.log" 2>&1 || fail "--frame-dir fallback render"
+grep -q "no iphone-17.png" "$out/frame/fallback.log" && echo "ok    --frame-dir falls back with a warning" || fail "fallback: $(cat "$out/frame/fallback.log")"
+"$bin" render Tests/Corpus/01_Settings.swift --open-fonts --scale 1 --frame --full-content "$out/frame/full.png" \
+  -o "$out/frame/full-screen.png" >"$out/frame/full.log" 2>&1
+grep -q "full-content images are not framed" "$out/frame/full.log" && echo "ok    --full-content warns" || fail "full-content: $(cat "$out/frame/full.log")"
+
 # Determinism: same input, same bytes.
 for f in $(cd "$out/a" && find . -type f ! -name '*.log' ! -name '*.json' | sort); do
   cmp -s "$out/a/$f" "$out/b/$f" || fail "$f differs between two runs"
