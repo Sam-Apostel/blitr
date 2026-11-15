@@ -1,5 +1,10 @@
 // Core Graphics geometry that Foundation on Linux lacks (CGFloat, CGPoint, CGSize and CGRect are Foundation's).
 
+#if canImport(Darwin)
+// On Darwin, CGFloat, CGPoint, CGSize, CGVector, CGRect and CGAffineTransform are CoreFoundation's C structs
+// (CFCGTypes.h) and Apple's Core Graphics overlay adds their Swift API. That overlay is the CoreGraphics module
+// this one stands in for, so DarwinGeometry.swift supplies it.
+#else
 public struct CGVector: Hashable, Sendable {
     public var dx: CGFloat
     public var dy: CGFloat
@@ -14,13 +19,17 @@ public struct CGAffineTransform: Hashable, Sendable {
     public init(a: CGFloat, b: CGFloat, c: CGFloat, d: CGFloat, tx: CGFloat, ty: CGFloat) {
         self.a = a; self.b = b; self.c = c; self.d = d; self.tx = tx; self.ty = ty
     }
+}
+#endif
+
+extension CGAffineTransform {
     public init(translationX tx: CGFloat, y ty: CGFloat) { self.init(a: 1, b: 0, c: 0, d: 1, tx: tx, ty: ty) }
     public init(scaleX sx: CGFloat, y sy: CGFloat) { self.init(a: sx, b: 0, c: 0, d: sy, tx: 0, ty: 0) }
     public init(rotationAngle r: CGFloat) {
         let (s, c) = (CGFloat(sin(Double(r))), CGFloat(cos(Double(r))))
         self.init(a: c, b: s, c: -s, d: c, tx: 0, ty: 0)
     }
-    public static let identity = CGAffineTransform()
+    public static let identity = CGAffineTransform(a: 1, b: 0, c: 0, d: 1, tx: 0, ty: 0)
     public var isIdentity: Bool { self == .identity }
     /// Returns `self` followed by `t2` (matches CoreGraphics' `concatenating`).
     public func concatenating(_ t2: CGAffineTransform) -> CGAffineTransform {

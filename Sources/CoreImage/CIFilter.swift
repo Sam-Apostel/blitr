@@ -53,8 +53,14 @@ open class CIFilter: NSObject, CIFilterProtocol, @unchecked Sendable {
         for (key, value) in params ?? [:] { setValue(value, forKey: key) }
     }
 
+    // NSObject has key-value coding on Darwin; a filter's keys are its own either way.
+    #if canImport(Darwin)
+    open override func setValue(_ value: Any?, forKey key: String) { values[key] = value }
+    open override func value(forKey key: String) -> Any? { key == kCIOutputImageKey ? outputImage : values[key] }
+    #else
     open func setValue(_ value: Any?, forKey key: String) { values[key] = value }
     open func value(forKey key: String) -> Any? { key == kCIOutputImageKey ? outputImage : values[key] }
+    #endif
     open func setDefaults() {
         switch name {
         case "CIQRCodeGenerator": values["inputCorrectionLevel"] = "M"

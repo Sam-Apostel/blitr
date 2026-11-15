@@ -4,6 +4,7 @@
 // `ImageRenderer.cgImage` take and give these types. Linked into libSwiftUIScreenshotEngine (docs/ARCHITECTURE.md).
 @_exported import Foundation
 
+#if !canImport(Darwin)
 // CoreFoundation names that Core Graphics, ImageIO, CoreText and Security signatures mention. On Linux
 // they are the Foundation classes they are toll-free bridged to on Apple platforms, so `data as CFData`,
 // `url as CFURL`, `[k: v] as CFDictionary` and `dict as? [CFString: Any]` all work.
@@ -25,6 +26,7 @@ public typealias CFAbsoluteTime = Double
 public func CFAbsoluteTimeGetCurrent() -> CFAbsoluteTime { Date().timeIntervalSinceReferenceDate }
 public let kCFBooleanTrue: CFBoolean = true
 public let kCFBooleanFalse: CFBoolean = false
+#endif
 
 /// How framework shims report what they could not do: SwiftUI's runtime installs the handler, which
 /// shows each message once as a render warning. Callable from any thread.
@@ -53,4 +55,13 @@ package enum FontRegistry {
     package static func remove(_ path: String) { lock.lock(); registered.removeAll { $0 == path }; lock.unlock() }
     /// Bumped on every change, so caches keyed on the registry can notice.
     package static var generation: Int { lock.lock(); defer { lock.unlock() }; return registered.count }
+}
+
+/// A CFString constant from text: on Linux CFString is NSString, on Darwin it is CoreFoundation's own type.
+@inline(__always) package func _cfString(_ text: String) -> CFString {
+    #if canImport(Darwin)
+    return text as CFString
+    #else
+    return NSString(string: text)
+    #endif
 }

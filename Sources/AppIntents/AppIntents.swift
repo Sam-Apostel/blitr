@@ -48,7 +48,7 @@ public struct IntentDescription: ExpressibleByStringLiteral, ExpressibleByString
     }
     public init(stringLiteral value: String) { descriptionText = LocalizedStringResource(stringLiteral: value) }
     public init(stringInterpolation: DefaultStringInterpolation) {
-        descriptionText = LocalizedStringResource(stringInterpolation: stringInterpolation)
+        descriptionText = LocalizedStringResource(_verbatimKey: String(stringInterpolation: stringInterpolation))
     }
 }
 
@@ -65,7 +65,7 @@ public struct IntentDialog: ExpressibleByStringLiteral, ExpressibleByStringInter
     public init(_ text: LocalizedStringResource) { self.text = text }
     public init(full: LocalizedStringResource, supporting: LocalizedStringResource) { text = full }
     public init(stringLiteral value: String) { text = LocalizedStringResource(stringLiteral: value) }
-    public init(stringInterpolation: DefaultStringInterpolation) { text = LocalizedStringResource(stringInterpolation: stringInterpolation) }
+    public init(stringInterpolation: DefaultStringInterpolation) { text = LocalizedStringResource(_verbatimKey: String(stringInterpolation: stringInterpolation)) }
 }
 
 public struct IntentResultContainer<Value, OpensIntentType, Content, DialogType>: IntentResult {
@@ -158,7 +158,7 @@ public struct TypeDisplayRepresentation: ExpressibleByStringLiteral, Expressible
     public var name: LocalizedStringResource
     public init(name: LocalizedStringResource, numericFormat: LocalizedStringResource? = nil) { self.name = name }
     public init(stringLiteral value: String) { name = LocalizedStringResource(stringLiteral: value) }
-    public init(stringInterpolation: DefaultStringInterpolation) { name = LocalizedStringResource(stringInterpolation: stringInterpolation) }
+    public init(stringInterpolation: DefaultStringInterpolation) { name = LocalizedStringResource(_verbatimKey: String(stringInterpolation: stringInterpolation)) }
 }
 
 public struct DisplayRepresentation: ExpressibleByStringLiteral, ExpressibleByStringInterpolation, Sendable {
@@ -176,7 +176,7 @@ public struct DisplayRepresentation: ExpressibleByStringLiteral, ExpressibleBySt
         self.image = image
     }
     public init(stringLiteral value: String) { title = LocalizedStringResource(stringLiteral: value) }
-    public init(stringInterpolation: DefaultStringInterpolation) { title = LocalizedStringResource(stringInterpolation: stringInterpolation) }
+    public init(stringInterpolation: DefaultStringInterpolation) { title = LocalizedStringResource(_verbatimKey: String(stringInterpolation: stringInterpolation)) }
 }
 
 public protocol AppEnum: CaseIterable, RawRepresentable, Hashable where RawValue: Hashable {

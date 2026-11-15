@@ -92,11 +92,11 @@ public func CGImageSourceCreateImageAtIndex(_ isrc: CGImageSource, _ index: Int,
 
 public func CGImageSourceCreateThumbnailAtIndex(_ isrc: CGImageSource, _ index: Int, _ options: CFDictionary?) -> CGImage? {
     guard index == 0 else { return nil }
-    func flag(_ key: CFString) -> Bool { (_cfNumber(options?.object(forKey: key)) ?? 0) != 0 }
+    func flag(_ key: CFString) -> Bool { (_cfNumber((options as NSDictionary?)?.object(forKey: key)) ?? 0) != 0 }
     // There are no embedded thumbnails to return: without a "create" flag ImageIO gives nil.
     guard flag(kCGImageSourceCreateThumbnailFromImageAlways) || flag(kCGImageSourceCreateThumbnailFromImageIfAbsent) else { return nil }
     guard let image = flag(kCGImageSourceCreateThumbnailWithTransform) ? isrc.uprightImage() : isrc.storedImage() else { return nil }
-    guard let limit = _cfNumber(options?.object(forKey: kCGImageSourceThumbnailMaxPixelSize)), limit >= 1 else { return image }
+    guard let limit = _cfNumber((options as NSDictionary?)?.object(forKey: kCGImageSourceThumbnailMaxPixelSize)), limit >= 1 else { return image }
     let longest = Double(max(image.width, image.height))
     guard longest > limit else { return image }
     let factor = limit / longest
@@ -161,11 +161,11 @@ public func CGImageDestinationCreateWithURL(_ url: CFURL, _ type: CFString, _ co
 }
 public func CGImageDestinationCopyTypeIdentifiers() -> CFArray { ["public.png", "public.jpeg", "org.webmproject.webp"] as NSArray }
 public func CGImageDestinationSetProperties(_ idst: CGImageDestination, _ properties: CFDictionary?) {
-    if let q = _cfNumber(properties?.object(forKey: kCGImageDestinationLossyCompressionQuality)) { idst.quality = q }
+    if let q = _cfNumber((properties as NSDictionary?)?.object(forKey: kCGImageDestinationLossyCompressionQuality)) { idst.quality = q }
 }
 /// The compression quality is honoured; metadata dictionaries are not written.
 public func CGImageDestinationAddImage(_ idst: CGImageDestination, _ image: CGImage, _ properties: CFDictionary?) {
-    let quality = _cfNumber(properties?.object(forKey: kCGImageDestinationLossyCompressionQuality)) ?? idst.quality
+    let quality = _cfNumber((properties as NSDictionary?)?.object(forKey: kCGImageDestinationLossyCompressionQuality)) ?? idst.quality
     idst.images.append((image, quality))
 }
 public func CGImageDestinationAddImageFromSource(_ idst: CGImageDestination, _ isrc: CGImageSource, _ index: Int, _ properties: CFDictionary?) {
@@ -182,78 +182,78 @@ public func CGImageDestinationFinalize(_ idst: CGImageDestination) -> Bool {
 
 // MARK: - Keys
 
-public let kCGImageSourceTypeIdentifierHint: CFString = "kCGImageSourceTypeIdentifierHint"
-public let kCGImageSourceShouldCache: CFString = "kCGImageSourceShouldCache"
-public let kCGImageSourceShouldCacheImmediately: CFString = "kCGImageSourceShouldCacheImmediately"
-public let kCGImageSourceShouldAllowFloat: CFString = "kCGImageSourceShouldAllowFloat"
-public let kCGImageSourceCreateThumbnailFromImageIfAbsent: CFString = "kCGImageSourceCreateThumbnailFromImageIfAbsent"
-public let kCGImageSourceCreateThumbnailFromImageAlways: CFString = "kCGImageSourceCreateThumbnailFromImageAlways"
-public let kCGImageSourceThumbnailMaxPixelSize: CFString = "kCGImageSourceThumbnailMaxPixelSize"
-public let kCGImageSourceCreateThumbnailWithTransform: CFString = "kCGImageSourceCreateThumbnailWithTransform"
-public let kCGImageSourceSubsampleFactor: CFString = "kCGImageSourceSubsampleFactor"
+public let kCGImageSourceTypeIdentifierHint: CFString = _cfString("kCGImageSourceTypeIdentifierHint")
+public let kCGImageSourceShouldCache: CFString = _cfString("kCGImageSourceShouldCache")
+public let kCGImageSourceShouldCacheImmediately: CFString = _cfString("kCGImageSourceShouldCacheImmediately")
+public let kCGImageSourceShouldAllowFloat: CFString = _cfString("kCGImageSourceShouldAllowFloat")
+public let kCGImageSourceCreateThumbnailFromImageIfAbsent: CFString = _cfString("kCGImageSourceCreateThumbnailFromImageIfAbsent")
+public let kCGImageSourceCreateThumbnailFromImageAlways: CFString = _cfString("kCGImageSourceCreateThumbnailFromImageAlways")
+public let kCGImageSourceThumbnailMaxPixelSize: CFString = _cfString("kCGImageSourceThumbnailMaxPixelSize")
+public let kCGImageSourceCreateThumbnailWithTransform: CFString = _cfString("kCGImageSourceCreateThumbnailWithTransform")
+public let kCGImageSourceSubsampleFactor: CFString = _cfString("kCGImageSourceSubsampleFactor")
 
-public let kCGImageDestinationLossyCompressionQuality: CFString = "kCGImageDestinationLossyCompressionQuality"
-public let kCGImageDestinationBackgroundColor: CFString = "kCGImageDestinationBackgroundColor"
-public let kCGImageDestinationImageMaxPixelSize: CFString = "kCGImageDestinationImageMaxPixelSize"
-public let kCGImageDestinationEmbedThumbnail: CFString = "kCGImageDestinationEmbedThumbnail"
-public let kCGImageDestinationOptimizeColorForSharing: CFString = "kCGImageDestinationOptimizeColorForSharing"
-public let kCGImageDestinationOrientation: CFString = "kCGImageDestinationOrientation"
-public let kCGImageDestinationMetadata: CFString = "kCGImageDestinationMetadata"
+public let kCGImageDestinationLossyCompressionQuality: CFString = _cfString("kCGImageDestinationLossyCompressionQuality")
+public let kCGImageDestinationBackgroundColor: CFString = _cfString("kCGImageDestinationBackgroundColor")
+public let kCGImageDestinationImageMaxPixelSize: CFString = _cfString("kCGImageDestinationImageMaxPixelSize")
+public let kCGImageDestinationEmbedThumbnail: CFString = _cfString("kCGImageDestinationEmbedThumbnail")
+public let kCGImageDestinationOptimizeColorForSharing: CFString = _cfString("kCGImageDestinationOptimizeColorForSharing")
+public let kCGImageDestinationOrientation: CFString = _cfString("kCGImageDestinationOrientation")
+public let kCGImageDestinationMetadata: CFString = _cfString("kCGImageDestinationMetadata")
 
-public let kCGImagePropertyPixelWidth: CFString = "PixelWidth"
-public let kCGImagePropertyPixelHeight: CFString = "PixelHeight"
-public let kCGImagePropertyOrientation: CFString = "Orientation"
-public let kCGImagePropertyDepth: CFString = "Depth"
-public let kCGImagePropertyDPIWidth: CFString = "DPIWidth"
-public let kCGImagePropertyDPIHeight: CFString = "DPIHeight"
-public let kCGImagePropertyHasAlpha: CFString = "HasAlpha"
-public let kCGImagePropertyColorModel: CFString = "ColorModel"
-public let kCGImagePropertyColorModelRGB: CFString = "RGB"
-public let kCGImagePropertyColorModelGray: CFString = "Gray"
-public let kCGImagePropertyProfileName: CFString = "ProfileName"
-public let kCGImagePropertyFileSize: CFString = "FileSize"
-public let kCGImagePropertyTIFFDictionary: CFString = "{TIFF}"
-public let kCGImagePropertyExifDictionary: CFString = "{Exif}"
-public let kCGImagePropertyGPSDictionary: CFString = "{GPS}"
-public let kCGImagePropertyIPTCDictionary: CFString = "{IPTC}"
-public let kCGImagePropertyPNGDictionary: CFString = "{PNG}"
-public let kCGImagePropertyJFIFDictionary: CFString = "{JFIF}"
-public let kCGImagePropertyGIFDictionary: CFString = "{GIF}"
-public let kCGImagePropertyHEICSDictionary: CFString = "{HEICS}"
-public let kCGImagePropertyMakerAppleDictionary: CFString = "{MakerApple}"
-public let kCGImagePropertyTIFFMake: CFString = "Make"
-public let kCGImagePropertyTIFFModel: CFString = "Model"
-public let kCGImagePropertyTIFFOrientation: CFString = "Orientation"
-public let kCGImagePropertyTIFFDateTime: CFString = "DateTime"
-public let kCGImagePropertyTIFFSoftware: CFString = "Software"
-public let kCGImagePropertyTIFFXResolution: CFString = "XResolution"
-public let kCGImagePropertyTIFFYResolution: CFString = "YResolution"
-public let kCGImagePropertyExifDateTimeOriginal: CFString = "DateTimeOriginal"
-public let kCGImagePropertyExifDateTimeDigitized: CFString = "DateTimeDigitized"
-public let kCGImagePropertyExifOffsetTime: CFString = "OffsetTime"
-public let kCGImagePropertyExifOffsetTimeOriginal: CFString = "OffsetTimeOriginal"
-public let kCGImagePropertyExifSubsecTimeOriginal: CFString = "SubsecTimeOriginal"
-public let kCGImagePropertyExifPixelXDimension: CFString = "PixelXDimension"
-public let kCGImagePropertyExifPixelYDimension: CFString = "PixelYDimension"
-public let kCGImagePropertyExifExposureTime: CFString = "ExposureTime"
-public let kCGImagePropertyExifFNumber: CFString = "FNumber"
-public let kCGImagePropertyExifISOSpeedRatings: CFString = "ISOSpeedRatings"
-public let kCGImagePropertyExifFocalLength: CFString = "FocalLength"
-public let kCGImagePropertyExifLensModel: CFString = "LensModel"
-public let kCGImagePropertyExifUserComment: CFString = "UserComment"
-public let kCGImagePropertyGPSLatitude: CFString = "Latitude"
-public let kCGImagePropertyGPSLatitudeRef: CFString = "LatitudeRef"
-public let kCGImagePropertyGPSLongitude: CFString = "Longitude"
-public let kCGImagePropertyGPSLongitudeRef: CFString = "LongitudeRef"
-public let kCGImagePropertyGPSAltitude: CFString = "Altitude"
-public let kCGImagePropertyGPSAltitudeRef: CFString = "AltitudeRef"
-public let kCGImagePropertyGPSTimeStamp: CFString = "TimeStamp"
-public let kCGImagePropertyGPSDateStamp: CFString = "DateStamp"
-public let kCGImagePropertyGPSImgDirection: CFString = "ImgDirection"
-public let kCGImagePropertyGPSSpeed: CFString = "Speed"
-public let kCGImagePropertyGIFLoopCount: CFString = "LoopCount"
-public let kCGImagePropertyGIFDelayTime: CFString = "DelayTime"
-public let kCGImagePropertyGIFUnclampedDelayTime: CFString = "UnclampedDelayTime"
+public let kCGImagePropertyPixelWidth: CFString = _cfString("PixelWidth")
+public let kCGImagePropertyPixelHeight: CFString = _cfString("PixelHeight")
+public let kCGImagePropertyOrientation: CFString = _cfString("Orientation")
+public let kCGImagePropertyDepth: CFString = _cfString("Depth")
+public let kCGImagePropertyDPIWidth: CFString = _cfString("DPIWidth")
+public let kCGImagePropertyDPIHeight: CFString = _cfString("DPIHeight")
+public let kCGImagePropertyHasAlpha: CFString = _cfString("HasAlpha")
+public let kCGImagePropertyColorModel: CFString = _cfString("ColorModel")
+public let kCGImagePropertyColorModelRGB: CFString = _cfString("RGB")
+public let kCGImagePropertyColorModelGray: CFString = _cfString("Gray")
+public let kCGImagePropertyProfileName: CFString = _cfString("ProfileName")
+public let kCGImagePropertyFileSize: CFString = _cfString("FileSize")
+public let kCGImagePropertyTIFFDictionary: CFString = _cfString("{TIFF}")
+public let kCGImagePropertyExifDictionary: CFString = _cfString("{Exif}")
+public let kCGImagePropertyGPSDictionary: CFString = _cfString("{GPS}")
+public let kCGImagePropertyIPTCDictionary: CFString = _cfString("{IPTC}")
+public let kCGImagePropertyPNGDictionary: CFString = _cfString("{PNG}")
+public let kCGImagePropertyJFIFDictionary: CFString = _cfString("{JFIF}")
+public let kCGImagePropertyGIFDictionary: CFString = _cfString("{GIF}")
+public let kCGImagePropertyHEICSDictionary: CFString = _cfString("{HEICS}")
+public let kCGImagePropertyMakerAppleDictionary: CFString = _cfString("{MakerApple}")
+public let kCGImagePropertyTIFFMake: CFString = _cfString("Make")
+public let kCGImagePropertyTIFFModel: CFString = _cfString("Model")
+public let kCGImagePropertyTIFFOrientation: CFString = _cfString("Orientation")
+public let kCGImagePropertyTIFFDateTime: CFString = _cfString("DateTime")
+public let kCGImagePropertyTIFFSoftware: CFString = _cfString("Software")
+public let kCGImagePropertyTIFFXResolution: CFString = _cfString("XResolution")
+public let kCGImagePropertyTIFFYResolution: CFString = _cfString("YResolution")
+public let kCGImagePropertyExifDateTimeOriginal: CFString = _cfString("DateTimeOriginal")
+public let kCGImagePropertyExifDateTimeDigitized: CFString = _cfString("DateTimeDigitized")
+public let kCGImagePropertyExifOffsetTime: CFString = _cfString("OffsetTime")
+public let kCGImagePropertyExifOffsetTimeOriginal: CFString = _cfString("OffsetTimeOriginal")
+public let kCGImagePropertyExifSubsecTimeOriginal: CFString = _cfString("SubsecTimeOriginal")
+public let kCGImagePropertyExifPixelXDimension: CFString = _cfString("PixelXDimension")
+public let kCGImagePropertyExifPixelYDimension: CFString = _cfString("PixelYDimension")
+public let kCGImagePropertyExifExposureTime: CFString = _cfString("ExposureTime")
+public let kCGImagePropertyExifFNumber: CFString = _cfString("FNumber")
+public let kCGImagePropertyExifISOSpeedRatings: CFString = _cfString("ISOSpeedRatings")
+public let kCGImagePropertyExifFocalLength: CFString = _cfString("FocalLength")
+public let kCGImagePropertyExifLensModel: CFString = _cfString("LensModel")
+public let kCGImagePropertyExifUserComment: CFString = _cfString("UserComment")
+public let kCGImagePropertyGPSLatitude: CFString = _cfString("Latitude")
+public let kCGImagePropertyGPSLatitudeRef: CFString = _cfString("LatitudeRef")
+public let kCGImagePropertyGPSLongitude: CFString = _cfString("Longitude")
+public let kCGImagePropertyGPSLongitudeRef: CFString = _cfString("LongitudeRef")
+public let kCGImagePropertyGPSAltitude: CFString = _cfString("Altitude")
+public let kCGImagePropertyGPSAltitudeRef: CFString = _cfString("AltitudeRef")
+public let kCGImagePropertyGPSTimeStamp: CFString = _cfString("TimeStamp")
+public let kCGImagePropertyGPSDateStamp: CFString = _cfString("DateStamp")
+public let kCGImagePropertyGPSImgDirection: CFString = _cfString("ImgDirection")
+public let kCGImagePropertyGPSSpeed: CFString = _cfString("Speed")
+public let kCGImagePropertyGIFLoopCount: CFString = _cfString("LoopCount")
+public let kCGImagePropertyGIFDelayTime: CFString = _cfString("DelayTime")
+public let kCGImagePropertyGIFUnclampedDelayTime: CFString = _cfString("UnclampedDelayTime")
 
 // MARK: - EXIF
 
