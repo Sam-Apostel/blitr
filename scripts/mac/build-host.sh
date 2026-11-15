@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Builds the reference-capture host app for the iOS (or tvOS) Simulator from SwiftUI sources.
+# Builds the reference-capture host app for the iOS (or tvOS, or watchOS) Simulator from SwiftUI sources.
 #
-#   [PLATFORM=tvos] scripts/mac/build-host.sh <build-dir> <file.swift>...
+#   [PLATFORM=tvos|watchos] scripts/mac/build-host.sh <build-dir> <file.swift>...
 #
 # Produces <build-dir>/ReferenceHost.app and <build-dir>/gen/screens.json. Uses swiftc directly (no
 # Xcode project): each source file is compiled as its own module, then linked into one app.
@@ -15,8 +15,17 @@ ARCH="$(uname -m)"
 case "${PLATFORM:-ios}" in
     ios)  SDK_NAME=iphonesimulator;  OS=ios;  PLATFORM_NAME=iPhoneSimulator;  FAMILY="<integer>1</integer><integer>2</integer>" ;;
     tvos) SDK_NAME=appletvsimulator; OS=tvos; PLATFORM_NAME=AppleTVSimulator; FAMILY="<integer>3</integer>" ;;
-    *) echo "PLATFORM must be ios or tvos" >&2; exit 2 ;;
+    watchos) SDK_NAME=watchsimulator; OS=watchos; PLATFORM_NAME=WatchSimulator; FAMILY="<integer>4</integer>" ;;
+    *) echo "PLATFORM must be ios, tvos or watchos" >&2; exit 2 ;;
 esac
+# watchOS has no UIKit view hierarchy to dump, so it gets its own app sources (see WatchApp/HostApp.swift),
+# and a standalone watch app needs WKApplication and WKWatchOnly in its Info.plist.
+APP_SOURCES=("$HOST"/App/*.swift)
+EXTRA_PLIST=""
+if [[ "$OS" == watchos ]]; then
+    APP_SOURCES=("$HOST"/WatchApp/*.swift)
+    EXTRA_PLIST="<key>WKApplication</key><true/><key>WKWatchOnly</key><true/>"
+fi
 TARGET="$ARCH-apple-$OS$DEPLOYMENT-simulator"
 SDK="$(xcrun --sdk $SDK_NAME --show-sdk-path)"
 SWIFTC=(xcrun --sdk $SDK_NAME swiftc -target "$TARGET" -sdk "$SDK" -swift-version 5 -Onone)
@@ -56,7 +65,7 @@ fi
 APP="$BUILD/ReferenceHost.app"
 rm -rf "$APP"; mkdir -p "$APP"
 "${SWIFTC[@]}" -parse-as-library -module-name ReferenceHost -I "$BUILD/mods" \
-    "$HOST"/App/*.swift "$BUILD/gen/Registry.swift" "$BUILD"/obj/*.o -o "$APP/ReferenceHost"
+    "${APP_SOURCES[@]}" "$BUILD/gen/Registry.swift" "$BUILD"/obj/*.o -o "$APP/ReferenceHost"
 
 cat > "$APP/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -80,6 +89,7 @@ cat > "$APP/Info.plist" <<PLIST
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
     <key>UIFileSharingEnabled</key><true/>
+    $EXTRA_PLIST
 </dict>
 </plist>
 PLIST
