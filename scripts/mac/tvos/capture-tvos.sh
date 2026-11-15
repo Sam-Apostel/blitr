@@ -58,12 +58,22 @@ echo "Simulator: $DEVICE, tvOS $RUNTIME_VERSION ($UDID)"
 
 WAS_BOOTED=0
 if xcrun simctl list devices | grep -q "$UDID) (Booted)"; then WAS_BOOTED=1; fi
-# simctl cannot switch a tvOS simulator's appearance; AppearanceTests does it through the Settings app.
+# `simctl ui <udid> appearance` fails on tvOS 26.5 ("Runtime does not support userInterfaceStyle"), so when
+# it is refused AppearanceTests sets it through the Settings app. Either way the result is checked against
+# PineBoard's SystemAppearanceKey (0 Light, 1 Dark; absent behaves as Dark).
+appearance_key() { xcrun simctl spawn "$UDID" defaults read com.apple.PineBoard SystemAppearanceKey 2>/dev/null || echo 1; }
 set_appearance() { # Light | Dark
-    TEST_RUNNER_APPEARANCE_STYLE="$1" xcodebuild -project "$BUILD/TVCapture.xcodeproj" -scheme TVCapture \
-        -destination "id=$UDID" -derivedDataPath "$BUILD/derived" test-without-building \
-        -only-testing:TVCapture/AppearanceTests/testSetAppearance -quiet >"$BUILD/appearance.log" 2>&1 \
-        || { echo "could not set the $1 appearance (see $BUILD/appearance.log)" >&2; exit 1; }
+    local want=0; [[ "$1" == Dark ]] && want=1
+    local lower; lower="$(tr '[:upper:]' '[:lower:]' <<<"$1")"
+    if xcrun simctl ui "$UDID" appearance "$lower" >/dev/null 2>&1 && [[ "$(appearance_key)" == "$want" ]]; then return; fi
+    for _ in 1 2 3; do
+        TEST_RUNNER_APPEARANCE_STYLE="$1" xcodebuild -project "$BUILD/TVCapture.xcodeproj" -scheme TVCapture \
+            -destination "id=$UDID" -derivedDataPath "$BUILD/derived" test-without-building \
+            -only-testing:TVCapture/AppearanceTests/testSetAppearance -quiet >"$BUILD/appearance.log" 2>&1 || true
+        sleep 1
+        [[ "$(appearance_key)" == "$want" ]] && return
+    done
+    echo "could not set the $1 appearance (see $BUILD/appearance.log)" >&2; exit 1
 }
 OLD_APPEARANCE=""
 restore() {
@@ -72,7 +82,7 @@ restore() {
         if [[ "$OLD_APPEARANCE" == "0" ]]; then set_appearance Light || true; else set_appearance Dark || true; fi
         [[ -z "$OLD_APPEARANCE" ]] && xcrun simctl spawn "$UDID" defaults delete com.apple.PineBoard SystemAppearanceKey >/dev/null 2>&1
     fi
-    ((WAS_BOOTED == 0)) && xcrun simctl shutdown "$UDID" >/dev/null 2>&1 || true
+    if ((WAS_BOOTED == 0)); then xcrun simctl shutdown "$UDID" >/dev/null 2>&1 || true; fi
 }
 trap restore EXIT
 if ((WAS_BOOTED == 0)); then xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b >/dev/null; fi
@@ -139,7 +149,8 @@ for scheme in $SCHEMES; do
         TEST_RUNNER_CAPTURE_BUNDLE="$BUNDLE_ID" TEST_RUNNER_CAPTURE_SCREEN="$key" TEST_RUNNER_CAPTURE_PREVIEW="$index" \
         TEST_RUNNER_CAPTURE_PRESSES="$presses" TEST_RUNNER_CAPTURE_OUT="$OUT/$scheme/$name.png" \
             xcodebuild -project "$BUILD/TVCapture.xcodeproj" -scheme TVCapture -destination "id=$UDID" \
-            -derivedDataPath "$BUILD/derived" test-without-building -quiet >"$BUILD/test.log" 2>&1 \
+            -derivedDataPath "$BUILD/derived" test-without-building -only-testing:TVCapture/CaptureTests/testCapture \
+            -quiet >"$BUILD/test.log" 2>&1 \
             || { echo "  $scheme/$name: test failed (see $BUILD/test.log)" >&2; continue; }
         if [[ -f "$CONTAINER/$key-$index.json" ]]; then
             python3 - "$CONTAINER/$key-$index.json" "$OUT/$scheme/$name.json" "$key" "$index" "$presses" <<'PY'
