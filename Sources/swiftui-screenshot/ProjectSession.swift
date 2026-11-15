@@ -178,7 +178,7 @@ enum ProjectSession {
         FileHandle.standardError.write(Data(failure.diagnostics.utf8))
         let report = failure.report ?? UnsupportedReport(diagnostics: failure.diagnostics, stubbedModules: [:])
         note("")
-        note("error: \(failure.origin) (module \(failure.module)) did not compile on Linux. Nothing was rendered.")
+        note("error: \(failure.origin) (module \(failure.module)) did not compile against this renderer. Nothing was rendered.")
         if !report.isEmpty { note(report.text()) }
         if let mismatch = compilerMismatch(Installation.locate()) { note("error: " + mismatch) }
     }

@@ -27,7 +27,7 @@ capture a
 capture b
 
 # Counter: start + 3 steps + the snapshot = 5 frames (PNG per step, the snapshot included).
-n=$(ls "$out/a/counter-frames" | wc -l)
+n=$(ls "$out/a/counter-frames" | wc -l | tr -d " ")
 [ "$n" = 5 ] && echo "ok    counter wrote 5 frames" || fail "counter wrote $n frames, expected 5"
 grep -q '"frameCount":5' "$out/a/counter.json" && echo "ok    counter frameCount 5" || fail "counter frameCount: $(cat "$out/a/counter.json")"
 # Card: the start hold, a spring of 0.74 s at 20 fps (15 frames, the last one the settled state held).

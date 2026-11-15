@@ -284,7 +284,7 @@ struct UnsupportedReport {
         func count(_ n: Int, _ word: String) -> String { "\(n) \(word)\(n == 1 ? "" : "s")" }
         var lines = ["Unsupported, from \(count(errorCount, "error")) in \(count(Set(diagnostics.filter { $0.severity == "error" }.map(\.file)).count, "file")):"]
         if !frameworks.isEmpty {
-            lines.append("  Frameworks not available on Linux:")
+            lines.append("  Frameworks this renderer does not provide:")
             for (name, group) in frameworks.sorted(by: { ($0.value.files.count, $1.key) > ($1.value.files.count, $0.key) }) {
                 var line = "    \(name): \(count(group.files.count, "file")) import\(group.files.count == 1 ? "s" : "") it"
                 if !group.symbols.isEmpty {

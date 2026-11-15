@@ -381,7 +381,7 @@ func build(_ options: Options, _ installation: Installation) -> Build {
             if let mismatch = compilerMismatch(installation) { fail(mismatch) }
             let report = UnsupportedReport(diagnostics: diagnostics, stubbedModules: [:])
             if !report.isEmpty { note(report.text()) }
-            fail("the sources did not compile against the Linux SwiftUI module. Errors about unknown members usually mean an API this renderer does not implement yet.")
+            fail("the sources did not compile against this renderer's SwiftUI module. Errors about unknown members usually mean an API this renderer does not implement yet.")
         }
     }
 
