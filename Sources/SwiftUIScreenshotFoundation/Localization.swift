@@ -19,11 +19,10 @@ import Foundation
 // Foundation has the same API: strings must resolve through the tool's table on every host, and the engine
 // reads members Apple's types do not have (`resolved`, `defaultValue` as a String).
 //
-// On Darwin the types are Apple's (`String.LocalizationValue` is a member type of String, and two of those
-// are ambiguous rather than one shadowing the other), and DarwinLocalization.swift declares the
-// `String(localized:)` and `AttributedString(localized:)` initializers again with Apple's exact signatures:
-// a declaration in a module that imports Foundation shadows Foundation's identical one, so calls resolve
-// through the tool's table there too.
+// On Darwin the types are Apple's: two `String.LocalizationValue` member types are ambiguous rather than one
+// shadowing the other, and so are two identical initializers. DarwinLocalizationOverloads.swift declares
+// `String(localized:)` and `AttributedString(localized:)` once per combination of optional arguments, which
+// overload resolution prefers to Apple's defaulted ones, so calls resolve through the tool's table there too.
 
 public enum ScreenshotStrings {
     public static let table: [String: String] = {
