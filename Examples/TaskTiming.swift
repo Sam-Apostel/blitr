@@ -8,17 +8,24 @@ import SwiftUI
 struct Countdown: View {
     @State private var phase = "Preparing…"
     @State private var slide = 1
+    @State private var tick = "Waiting…"
 
     var body: some View {
         Section("Timers") {
             LabeledContent("After 0.3 s and 1.2 s", value: phase)
             LabeledContent("Slideshow, every 5 s", value: "Slide \(slide)")
+            LabeledContent("On a clock, after 1 s", value: tick)
         }
         .task {
             try? await Task.sleep(for: .milliseconds(300))
             phase = "Ready"
             try? await Task.sleep(nanoseconds: 900_000_000)
             phase = "Started"
+        }
+        .task {
+            let clock = ContinuousClock()
+            try? await clock.sleep(for: .seconds(1))
+            tick = "Done"
         }
         .task {
             // A loop that never ends: its next wake-up is after the frame, so it simply waits.
@@ -33,9 +40,12 @@ struct Countdown: View {
 struct Forecast: View {
     enum Load { case loading, loaded(String), failed(String) }
     @State private var load = Load.loading
+    /// A session with its own configuration, as API clients usually make.
+    var session: URLSession = .shared
+    var title = "Network"
 
     var body: some View {
-        Section("Network") {
+        Section(title) {
             switch load {
             case .loading: ProgressView()
             case .loaded(let text): Text(text)
@@ -45,7 +55,7 @@ struct Forecast: View {
         .task {
             do {
                 let url = URL(string: "https://forecast.example.com/today.json")!
-                let (data, _) = try await URLSession.shared.data(from: url)
+                let (data, _) = try await session.data(from: url)
                 load = .loaded(String(decoding: data, as: UTF8.self))
             } catch let error as URLError where error.code == .notConnectedToInternet {
                 load = .failed("Offline")
@@ -61,6 +71,7 @@ struct TaskTimingView: View {
         List {
             Countdown()
             Forecast()
+            Forecast(session: URLSession(configuration: .ephemeral), title: "Network, own session")
         }
     }
 }

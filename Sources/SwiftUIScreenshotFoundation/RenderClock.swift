@@ -93,7 +93,8 @@ public final class _RenderClock: @unchecked Sendable {
         try Task.checkCancellation()
         guard isDriven else {
             let clock = ContinuousClock()
-            try await clock.sleep(until: clock.now + .nanoseconds(Int64(max(0, seconds) * 1e9)))
+            // With `tolerance:` this is the standard library's sleep, not the overload below.
+            try await clock.sleep(until: clock.now + .nanoseconds(Int64(max(0, seconds) * 1e9)), tolerance: nil)
             return
         }
         let id = lock.withLock { () -> Int in nextID += 1; return nextID }
@@ -148,6 +149,26 @@ extension Task where Success == Never, Failure == Never {
     }
 }
 
+// `clock.sleep(for:)` and `clock.sleep(until:)` called on a clock directly. The standard library's take a
+// defaulted `tolerance:`, so these, which take none, are chosen for calls that pass none; a call that passes
+// a tolerance, or a sleep through a generic `Clock`, keeps real time.
+extension ContinuousClock {
+    public func sleep(for duration: Duration) async throws {
+        try await _RenderClock.shared.sleep(seconds: seconds(duration))
+    }
+    public func sleep(until deadline: Instant) async throws {
+        try await _RenderClock.shared.sleep(seconds: seconds(now.duration(to: deadline)))
+    }
+}
+extension SuspendingClock {
+    public func sleep(for duration: Duration) async throws {
+        try await _RenderClock.shared.sleep(seconds: seconds(duration))
+    }
+    public func sleep(until deadline: Instant) async throws {
+        try await _RenderClock.shared.sleep(seconds: seconds(now.duration(to: deadline)))
+    }
+}
+
 // MARK: - Network
 
 /// Renders run offline. A `.task` that loads from a server would otherwise wait on the network (or on a
@@ -159,8 +180,14 @@ public enum _RenderNetwork {
         // `URLSession.shared` (and sessions whose configuration lists registered protocols) fail with
         // `URLError(.notConnectedToInternet)`.
         URLProtocol.registerClass(OfflineURLProtocol.self)
-        // Sessions with their own configuration go through libcurl, which honours the proxy variables:
-        // a proxy on a closed local port refuses every connection at once.
+        #if canImport(ObjectiveC)
+        // On Darwin a session with its own configuration consults only that configuration's protocols, and
+        // ignores the proxy variables: every `.default` and `.ephemeral` configuration gets the offline
+        // protocol first.
+        OfflineConfigurations.install()
+        #endif
+        // On Linux, sessions with their own configuration go through libcurl, which honours the proxy
+        // variables: a proxy on a closed local port refuses every connection at once.
         let refused = "http://127.0.0.1:9"
         for name in ["http_proxy", "https_proxy", "all_proxy", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"] {
             setenv(name, refused, 1)
@@ -183,3 +210,28 @@ final class OfflineURLProtocol: URLProtocol {
     }
     override func stopLoading() {}
 }
+
+#if canImport(ObjectiveC)
+import ObjectiveC
+
+enum OfflineConfigurations {
+    nonisolated(unsafe) private static var installed = false
+
+    static func install() {
+        guard !installed else { return }
+        installed = true
+        for name in ["defaultSessionConfiguration", "ephemeralSessionConfiguration"] {
+            let selector = NSSelectorFromString(name)
+            guard let method = class_getClassMethod(URLSessionConfiguration.self, selector) else { continue }
+            typealias Getter = @convention(c) (AnyClass, Selector) -> URLSessionConfiguration
+            let original = unsafeBitCast(method_getImplementation(method), to: Getter.self)
+            let replacement: @convention(block) (AnyClass) -> URLSessionConfiguration = { cls in
+                let configuration = original(cls, selector)
+                configuration.protocolClasses = [OfflineURLProtocol.self] + (configuration.protocolClasses ?? [])
+                return configuration
+            }
+            method_setImplementation(method, imp_implementationWithBlock(replacement))
+        }
+    }
+}
+#endif

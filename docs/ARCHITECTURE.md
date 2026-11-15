@@ -40,11 +40,12 @@ warning if a task is still busy. Two things keep that from depending on the mach
   wake-up, as long as that is within `--settle-time` (default 2 s); a sleep that ends later stays asleep
   past the frame, like a timer on a device when the screenshot is taken, and is not reported. So a
   "show the result after 1.5 s" delay is drawn done, a slideshow advancing every 5 s shows its first slide,
-  and neither costs real time. An interaction `wait` step moves the settle time on. `Clock.sleep` called
-  on a clock directly is real time. Outside a render (widget timelines) `Task.sleep` is real time.
+  and neither costs real time. An interaction `wait` step moves the settle time on. `ContinuousClock` and `SuspendingClock` sleeps are virtual too; one called
+  on a clock directly with a `tolerance:` is real time. Outside a render (widget timelines) `Task.sleep` is real time.
 - **Renders are offline** (`_RenderNetwork`). HTTP(S) requests fail at once with
-  `URLError(.notConnectedToInternet)` (`URLSession.shared` through a registered `URLProtocol`, other
-  sessions through a proxy that refuses connections), so a screen that loads from a server draws its
+  `URLError(.notConnectedToInternet)` (`URLSession.shared` through a registered `URLProtocol`; other
+  sessions through a proxy that refuses connections on Linux, and on macOS through the same protocol, put
+  into every `.default` and `.ephemeral` configuration), so a screen that loads from a server draws its
   offline or error state instead of waiting out the timeout. `--allow-network` turns this off. Remote
   `AsyncImage`s stay in their loading phase either way.
 
