@@ -239,7 +239,8 @@ swift build -c release
 ```
 
 It draws with the same Skia and HarfBuzz code as on Linux, so with `--open-fonts` a render is the same picture
-on both. Your code is compiled against this project's SwiftUI and shim frameworks, never Apple's: the tool
+on both. Without it, text is set in the Mac's own SF Pro, SF Pro Rounded, SF Mono, New York and Apple Color
+Emoji, with no download. Your code is compiled against this project's SwiftUI and shim frameworks, never Apple's: the tool
 gives the compiler a view of the macOS SDK that holds only Foundation and what Foundation is built from, so
 `import ARKit` fails and `#if canImport(HealthKit)` is false exactly as on Linux. Combine, os and OSLog are
 Apple's own on a Mac. `scripts/make-dist.sh` builds a relocatable tarball there too; it expects Homebrew's

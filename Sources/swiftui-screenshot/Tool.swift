@@ -125,6 +125,10 @@ struct Installation {
             dir = (dir as NSString).deletingLastPathComponent
         }
         if fm.fileExists(atPath: sdk + "/apple-fonts/SF-Pro.ttf") { appleFonts = sdk + "/apple-fonts" }
+        #if canImport(Darwin)
+        // A Mac has SF Pro, SF Pro Rounded, SF Mono, New York and Apple Color Emoji installed with the system.
+        if appleFonts == nil, fm.fileExists(atPath: "/System/Library/Fonts/SFNS.ttf") { appleFonts = "/System/Library/Fonts" }
+        #endif
 
         var swiftc = env["SWIFTC"] ?? ""
         if swiftc.isEmpty {

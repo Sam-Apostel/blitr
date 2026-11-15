@@ -180,6 +180,9 @@ The tool and engine build and run natively on macOS (issue #19). What differs fr
 - **Linux-only code is gated** with `#if !canImport(Darwin)`: the Foundation gap-fillers (`FoundationGaps.swift`,
   `MeasurementFormatter.swift`, `PresentationIntents.swift`, `FileWrapper`, `UndoManager`) and the Objective-C
   autorelease stubs (`Compat/ObjCRuntimeStubs.swift`).
+- **Fonts.** Unless `--open-fonts` is given, the tool passes `/System/Library/Fonts` as the Apple font
+  directory when no downloaded copy exists (`Installation.locate`); `FontLibrary` knows the system file names
+  (`SFNS.ttf`, `SFNSRounded.ttf`, `SFNSMono.ttf`, `NewYork.ttf`, `Apple Color Emoji.ttc`).
 - **At run time** libSkiaSharp links Cocoa, so AppKit and with it Apple's SwiftUICore are mapped into every
   runner, next to our SwiftUI module. Their types carry the same mangled `SwiftUI` names as ours. Nothing in a
   render looks types up by name, and the full regression set renders the same as on Linux, but code that calls
