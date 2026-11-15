@@ -54,7 +54,7 @@ jobs:
           if grep -q 'SwiftUI.framework' otool-engine.txt; then echo "the engine links Apple's SwiftUI" >&2; exit 1; fi
 
       - name: Render the regression set
-        run: scripts/regression.sh out/macos --jobs 3 2>&1 | tee render.log; ! grep -q '^FAILED' render.log
+        run: REGRESSION_STRICT=1 scripts/regression.sh out/macos --jobs 3
 
       - name: Compiled previews must not link Apple's SwiftUI
         run: |

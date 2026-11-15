@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The regression loop: renders every file in Tests/Corpus, Examples, Examples/ApiGaps and Examples/Frameworks
+# The regression loop: renders every .swift file under Tests/Corpus and Examples
 # with --all --scheme both --open-fonts (Apple TV for *TV* files) into OUT_DIR, one directory per source file.
 # Every render is at the same moment and time zone, so clocks and timelines draw the same on every run and host.
 #   scripts/regression.sh OUT_DIR [--jobs N] [extra render options...]
@@ -27,12 +27,14 @@ if [ "${1:-}" = --jobs ]; then jobs="$2"; shift 2; fi
 bin="$(cd "$root" && swift build --show-bin-path)"
 mkdir -p "$out"
 cd "$root"
-ls Tests/Corpus/*.swift Examples/*.swift Examples/ApiGaps/*.swift Examples/Frameworks/*.swift | sort |
+find Tests/Corpus Examples -name '*.swift' | sort |
   xargs -P "$jobs" -I{} bash -c '
     file="$1"; shift; bin="$1"; shift; out="$1"; shift
     device=(); case "$file" in *TV*) device=(--device apple-tv) ;; esac
     dir="$out/${file%.swift}"
     if ! log=$("$bin/swiftui-screenshot" render "$file" --all --scheme both --open-fonts --date 2026-06-01T09:41:00Z --time-zone UTC "${device[@]}" --out-dir "$dir" "$@" 2>&1); then
-      echo "FAILED $file"; echo "$log" | tail -20
+      echo "FAILED $file"; echo "$log" | tail -20; mkdir -p "$dir"; touch "$dir/FAILED"
     fi' _ {} "$bin" "$out" "$@"
 echo "rendered $(find "$out" -name '*.png' | wc -l | tr -d ' ') images into $out"
+# A file that failed to render is a regression.
+if [ -n "${REGRESSION_STRICT:-}" ] && find "$out" -name FAILED | grep -q .; then exit 1; fi
