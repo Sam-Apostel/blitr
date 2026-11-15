@@ -23,6 +23,7 @@ Where the renderer stands, what is open (in priority order), and which items nee
 The iOS 27 sum over all screens is 26.6% in light and 30.5% in dark.
 
 - **Extra outputs:** the accessibility tree, tap targets, `compare` heatmaps and `check --json`.
+- **Device frames** (issue #26): `--frame` draws generic hardware around a render from the device profile; `--frame-dir` uses the user's own frame images.
 
 ## Open, in priority order
 
@@ -35,7 +36,6 @@ The iOS 27 sum over all screens is 26.6% in light and 30.5% in dark.
 | [#21](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/21) | SF Symbol frames, per glyph | measuring on a Mac helps |
 | [#23](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/23) | tvOS: one focus move, List toggle rows, tvOS 18 | tvOS 18 needs captures |
 | [#25](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/25) | Smaller gaps found on real apps: map tiles, LazyVStack text spacing, clock gaps, representables | no |
-| [#26](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/26) | Device frames around screenshots | no |
 
 #2 and #3 are the umbrella issues for the Mac reference work.
 

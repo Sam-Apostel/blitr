@@ -77,6 +77,8 @@ swiftui-screenshot version
 | `--orientation portrait\|landscape` | Also `landscape-left` / `landscape-right`. Swaps the size and uses landscape insets; iPhones hide the status bar. `#Preview(traits: .landscapeLeft / .sizeThatFitsLayout / .fixedLayout(...))` set the defaults per preview; flags override them. |
 | `--rounded-corners` | Clip to the device's rounded display, corners transparent. |
 | `--show-island` | Draw the Dynamic Island or notch on top (simulator screenshots do not show it). |
+| `--frame` | Draw the device around the screen: glass border, band, side buttons, Dynamic Island or notch. See [Device frames](#device-frames). |
+| `--frame-dir <dir>` | Use your own frame image, `<dir>/<device-id>.png`, instead of the generic one. |
 | `--platform ios\|tvos\|watchos` | Platform to compile for and draw. Decides which `#if os(...)` branches build. Implied by `--device apple-tv-*` and `apple-watch-*`. |
 | `--layout device\|fit\|fixed` | Full screen with status bar (default); just the view's own size; or an exact `--width` / `--height`. `--padding <pt>` adds a margin in `fit`. |
 | `--width <pt>`, `--height <pt>` | Canvas size (`fixed`), or the size proposed to the view (`fit`). |
@@ -172,6 +174,32 @@ controls currently look like their iOS counterparts.
 style sizes and full-width capsule buttons, and makes watchOS's small UIKit (`UIImage`, `UIColor`, `UIFont`)
 visible to files that import SwiftUI, as on the watch. The watch safe areas and corner radii are estimates. See
 `Examples/Watch.swift`.
+
+### Device frames
+
+`--frame` puts the hardware around the screenshot, for App Store and marketing images:
+
+```
+swiftui-screenshot render ContentView.swift --device iphone-17-pro --frame --scheme both --out-dir framed
+```
+
+Apple's bezel artwork cannot be redistributed, so the frame is drawn from the device profile: the display's
+corner radius, a black glass border, a graphite band, the side buttons (and Camera Control where the model has
+it) and the Dynamic Island or notch. It covers every iPhone, the iPads, the Apple Watch sizes (case, Digital
+Crown and a strap fading out) and Apple TV (a plain bezel). Proportions come from the published body and screen
+sizes; they are close, not exact. Landscape renders turn the device. Around the device the image is
+transparent.
+
+To use artwork you are licensed to use instead, pass
+`--frame-dir <dir>`. For each render it reads `<dir>/<device-id>.png` (the ids `devices` lists), and for
+landscape `<device-id>-landscape.png` when there is one, otherwise the portrait image turned. The screen is the
+transparent region at the centre of the image: the render is scaled into that region's bounding box and the
+image drawn on top, so the frame's own rounded corners mask the screen. A device without an image gets the
+generic frame and a warning.
+
+The frame applies to every image of an [interaction capture](docs/INTERACTION.md): `--frames`, `--animated` and
+the cells of `--filmstrip`. `--full-content` images stay unframed (with a warning), as do `--tap-targets` and the
+focus overlays. With `--layout fit` or `fixed` there is no device to frame: a warning, and no frame.
 
 
 ## What is supported
