@@ -40,7 +40,7 @@ struct LoggingExample: View {
             let user = "sam"
             let id = signposter.makeSignpostID()
             let state = signposter.beginInterval("load", id: id, "start \(user, privacy: .private)")
-            Logger.appState.trace("\(42, format: .hex(includePrefix: true)) \(3.14159, format: .fixed(precision: 2)) [\("left", align: .left(columns: 6))]")
+            Logger.appState.trace("\(UInt(42), format: .hex(includePrefix: true)) \(3.14159, format: .fixed(precision: 2)) [\("left", align: .left(columns: 6))]")
             Logger.appState.debug("User \(user, privacy: .public) opened the app")
             Logger.appState.info("Count \(count, format: .decimal(minDigits: 3), align: .right(columns: 5))")
             Logger.network.error("Failed: \(URLError(.timedOut).localizedDescription, privacy: .private(mask: .hash))")

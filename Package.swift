@@ -28,12 +28,15 @@ let linkEngine: [SwiftSetting] = [.unsafeFlags(["-module-link-name", engineLibra
 // Modules linked into the engine library next to the SwiftUI module itself (Combine is a dependency of SwiftUI).
 let shimModules = ["Combine", "UniformTypeIdentifiers", "CoreGraphics", "ImageIO", "CoreImage", "CoreText", "ObjectiveC", "QuartzCore", "UIKit", "CoreLocation", "MapKit", "AppIntents", "ActivityKit", "WidgetKit", "CryptoKit", "Security", "Network", "CoreSpotlight", "UserNotifications", "EventKit", "WatchConnectivity", "Contacts", "PhotosUI", "AuthenticationServices", "PassKit", "PDFKit", "Vision", "VisionKit", "EventKitUI", "ContactsUI", "Translation", "QuickLook", "AppKit", "StoreKit", "AVFoundation", "AVKit", "SafariServices", "MessageUI", "CoreMotion", "CoreHaptics", "TipKit", "os", "OSLog", "WatchKit"]
 
-// Modules Apple's Foundation imports on macOS (Combine, ObjectiveC, Security): a module of ours with the same
-// name would be found in place of Apple's while Foundation itself is loaded, so on macOS these are Apple's own
-// frameworks and our targets of the same name are left out. Every other shim keeps its name and shadows the
-// SDK's framework, as module search paths come before the SDK (issue #19).
+// Modules that are Apple's own on macOS, and whose targets here are left out there:
+// - Combine, ObjectiveC and Security: Apple's Foundation imports them, so a module of ours with the same name
+//   would be found in place of Apple's while Foundation itself is loaded.
+// - os and OSLog: Darwin's C headers already declare the os_unfair_lock API ours provides, and Apple's
+//   logging and locks are the real thing.
+// Every other shim keeps its name and shadows the SDK's framework, as module search paths come before the
+// SDK (issue #19).
 #if os(macOS)
-let appleProvided: Set<String> = ["Combine", "ObjectiveC", "Security"]
+let appleProvided: Set<String> = ["Combine", "ObjectiveC", "Security", "os", "OSLog"]
 #else
 let appleProvided: Set<String> = []
 #endif
