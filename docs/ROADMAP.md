@@ -43,7 +43,7 @@ The iOS 27 sum over all screens is 26.6% in light and 30.5% in dark.
 
 - **Build:** `scripts/bootstrap.sh`, then `swift build`.
 - **Check it still works:** `Tests/Projects/run.sh`, `Tests/Frameworks/run.sh` and `Tests/Interaction/run.sh`, plus the regression loop below. CI runs the same.
-- **Regression loop:** `scripts/regression.sh OUT_DIR`, then `scripts/regression.sh --compare BEFORE AFTER`. It renders every `Tests/Corpus/*.swift`, `Examples/*.swift`, `Examples/ApiGaps/*.swift` and `Examples/Frameworks/*.swift` with `--open-fonts`. Use `--device apple-tv` for files matching `*TV*`. Do it before and after a change and compare the PNGs byte for byte. `ContainersLayout` (live clock) and `Interactions-Loading` (`TimelineView`) differ from run to run, so ignore them.
+- **Regression loop:** `scripts/regression.sh OUT_DIR`, then `scripts/regression.sh --compare BEFORE AFTER`. It renders every `Tests/Corpus/*.swift`, `Examples/*.swift`, `Examples/ApiGaps/*.swift` and `Examples/Frameworks/*.swift` with `--open-fonts`. Use `--device apple-tv` for files matching `*TV*`. Do it before and after a change and compare the PNGs byte for byte. It renders at a fixed `--date` and time zone, so clocks and timelines draw the same every run.
 - **Calibration:**
   1. Run `scripts/calibrate.py --ios 27.0 --scheme light --jobs 1`, or `--platform tvos --set tvos-26.5`.
   2. Measure from the reference PNGs and accessibility JSONs.

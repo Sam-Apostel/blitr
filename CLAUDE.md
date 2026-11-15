@@ -9,7 +9,7 @@ A reimplementation of SwiftUI for Linux, drawn with Skia and HarfBuzz, that rend
 - **Regression loop, before and after every change** (`scripts/regression.sh OUT_DIR`, then `scripts/regression.sh --compare BEFORE AFTER`):
   - Render each file in `Tests/Corpus/*.swift`, `Examples/*.swift`, `Examples/ApiGaps/*.swift` and `Examples/Frameworks/*.swift`, with `--all --scheme both --open-fonts`. For `*TV*` files add `--device apple-tv`.
   - Compare the before and after PNGs byte for byte. Every difference must be intended.
-  - `ContainersLayout` and `Interactions-Loading` vary between runs, so ignore them.
+  - The script renders at a fixed `--date` and `--time-zone UTC`, so every image is deterministic; a render outside it shows the real clock.
 - **Stale builds:** after renaming products or libraries, run `rm -rf .build/out` before building.
 
 ## Calibration rules
