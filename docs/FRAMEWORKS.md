@@ -23,9 +23,14 @@ takes them (`Image(decorative:scale:)`, `ImageRenderer.cgImage`, `Color(cgColor:
 SwiftUI depends on CoreGraphics and re-exports it. CGVector, CGAffineTransform and CGLineCap/Join moved there
 from SwiftUI. CoreGraphics reaches the engine only through `package` hooks: `ShimDiagnostics` (warnings,
 installed by SwiftUI's runtime) and `FontRegistry` (font files registered through CoreText, read by
-SwiftUI's font library). CF types are the Foundation classes they are toll-free bridged to on Apple
+SwiftUI's font library). On Linux, CF types are the Foundation classes they are toll-free bridged to on Apple
 platforms (`CFData` = `NSData`, `CFString` = `NSString`, `CFDictionary` = `NSDictionary`, ...), so the
-usual `as CFData` / `as? [CFString: Any]` casts work.
+usual `as CFData` / `as? [CFString: Any]` casts work; on macOS they are CoreFoundation's own.
+
+**On macOS** Combine, ObjectiveC, Security, os and OSLog are Apple's frameworks, not these modules: Apple's
+Foundation imports the first three, and Darwin already declares what our `os` provides. CGPoint, CGSize, CGRect,
+CGVector and CGAffineTransform are CoreFoundation's C structs there, and our CoreGraphics adds the Swift API
+Apple's Core Graphics overlay would (`DarwinGeometry.swift`).
 
 **`#if canImport`** follows the rendered platform (`Preprocessor.frameworkPlatforms`): every module exists in
 the SDK, and `canImport` of one Apple does not ship for the rendered platform is rewritten to `false`

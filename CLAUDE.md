@@ -4,9 +4,9 @@ A reimplementation of SwiftUI for Linux, drawn with Skia and HarfBuzz, that rend
 
 ## Build and check
 
-- **Build:** `scripts/bootstrap.sh` once (fetches Skia into `Vendor/`), then `swift build`. In the cloud environment the toolchain is at `/opt/swift/usr/bin`.
+- **Build:** `scripts/bootstrap.sh` once (fetches Skia into `Vendor/`), then `swift build`. In the cloud environment the toolchain is at `/opt/swift/usr/bin`. On a Mac, `brew install harfbuzz pkg-config` first; see "macOS" in `docs/ARCHITECTURE.md`.
 - **Suites:** `Tests/Projects/run.sh`, `Tests/Frameworks/run.sh` and `Tests/Interaction/run.sh`. CI runs them.
-- **Regression loop, before and after every change:**
+- **Regression loop, before and after every change** (`scripts/regression.sh OUT_DIR`, then `scripts/regression.sh --compare BEFORE AFTER`):
   - Render each file in `Tests/Corpus/*.swift`, `Examples/*.swift`, `Examples/ApiGaps/*.swift` and `Examples/Frameworks/*.swift`, with `--all --scheme both --open-fonts`. For `*TV*` files add `--device apple-tv`.
   - Compare the before and after PNGs byte for byte. Every difference must be intended.
   - `ContainersLayout` and `Interactions-Loading` vary between runs, so ignore them.

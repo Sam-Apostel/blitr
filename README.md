@@ -1,6 +1,6 @@
 # swiftui-screenshot
 
-Renders SwiftUI source code to a PNG on headless Linux. No macOS, no simulator, no browser.
+Renders SwiftUI source code to a PNG on Linux or a Mac. No simulator, no Xcode project, no browser.
 
 ```
 swiftui-screenshot render Examples/Hello.swift -o shot.png
@@ -227,16 +227,23 @@ swift build -c release
 **Docker.** The `Dockerfile` builds the tool on `swift:6.4.2-noble` and keeps the toolchain, since your code is
 compiled at render time. Its header comment has the build and run lines.
 
-## macOS (in progress)
+## macOS
 
-Running natively on a Mac, without Docker, is being worked on in issue #19; until then use Docker or a Linux
-machine. The groundwork is in: Linux-only code compiles out on Darwin, the tool knows `.dylib` and
-`@loader_path`, `scripts/bootstrap.sh` fetches the macOS Skia build and wants HarfBuzz from Homebrew
-(`brew install harfbuzz pkg-config`), and the engine's library is named `libSwiftUIScreenshotEngine` so it
-cannot be mistaken for Apple's SwiftUI. None of it has been built on a Mac yet: `swift build` is expected to
-fail on the modules that share their names with Apple's frameworks (CoreGraphics, Combine, ObjectiveC, ...),
-which is the next step. The manual `macOS (port in progress)` workflow (`.github/workflows/macos.yml`)
-builds and renders a few examples on a macOS runner.
+The same engine builds and runs natively on a Mac (Apple silicon or Intel, macOS 15 or later):
+
+```
+brew install harfbuzz pkg-config
+scripts/bootstrap.sh
+swift build -c release
+"$(swift build -c release --show-bin-path)/swiftui-screenshot" render Examples/Hello.swift -o shot.png
+```
+
+It draws with the same Skia and HarfBuzz code as on Linux, so with `--open-fonts` a render is the same picture
+on both. Your code is compiled against this project's SwiftUI and shim frameworks, never Apple's: the tool
+gives the compiler a view of the macOS SDK that holds only Foundation and what Foundation is built from, so
+`import ARKit` fails and `#if canImport(HealthKit)` is false exactly as on Linux. Combine, os and OSLog are
+Apple's own on a Mac. `scripts/make-dist.sh` builds a relocatable tarball there too; it expects Homebrew's
+HarfBuzz at run time.
 
 ## Limitations
 
@@ -249,12 +256,11 @@ builds and renders a few examples on a macOS runner.
   not always exactly.
 - **SF Symbols** are Phosphor stand-ins unless Apple's fonts and a `sf-symbols-map.json` are installed. They are
   recognisable but not Apple's artwork. Multicolor and hierarchical rendering fall back to a single colour.
-- **tvOS is early.** No tvOS control styling or focus engine yet.
-- **One static frame.** No animation, gestures or scrolling; content is shown at scroll offset zero. Remote
-  images (`AsyncImage`) show their placeholder. Network calls in `.task` will generally not complete.
-- **Apple frameworks other than SwiftUI are not available.** `UIViewRepresentable`, MapKit, Charts, SwiftData,
-  WebKit, AVKit and third-party packages will not compile or render. A small UIKit shim covers `UIColor`,
-  `UIScreen`, `UIDevice` and similar.
+- **tvOS focus** follows tvOS 26.5 recordings for all but 18 of 465 moves (docs/FOCUS.md).
+- **Interaction is scripted, not live.** Taps, typing and scrolling come from `--steps` (docs/INTERACTION.md).
+  Renders are offline by default and remote images (`AsyncImage`) show their placeholder.
+- **About 40 Apple frameworks beyond SwiftUI are shimmed** (docs/FRAMEWORKS.md). Others, such as Charts,
+  SwiftData and WebKit, are reported as missing; a `UIViewRepresentable` draws a labelled placeholder.
 - **API coverage is broad but not complete.** An API this module lacks is a compile error naming it, never a
   silently wrong picture.
 - **Left-to-right text only.** iPhone layouts are the best-tested path; iPad profiles and two-column
@@ -263,10 +269,8 @@ builds and renders a few examples on a macOS runner.
 
 ## Planned
 
-- Animation and interaction capture (GIF or frames)
-- Device frames
-- macOS (in progress, see "macOS (in progress)" above)
-- Widgets
+- Device frames around screenshots ([#26](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/26))
+- The open items in [docs/ROADMAP.md](docs/ROADMAP.md)
 
 ## Licences
 
