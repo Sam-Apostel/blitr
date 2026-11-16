@@ -169,11 +169,13 @@ look. The glass geometry is estimated from public material, not measured against
 the `#if os(tvOS)` branches of your code. Control styling and a focus engine for tvOS are still in progress, so
 controls currently look like their iOS counterparts.
 
-**watchOS (early support).** `--platform watchos` or any `--device apple-watch-*` (`apple-watch` is the Series 10
-46mm) compiles the `#if os(watchOS)` branches, draws dark with the time in the top corner, uses the watch's text
-style sizes and full-width capsule buttons, and makes watchOS's small UIKit (`UIImage`, `UIColor`, `UIFont`)
-visible to files that import SwiftUI, as on the watch. The watch safe areas and corner radii are estimates. See
-`Examples/Watch.swift`.
+**watchOS.** `--platform watchos` or any `--device apple-watch-*` (`apple-watch` is the Series 10 46mm) compiles
+the `#if os(watchOS)` branches and draws the watchOS 26 look, measured on the watchOS 26.5 simulator: always dark
+(a watch has no light appearance, so `--scheme light` draws dark too), the time in the top corner, the watch's
+safe areas and text sizes in SF Compact (when Apple's fonts are installed), capsule buttons, lists of separate
+rounded rows under a grey title, and `.verticalPage` dots in the top corner. watchOS's small UIKit (`UIImage`,
+`UIColor`, `UIFont`) is visible to files that import SwiftUI, as on the watch. Toolbar items, the back button and
+search are not drawn yet. See `Examples/Watch.swift` and `Examples/WatchList.swift`.
 
 ### Device frames
 

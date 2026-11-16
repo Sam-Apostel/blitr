@@ -143,12 +143,16 @@ final class ListNode: Node {
     let usesGlassGeometry: Bool
     /// tvOS: rows without cards or separators; the focused row is a raised white platter (Chrome/TV/TVList.swift).
     let tv: Bool
+    /// watchOS: every row is its own card, the cards a few points apart (`WatchMetrics`).
+    let watch: Bool
     /// The List is the content of a NavigationStack (its bar sits right above it).
     let underNavigationBar: Bool
 
     // Results of layout, in this node's coordinates.
     private var cards: [(rect: CGRect, radius: CGFloat, rows: Range<Int>, section: Int)] = []
     private var separators: [(rect: CGRect, color: RGBA)] = []
+    /// watchOS: cards drawn smaller at the bottom edge of the screen, by card index.
+    private var watchCardScales: [Int: CGFloat] = [:]
     var bleed = EdgeInsets()
     /// Structural identity, so the focus engine can scroll the list to the focused row.
     var scrollIdentity: IdentityPath?
@@ -163,16 +167,18 @@ final class ListNode: Node {
     init(items: [Node], style: ListStyleKind, env: EnvironmentValues) {
         self.style = style
         let colors = ListMetrics.colors(env, style: style)
-        // tvOS lists have no background of their own (est.): the screen shows through.
-        backgroundColor = env.scrollContentBackground == .hidden || env.renderPlatform == .tvOS ? nil : colors.background
-        cardColor = colors.card
+        // tvOS lists have no background of their own (est.): the screen shows through. So do watchOS ones (black).
+        let watch = env.renderPlatform == .watchOS
+        self.watch = watch
+        backgroundColor = env.scrollContentBackground == .hidden || env.renderPlatform == .tvOS || watch ? nil : colors.background
+        cardColor = watch ? WatchMetrics.current.cardColor : colors.card
         let glassSheet = SheetMetrics.forDesign(env.designLanguage)
         floatingSheetCardColor = env.colorScheme == .dark ? glassSheet.listCardDark : glassSheet.listCardLight
         rowSpacing = env.listRowSpacing
         listSectionSpacing = env.listSectionSpacing
         tv = env.renderPlatform == .tvOS
-        usesGlassGeometry = !tv && env.designLanguage.isGlass && style == .insetGrouped
-        let design = tv ? ListMetrics.forTV() : ListMetrics.forDesign(env.designLanguage, style: style)
+        usesGlassGeometry = !tv && !watch && env.designLanguage.isGlass && style == .insetGrouped
+        let design = tv ? ListMetrics.forTV() : watch ? ListMetrics.forWatch() : ListMetrics.forDesign(env.designLanguage, style: style)
         self.design = design
         if let colors = design.separatorColors {
             separatorColor = env.colorScheme == .dark ? colors.dark : colors.light
@@ -261,6 +267,7 @@ final class ListNode: Node {
         let own = CGRect(origin: ctx.origin, size: size)
         bleed = ctx.safeAreaBleed(for: own, edges: .all)
         if tv { layoutTV(size: size, ctx); return }
+        if watch { layoutWatch(size: size, ctx); return }
         cards = []
         separators = []
         axHeaderBoxes = [:]
@@ -416,6 +423,65 @@ final class ListNode: Node {
         contentHeight = y + scrollOffset + max(0, ctx.origin.y + size.height - ctx.safeRect.maxY)
     }
 
+    /// watchOS: the rows as separate cards inside the safe area's width, starting at its top (under the
+    /// navigation title), `WatchMetrics.rowSpacing` apart (or `listRowSpacing`). Sections follow each other
+    /// with their headers and footers inset like the rows' content (spacing estimated).
+    private func layoutWatch(size: CGSize, _ ctx: PlaceContext) {
+        cards = []
+        separators = []
+        axHeaderBoxes = [:]
+        axFooterBoxes = [:]
+        let m = WatchMetrics.current
+        let cardX = min(size.width, max(0, ctx.safeRect.minX - ctx.origin.x))
+        let cardW = max(0, min(size.width, ctx.safeRect.maxX - ctx.origin.x) - cardX)
+        let radius: CGFloat = style.hasCards ? design.cardCornerRadius : 0
+        var inner = ctx
+        let unbounded = CGRect(x: -1e6, y: -1e6, width: 2e6, height: 2e6)
+        inner.container = unbounded
+        inner.safeRect = unbounded
+        let textWidth = max(0, cardW - m.rowInset * 2)
+        var y = max(0, ctx.safeRect.minY - ctx.origin.y)
+        for (index, section) in sections.enumerated() {
+            if index > 0 { y += m.sectionSpacing }
+            if let header = section.header {
+                let h = header.sizeThatFits(ProposedViewSize(width: textWidth, height: nil))
+                header.place(at: CGPoint(x: cardX + m.rowInset, y: y), size: h, inner)
+                y += h.height + m.headerGap
+            }
+            for (i, row) in section.rows.enumerated() {
+                if i > 0 { y += rowSpacing ?? m.rowSpacing }
+                let rowSize = row.sizeThatFits(ProposedViewSize(width: cardW, height: nil))
+                row.place(at: CGPoint(x: cardX, y: y), size: rowSize, inner)
+                cards.append((CGRect(x: cardX, y: y, width: cardW, height: rowSize.height), radius, i..<(i + 1), index))
+                y += rowSize.height
+            }
+            if let footer = section.footer {
+                y += m.headerGap
+                let f = footer.sizeThatFits(ProposedViewSize(width: textWidth, height: nil))
+                footer.place(at: CGPoint(x: cardX + m.rowInset, y: y), size: f, inner)
+                y += f.height
+            }
+        }
+        contentHeight = y + max(0, ctx.origin.y + size.height - ctx.safeRect.maxY)
+
+        // Cards at the bottom of the screen are drawn smaller, as the carousel shrinks rows on their way in.
+        // measured: watchOS 26.5 simulator (WatchList "List"): a card that only just shows is small (3pt of it on
+        // screen on the 46mm watch: 0.5 of its size; 1pt on the Ultra 2: 0.25), which is linear in the share of the
+        // card on screen up to full size at 13% of it; and a card reaching more than 28pt below the safe area
+        // loses 0.44% per point beyond that (the Ultra 2's third card, 33pt below: 0.978; 27 and 28pt below on
+        // the other watches: 0.997 and 0.998). Two to three points per rule: between them it is an estimate.
+        watchCardScales = [:]
+        let screenBottom = ctx.container.maxY - ctx.origin.y
+        let safeBottom = ctx.safeRect.maxY - ctx.origin.y
+        for (i, card) in cards.enumerated() where card.rect.height > 0 {
+            let shown = (screenBottom - card.rect.minY) / card.rect.height
+            let entering = shown <= 0 ? 0 : 0.13 + 6.85 * shown
+            let below = 1 - 0.0044 * max(0, card.rect.maxY - safeBottom - 28)
+            let scale = max(0, min(1, entering, below))
+            if scale < 1 { watchCardScales[i] = scale }
+        }
+    }
+
     override func drawContent(_ p: Painter) {
         let bounds = CGRect(origin: .zero, size: frame.size)
         let visible = bounds.outset(by: bleed)
@@ -435,12 +501,18 @@ final class ListNode: Node {
         }
         for (index, section) in sections.enumerated() {
             section.header?.draw(p)
-            for card in cards where card.section == index {
+            for (cardIndex, card) in cards.enumerated() where card.section == index {
                 let path = Path(roundedRect: card.rect, cornerRadius: card.radius, style: .continuous)
+                p.save()
+                if let scale = watchCardScales[cardIndex] {
+                    // Scaled about the card's top centre.
+                    p.translate(card.rect.midX, card.rect.minY)
+                    p.scale(scale, scale)
+                    p.translate(-card.rect.midX, -card.rect.minY)
+                }
                 if style.hasCards || style == .inset {
                     p.fill(path, with: .color(onFloatingSheetGlass ? floatingSheetCardColor : cardColor), in: card.rect)
                 }
-                p.save()
                 if card.radius > 0 { p.clip(path) }
                 for row in section.rows[card.rows] { row.draw(p) }
                 p.restore()

@@ -54,11 +54,24 @@ enum DeviceChrome {
     }
 
     /// Apple Watch: the time in the top trailing corner, clear of the rounded display corner, as watchOS
-    /// draws it over an app (10:09, the watch simulator's time). Sizes are estimates scaled by screen width.
+    /// draws it over an app (10:09, the watch simulator's time).
     private static func drawWatchTime(_ p: Painter, device: DeviceProfile, size: CGSize, scheme: ColorScheme) {
-        let k = size.width / 208
-        drawText(p, "10:09", size: (17 * k).rounded(), weight: .semibold, x: size.width - 22 * k, centerY: device.safeArea.top * 0.55,
+        let m = WatchClock.metrics(screenWidth: size.width)
+        drawText(p, "10:09", size: m.fontSize, weight: .semibold, x: size.width - m.trailing, centerY: m.centerY,
                  anchor: .trailing, canvas: size, scheme: scheme)
+    }
+
+    /// The watch's clock. measured: watchOS 26.5 simulator, the digits' ink: 12pt tall centred on y 26, ending
+    /// 16pt from the right edge on the 46mm screen; 11pt on y 22.5, 14pt from the edge on the 42mm one; 12pt
+    /// on y 27.5, 16.5pt from the edge on the Ultra 2. `trailing` is the text frame's distance from the edge.
+    enum WatchClock {
+        static func metrics(screenWidth width: CGFloat) -> (fontSize: CGFloat, trailing: CGFloat, centerY: CGFloat) {
+            switch width {
+            case ..<200: return (15.5, 13, 22)      // 42mm
+            case ..<207: return (17, 15.5, 27)      // Ultra 2
+            default: return (17, 15, 25.5)          // 46mm
+            }
+        }
     }
 
     /// Notch and Dynamic Island phones: time in the left ear, indicators in the right one.

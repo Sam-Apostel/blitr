@@ -325,7 +325,12 @@ final class TextLayout {
 
         // Geometry. Sizes are rounded up to whole pixels, as SwiftUI does for text.
         func ceilPx(_ v: CGFloat) -> CGFloat { (v * options.scale - 0.001).rounded(.up) / options.scale }
-        let contentWidth = lines.map { $0.width + $0.trailingSpace }.max() ?? 0
+        var contentWidth = lines.map { $0.width + $0.trailingSpace }.max() ?? 0
+        // That space never makes the text wider than it was offered. measured: watchOS 26.5 simulator (Watch
+        // "Text styles" on the Ultra 2: a body line that fits 201pt only without its space is 201pt wide, not 203).
+        if RenderedPlatform.platform == .watchOS, let maxWidth {
+            contentWidth = min(contentWidth, max(maxWidth - 0.01, lines.map(\.width).max() ?? 0))
+        }
         let boxWidth = ceilPx(contentWidth)
         var y: CGFloat = 0
         for index in lines.indices {

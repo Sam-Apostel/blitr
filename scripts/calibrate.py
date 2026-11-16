@@ -3,13 +3,16 @@
 
     scripts/calibrate.py [--ios 27.0] [--device iphone-16] [--scheme light] [--only REGEX] [--out out/cal]
     scripts/calibrate.py --platform tvos --device apple-tv-4k --set tvos-26.5 [--scheme dark]
+    scripts/calibrate.py --platform watchos --device apple-watch-ultra-2 --set watchos-26.5
 
 Reads Tests/Reference/<set>/manifest.json (written by scripts/mac/capture-references.sh; the set is
 ios-<version> by default), renders each listed preview with the renderer at the same OS version, device
 and scheme, then runs `swiftui-screenshot compare` on the two directories. For tvOS sets the manifest's
 press variants (`<screen>-<preview>-<presses>.png`, the state after those Siri Remote presses) are rendered
 with `--press`, or with `--focus` where FOCUS_VARIANTS names the element the presses land on, so the
-look is compared independently of the focus engine. tvOS images are 2 px/pt and have no status bar. Prints one line per screen, worst first, and
+look is compared independently of the focus engine. tvOS images are 2 px/pt and have no status bar. watchOS
+images are 2 px/pt too, and the watch's clock is masked: the simulator draws the real time there, because
+watchOS refuses the status bar override. Prints one line per screen, worst first, and
 leaves heatmaps, side-by-side images and report.json under <out>/<scheme>/compare.
 
 The reference captures live on the `data/references` branch, not on `main`, so clones and CI stay small.
@@ -44,9 +47,9 @@ FOCUS_VARIANTS = {"TVControls-0-right-right": "Prominent"}
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--ios", default=None, help="OS version (default 27.0, or the set's version)")
-    ap.add_argument("--platform", default="ios", choices=["ios", "tvos"])
+    ap.add_argument("--platform", default="ios", choices=["ios", "tvos", "watchos"])
     ap.add_argument("--set", default=None, help="reference set (default <platform>-<version>)")
-    ap.add_argument("--device", default=None, help="default iphone-16, apple-tv-4k on tvOS")
+    ap.add_argument("--device", default=None, help="default iphone-16, apple-tv-4k on tvOS, apple-watch-series-10-46mm on watchOS")
     ap.add_argument("--scheme", default="light")
     ap.add_argument("--only", default=None, help="regex on the screen key")
     ap.add_argument("--out", default="out/cal")
@@ -57,13 +60,14 @@ def main():
 
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     tvos = args.platform == "tvos"
+    watchos = args.platform == "watchos"
     if args.device is None:
-        args.device = "apple-tv-4k" if tvos else "iphone-16"
+        args.device = {"tvos": "apple-tv-4k", "watchos": "apple-watch-series-10-46mm"}.get(args.platform, "iphone-16")
     if args.set is None:
-        args.set = f"{args.platform}-{args.ios or ('26.5' if tvos else '27.0')}"
+        args.set = f"{args.platform}-{args.ios or ('26.5' if tvos or watchos else '27.0')}"
     if args.ios is None:
         args.ios = args.set.split("-", 1)[1]
-    scale = "2" if tvos else "3"
+    scale = "2" if tvos or watchos else "3"
     ref_root = os.path.join(root, "Tests", "Reference", args.set)
     if not os.path.exists(os.path.join(ref_root, "manifest.json")):
         fetch_references(root, args.set)
@@ -148,8 +152,13 @@ def main():
             os.remove(os.path.join(ours, stale))
     cmp_out = os.path.join(out, "compare")
     cmp = [tool, "compare", ref_sel, ours, "--out-dir", cmp_out, "--scale", scale]
-    if tvos:
+    if tvos or watchos:
         cmp += ["--status-bar", "0", "--home-indicator", "0"]
+    if watchos and names:
+        # The clock in the top trailing corner shows the time of the capture, not a fixed one: leave it out.
+        with open(os.path.join(ours, names[0] + ".json")) as f:
+            width = json.load(f)["size"]["width"]
+        cmp += ["--mask", f"{width - 90},8,90,36"]
     r = subprocess.run(cmp, capture_output=True, text=True)
     sys.stdout.write(r.stdout)
     sys.stderr.write(r.stderr)
