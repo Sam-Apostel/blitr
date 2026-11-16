@@ -16,7 +16,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
-HERE="$ROOT/scripts/mac/tvos-focus"
+HERE="$ROOT/scripts/mac/tvos"
 HOST="$ROOT/scripts/mac/host"
 SOURCE="$ROOT/Examples/TVFocus.swift"
 PREVIEWS=""
