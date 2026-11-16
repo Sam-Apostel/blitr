@@ -100,22 +100,26 @@ enum TabBarMetrics {
         /// iOS 26 draws the pill as a small raised glass platter (lighter than the bar, with a soft shadow);
         /// iOS 27 as a flat, darker fill.
         var pillIsRaised = false
-        /// iOS 27 dark: the pill darkens the bar's glass without hiding the colours behind it (a black pill
-        /// would): 76.5% of the bar, -10 levels, then saturation 1.75. measured: iOS 27.0 simulator (least-squares
-        /// fit of the pills of GlassTabsAndSheets-0/1 and the flat 32 -> 10 of NavigationTabs-Tabs)
-        var pillDarkGlass: (tint: RGBA, brightness: Float, saturation: Float)? = nil
+        /// iOS 27: the pill darkens the bar's glass without hiding the colours behind it (a flat fill would), as a
+        /// response to the bar under it. Light: 113% of the bar's luma less 51 levels, with 18% more colour (252 ->
+        /// 234 over white, 222,201,250 -> 204,175,233); dark: 86.5% less 16 levels, with 22% more colour (32 -> 10).
+        /// measured: iOS 27.0 simulator (fit of the pills of GlassTabsAndSheets-0/1, 03_AppShell and
+        /// NavigationTabs-Tabs/TabsShort/Misc against the fitted bar glass)
+        var pillGlass: (light: GlassResponse, dark: GlassResponse)? = nil
 
         func pill(_ scheme: ColorScheme) -> RGBA { scheme == .dark ? pillDark : pillLight }
 
         /// Draws the selection pill.
         @MainActor func drawPill(_ rect: CGRect, scheme: ColorScheme, design: DesignLanguage, in p: Painter) {
             guard rect.width > 0 else { return }
-            if scheme == .dark, let g = pillDarkGlass {
+            if let g = pillGlass {
                 var a = GlassAppearance.system(.regular, scheme: scheme, design: design)
                 a.blurRadius = 0
-                a.tint = g.tint
-                a.brightness = g.brightness
-                a.saturation = g.saturation
+                // Where the bar cannot be read back: the flat fill.
+                a.tint = pill(scheme)
+                a.brightness = 0
+                a.saturation = 1
+                a.response = scheme == .dark ? g.dark : g.light
                 a.lensWidth = 0.001
                 a.lensStrength = 0
                 a.highlight = (0, 0)
@@ -138,9 +142,10 @@ enum TabBarMetrics {
         switch design {
         case .liquidGlass27:
             // iOS 27: the selection pill is darker than the bar.
-            // measured: iOS 27.0 simulator (pill 235 on a 249 bar in light, 10 on 32 in dark)
-            var g = Glass(pillLight: RGBA(0, 0, 0, 0.056), pillDark: RGBA(0, 0, 0, 0.69))
-            g.pillDarkGlass = (RGBA(0, 0, 0, 0.235), -0.039, 1.75)
+            // measured: iOS 27.0 simulator (pill 234 on a 252 bar in light, 10 on 32 in dark)
+            var g = Glass(pillLight: RGBA(0, 0, 0, 0.07), pillDark: RGBA(0, 0, 0, 0.69))
+            g.pillGlass = (GlassResponse(luma: (-0.2015, 1.133, 0), chroma: (1.185, 0)),
+                           GlassResponse(luma: (-0.064, 0.865, 0), chroma: (1.218, 0)))
             return g
         default:
             // iOS 26: a flat fill, darker than the bar in light mode and lighter in dark mode.
