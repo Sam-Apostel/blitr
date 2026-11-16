@@ -5,7 +5,7 @@ import Foundation
 /// manifest's contents, so this costs about a second once per manifest version.
 enum SwiftPMReader {
     static var cacheRoot: String {
-        ProcessInfo.processInfo.environment["SWIFTUI_SCREENSHOT_CACHE"] ?? (NSHomeDirectory() + "/.cache/swiftui-screenshot")
+        ProcessInfo.processInfo.environment["BLITR_CACHE"] ?? (NSHomeDirectory() + "/.cache/blitr")
     }
 
     static func swiftExecutable() -> String? { located }

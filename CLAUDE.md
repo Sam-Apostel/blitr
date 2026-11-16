@@ -1,4 +1,4 @@
-# swiftui-screenshot
+# blitr
 
 A reimplementation of SwiftUI for Linux, drawn with Skia and HarfBuzz, that renders screenshots from unmodified SwiftUI source. Read `ARCHITECTURE.md` first, then `docs/ROADMAP.md` for what is done and what is open.
 
@@ -14,7 +14,7 @@ A reimplementation of SwiftUI for Linux, drawn with Skia and HarfBuzz, that rend
 
 ## Calibration rules
 
-- **References:** captured on the Mac with `scripts/mac/` into `~/Library/Application Support/swiftui-screenshot/references` (or `SWIFTUI_SCREENSHOT_REFERENCES`), and never committed: they can be re-captured. Only images used in documentation go in git. Calibration runs on the Mac.
+- **References:** captured on the Mac with `scripts/mac/` into `~/Library/Application Support/blitr/references` (or `BLITR_REFERENCES`), and never committed: they can be re-captured. Only images used in documentation go in git. Calibration runs on the Mac.
 - **Running it:** run `calibrate.py` with `--jobs 1`. Parallel jobs collide on the shared module cache.
 - **Measured constants:**
   - Take every constant from the reference PNGs or accessibility JSONs, not from memory.

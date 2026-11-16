@@ -36,7 +36,7 @@ enum ProjectSession {
           --whole-target     Compile every file of the target instead of the files the entry needs
           --locale <id>      Language for string catalogs and .strings (default: the project's development language),
                              and the device's region and formats (see render --help)
-      swiftui-screenshot check <file | --target Name> [--json]   Compile without rendering; summarize what is unsupported
+      blitr check <file | --target Name> [--json]   Compile without rendering; summarize what is unsupported
     """
 
     /// Removes the project-mode flags from `arguments` (they are not known to the option parser).
@@ -244,13 +244,13 @@ struct ProjectBuild {
     func generatedFiles(_ target: ProjectTarget, stage: String?, isPackage: Bool, sdk: Bool, sources: [(path: String, contents: String)]) -> [CompiledSource] {
         var files: [CompiledSource] = []
         if target.name == context.target.name {
-            // SWIFTUI_SCREENSHOT_EXTRA_SOURCES (colon-separated .swift files): compiled into the entry target.
+            // BLITR_EXTRA_SOURCES (colon-separated .swift files): compiled into the entry target.
             // A scouting aid: stand-ins for something the target needs and the SDK lacks.
-            for path in (ProcessInfo.processInfo.environment["SWIFTUI_SCREENSHOT_EXTRA_SOURCES"] ?? "").split(separator: ":").map(String.init) {
+            for path in (ProcessInfo.processInfo.environment["BLITR_EXTRA_SOURCES"] ?? "").split(separator: ":").map(String.init) {
                 if let text = try? read(path) { files.append(CompiledSource(path: path, contents: text)) }
             }
         }
-        if isPackage, let stage { files.append(CompiledSource(path: "/__swiftui_screenshot__/\(target.moduleName)/resource_bundle_accessor.swift", contents: ProjectResources.bundleAccessor(stage))) }
+        if isPackage, let stage { files.append(CompiledSource(path: "/__blitr__/\(target.moduleName)/resource_bundle_accessor.swift", contents: ProjectResources.bundleAccessor(stage))) }
         let catalogs = ProjectResources.assetCatalogs(target.resources)
         if sdk, !catalogs.isEmpty {
             var declared: Set<String> = []
@@ -258,7 +258,7 @@ struct ProjectBuild {
                 for ext in SwiftIndexer.index(Array(source.contents.utf8)).extensions { declared.formUnion(ext.members) }
             }
             if let symbols = ProjectResources.assetSymbols(catalogs, bundle: isPackage && stage != nil ? "Bundle.module" : "Bundle.main", declared: declared) {
-                files.append(CompiledSource(path: "/__swiftui_screenshot__/\(target.moduleName)/GeneratedAssetSymbols.swift", contents: symbols))
+                files.append(CompiledSource(path: "/__blitr__/\(target.moduleName)/GeneratedAssetSymbols.swift", contents: symbols))
             }
         }
         return files
@@ -340,9 +340,9 @@ struct ProjectBuild {
         if !table.isEmpty, let data = try? JSONSerialization.data(withJSONObject: table, options: [.sortedKeys]) {
             let path = (runner.path as NSString).deletingLastPathComponent + "/strings-\(language).json"
             try? data.write(to: URL(fileURLWithPath: path))
-            setenv("SWIFTUI_SCREENSHOT_STRINGS", path, 1)
+            setenv("BLITR_STRINGS", path, 1)
         }
-        setenv("SWIFTUI_SCREENSHOT_LOCALE", language, 1)
+        setenv("BLITR_LOCALE", language, 1)
         // Bundle.main of the compiled preview is the runner's directory, and its localizations are the `.lproj`
         // folders in it: one per language the project has strings for, as in the app bundle, so app code that
         // checks `Bundle.main.localizations` or `preferredLocalizations` sees the app's languages.
@@ -358,7 +358,7 @@ struct ProjectBuild {
         }
 
         // Previews, as Tool.build does.
-        let listing = swiftuiScreenshotRun(runner.path, ["--list"])
+        let listing = blitrRun(runner.path, ["--list"])
         guard listing.status == 0 else { fail("runner failed to list previews:\n\(listing.stderr)") }
         let previews: [(index: Int, name: String)] = listing.stdout.split(separator: "\n").compactMap { line in
             let parts = line.split(separator: "\t", maxSplits: 1, omittingEmptySubsequences: false)

@@ -53,7 +53,7 @@ public enum _ImageCache {
 
 final class ImageCacheURLProtocol: URLProtocol, @unchecked Sendable {
     /// Marks the request the protocol makes itself, so it is not intercepted again.
-    static let passThrough = "swiftui-screenshot.image-cache.pass-through"
+    static let passThrough = "blitr.image-cache.pass-through"
     private var dataTask: URLSessionDataTask?
 
     override class func canInit(with request: URLRequest) -> Bool {

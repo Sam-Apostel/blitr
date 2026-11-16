@@ -74,5 +74,5 @@ extension ProgressView where Label == EmptyView, CurrentValueLabel == DefaultDat
 // MARK: - LocalizedStringResource
 
 // Foundation's `LocalizedStringResource` and `String(localized:)` are missing from
-// swift-corelibs-foundation; they live in the SwiftUIScreenshotFoundation module, which SwiftUI
+// swift-corelibs-foundation; they live in the BlitrFoundation module, which SwiftUI
 // re-exports (Compat/Localization.swift), and resolve through the project's string table.

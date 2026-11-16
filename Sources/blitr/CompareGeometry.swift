@@ -1,6 +1,6 @@
 import Foundation
 
-// Geometry comparison for `swiftui-screenshot compare`: pure JSON in, JSON out. Accepts this tool's
+// Geometry comparison for `blitr compare`: pure JSON in, JSON out. Accepts this tool's
 // `--accessibility-tree` output or a simulator dump (see README, "Comparing against references").
 
 struct GeoElement {

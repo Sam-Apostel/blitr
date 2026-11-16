@@ -1,7 +1,7 @@
 import SwiftUI
 
 // Deliberately flawed: render with
-//   swiftui-screenshot render Examples/Accessibility.swift --accessibility-tree a11y.json --tap-targets taps.png --accessibility-outline
+//   blitr render Examples/Accessibility.swift --accessibility-tree a11y.json --tap-targets taps.png --accessibility-outline
 // and the issues array reports the small icon button, the unlabeled buttons, the asset image without
 // a label, the duplicate identifier and the truncated text.
 

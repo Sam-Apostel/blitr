@@ -31,13 +31,13 @@ public enum _ScreenshotRunner {
 
     /// On macOS, Locale.current is the Mac's own region and language, so formats that user code applies itself
     /// would follow whoever runs the render. The runner formats as en_US instead, as the simulator references do
-    /// (`SWIFTUI_SCREENSHOT_LOCALE` overrides it). It must run before anything reads Locale.current. `Text`
+    /// (`BLITR_LOCALE` overrides it). It must run before anything reads Locale.current. `Text`
     /// formats with the environment's locale on every host (`Text.Storage.formatted`).
     static func applyLocale() {
         #if canImport(Darwin)
         let arguments = _RunnerArguments.all
         let flag = arguments.firstIndex(of: "--locale").flatMap { $0 + 1 < arguments.count ? arguments[$0 + 1] : nil }
-        let identifier = flag ?? ProcessInfo.processInfo.environment["SWIFTUI_SCREENSHOT_LOCALE"] ?? "en_US"
+        let identifier = flag ?? ProcessInfo.processInfo.environment["BLITR_LOCALE"] ?? "en_US"
         let language = identifier.split(whereSeparator: { $0 == "_" || $0 == "-" }).first.map(String.init) ?? "en"
         var domain = UserDefaults.standard.volatileDomain(forName: UserDefaults.argumentDomain)
         domain["AppleLocale"] = identifier

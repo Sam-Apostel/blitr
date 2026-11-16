@@ -73,8 +73,8 @@ def main():
     ap.add_argument("--verbose", "-v", action="store_true")
     args = ap.parse_args(argv)
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    tool = os.environ.get("SWIFTUI_SCREENSHOT_TOOL") or os.path.join(
-        subprocess.check_output(["swift", "build", "--show-bin-path"], cwd=root, text=True).strip(), "swiftui-screenshot")
+    tool = os.environ.get("BLITR_TOOL") or os.path.join(
+        subprocess.check_output(["swift", "build", "--show-bin-path"], cwd=root, text=True).strip(), "blitr")
     os.makedirs(args.out, exist_ok=True)
     grand = [0, 0]
     for name in sorted(os.listdir(args.recordings)):

@@ -1,6 +1,6 @@
 import Foundation
 
-// `swiftui-screenshot check`: compile without rendering and summarize what is unsupported, grouped and
+// `blitr check`: compile without rendering and summarize what is unsupported, grouped and
 // counted, instead of a wall of compiler errors. The same summary follows a failed render.
 
 struct Diagnostic: Hashable {
@@ -329,8 +329,8 @@ enum CheckCommand {
         if !fm.fileExists(atPath: module) {
             try? fm.createDirectory(atPath: store, withIntermediateDirectories: true)
             let source = store + "/\(name).swift"
-            try? "// Empty stand-in used by `swiftui-screenshot check`.\n".write(toFile: source, atomically: true, encoding: .utf8)
-            let result = swiftuiScreenshotRun(installation.swiftc, HostPlatform.compilerFlags + ["-parse-as-library", "-emit-module", "-module-name", name, source, "-emit-module-path", module])
+            try? "// Empty stand-in used by `blitr check`.\n".write(toFile: source, atomically: true, encoding: .utf8)
+            let result = blitrRun(installation.swiftc, HostPlatform.compilerFlags + ["-parse-as-library", "-emit-module", "-module-name", name, source, "-emit-module-path", module])
             guard result.status == 0 else { return false }
         }
         try? fm.createDirectory(atPath: directory, withIntermediateDirectories: true)

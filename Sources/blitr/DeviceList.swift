@@ -1,6 +1,6 @@
 import Foundation
 
-/// `swiftui-screenshot devices`: the table lives in the runtime module, so build (once, cached) a
+/// `blitr devices`: the table lives in the runtime module, so build (once, cached) a
 /// trivial runner against it and ask it with `--list-devices`.
 func listDevices(_ installation: Installation) -> Never {
     let listing = run(utilityRunner(installation), ["--list-devices"])
@@ -13,7 +13,7 @@ func listDevices(_ installation: Installation) -> Never {
 /// modes that need the module (and Skia) but no user code: `--list-devices`, `--compare`.
 func utilityRunner(_ installation: Installation) -> String {
     guard !installation.swiftc.isEmpty else { fail("swiftc not found. Install a Swift 6 toolchain and put it on PATH, or set SWIFTC.") }
-    let cacheRoot = ProcessInfo.processInfo.environment["SWIFTUI_SCREENSHOT_CACHE"] ?? (NSHomeDirectory() + "/.cache/swiftui-screenshot")
+    let cacheRoot = ProcessInfo.processInfo.environment["BLITR_CACHE"] ?? (NSHomeDirectory() + "/.cache/blitr")
     let work = cacheRoot + "/devices-" + hash(["devices", installation.stamp, installation.swiftc])
     let runner = work + "/runner"
     if !FileManager.default.isExecutableFile(atPath: runner) {

@@ -4,7 +4,7 @@ import SwiftUI
 // button, the collapsed sidebar, a focused toolbar item, a focused segment and a segmented picker in a
 // List. The first element in reading order starts focused; the presses below reach the other states.
 //
-//   swiftui-screenshot render Examples/TVControlsMore.swift --device apple-tv --all --out-dir out
+//   blitr render Examples/TVControlsMore.swift --device apple-tv --all --out-dir out
 //
 //   ... --preview "Plain Buttons" --press right           focus the plain artwork button
 //   ... --preview "Plain Buttons" --press right,right     focus the plain text button

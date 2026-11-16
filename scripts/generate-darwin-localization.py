@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generates Sources/SwiftUIScreenshotFoundation/DarwinLocalizationOverloads.swift.
+"""Generates Sources/BlitrFoundation/DarwinLocalizationOverloads.swift.
 
 On Darwin, String(localized:) and AttributedString(localized:) are Apple's, and a redeclaration with the same
 signature is ambiguous rather than shadowing it. Swift does prefer an overload that leaves fewer defaulted
@@ -9,7 +9,7 @@ defaults: for every call, ours matches exactly and Apple's would need defaults, 
 import itertools, pathlib
 
 root = pathlib.Path(__file__).resolve().parent.parent
-out = root / "Sources/SwiftUIScreenshotFoundation/DarwinLocalizationOverloads.swift"
+out = root / "Sources/BlitrFoundation/DarwinLocalizationOverloads.swift"
 
 def tail(locale_type):
     return [("table", "table: String?"), ("bundle", "bundle: Bundle?"), ("locale", f"locale: {locale_type}"),

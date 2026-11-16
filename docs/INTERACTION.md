@@ -1,16 +1,16 @@
 # Interaction scripts and animation capture
 
-`swiftui-screenshot` can drive a screen with a script of steps and capture what happens: a PNG per
+`blitr` can drive a screen with a script of steps and capture what happens: a PNG per
 step, a filmstrip, or an animated file whose in-between frames are interpolated the way SwiftUI
 animates (not a cross-fade of screenshots).
 
 ```
-swiftui-screenshot render Todo.swift -o out/todo.png \
+blitr render Todo.swift -o out/todo.png \
     --steps 'type "New task" "Water the plants" submit; tap "Buy milk"; swipe "Call the dentist" left' \
     --frames out/todo --frames-every-step --filmstrip out/todo-strip.png --animated out/todo.gif
 
-swiftui-screenshot render Card.swift --animated out/card.gif --steps 'tap "Trip to Lisbon"'
-swiftui-screenshot render Loading.swift --animated out/loading.apng --duration 2
+blitr render Card.swift --animated out/card.gif --steps 'tap "Trip to Lisbon"'
+blitr render Loading.swift --animated out/loading.apng --duration 2
 ```
 
 `Examples/Interactions.swift` has one preview per feature with the exact command lines in its header.

@@ -42,17 +42,17 @@ jobs:
       - name: Smoke test from the unpacked tarball
         run: |
           set -euo pipefail
-          tarball="$(ls "$PWD"/dist/swiftui-screenshot-*-linux-${{ matrix.arch }}.tar.gz)"
+          tarball="$(ls "$PWD"/dist/blitr-*-linux-${{ matrix.arch }}.tar.gz)"
           cp Examples/Hello.swift /tmp/Hello.swift
           # A clean directory with no checkout, no Vendor/ and no build tree in reach.
           mkdir -p /tmp/smoke/unpacked /tmp/smoke/work
           tar -xzf "$tarball" -C /tmp/smoke/unpacked
-          mv /tmp/smoke/unpacked/swiftui-screenshot /tmp/smoke/moved
+          mv /tmp/smoke/unpacked/blitr /tmp/smoke/moved
           mv .build .build.hidden
           cd /tmp/smoke/work
-          /tmp/smoke/moved/bin/swiftui-screenshot version
-          /tmp/smoke/moved/bin/swiftui-screenshot doctor
-          /tmp/smoke/moved/bin/swiftui-screenshot render /tmp/Hello.swift -o hello.png
+          /tmp/smoke/moved/bin/blitr version
+          /tmp/smoke/moved/bin/blitr doctor
+          /tmp/smoke/moved/bin/blitr render /tmp/Hello.swift -o hello.png
           test -s hello.png
           head -c 8 hello.png | od -An -c | grep -q 'P *N *G'
           cd "$GITHUB_WORKSPACE" && mv .build.hidden .build
@@ -60,7 +60,7 @@ jobs:
       - name: Checksum
         run: |
           cd dist
-          for f in swiftui-screenshot-*.tar.gz; do sha256sum "$f" > "$f.sha256"; done
+          for f in blitr-*.tar.gz; do sha256sum "$f" > "$f.sha256"; done
           ls -l
 
       - uses: actions/upload-artifact@v4

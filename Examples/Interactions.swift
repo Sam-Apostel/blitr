@@ -1,7 +1,7 @@
 // Interaction scripts and animation capture (docs/INTERACTION.md).
 //
 // Each preview below is driven by a short script. Run from the repository root; `S` is
-// `swiftui-screenshot render Examples/Interactions.swift`.
+// `blitr render Examples/Interactions.swift`.
 //
 //   S --preview Counter -o out/counter.png --filmstrip out/counter-strip.png \
 //       --steps 'tap "Increment"; tap "Increment"; tap "Decrement"; tap "Reset"'

@@ -6,7 +6,7 @@
 #     Tests/Interaction/run.sh [output-directory]
 set -u
 cd "$(dirname "$0")/../.."
-bin="$(swift build --show-bin-path)/swiftui-screenshot"
+bin="$(swift build --show-bin-path)/blitr"
 out="${1:-out/Interaction}"
 failures=0
 fail() { echo "FAIL  $*"; failures=$((failures + 1)); }

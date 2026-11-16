@@ -46,13 +46,13 @@ import json, sys
 ds = [d for d in json.load(sys.stdin)["devices"].get(sys.argv[1], []) if d["name"] == sys.argv[2] and d["isAvailable"]]
 print(ds[0]["udid"] if ds else "")' "$RUNTIME_ID" "$DEVICE")"
 [[ -n "$UDID" ]] || { echo "No \"$DEVICE\" simulator on tvOS $RUNTIME_VERSION" >&2; exit 1; }
-OUT="${OUT:-${SWIFTUI_SCREENSHOT_REFERENCES:-$HOME/Library/Application Support/swiftui-screenshot/references}/tvos-$RUNTIME_VERSION/focus}"
-BUILD="${TMPDIR:-/tmp}/swiftui-screenshot-focus-host"
+OUT="${OUT:-${BLITR_REFERENCES:-$HOME/Library/Application Support/blitr/references}/tvos-$RUNTIME_VERSION/focus}"
+BUILD="${TMPDIR:-/tmp}/blitr-focus-host"
 mkdir -p "$BUILD/src" "$BUILD/tests" "$OUT"
 echo "Simulator: $DEVICE, tvOS $RUNTIME_VERSION ($UDID)"
 
 # --- Sources: the preview file rewritten as for the iOS host, in one module ----------------------------
-xcrun swiftc -O "$ROOT/Sources/swiftui-screenshot/Preprocessor.swift" "$HOST/Driver/main.swift" -o "$BUILD/prepare-host"
+xcrun swiftc -O "$ROOT/Sources/blitr/Preprocessor.swift" "$HOST/Driver/main.swift" -o "$BUILD/prepare-host"
 "$BUILD/prepare-host" "$ROOT" "$BUILD/gen" "$SOURCE"
 KEY="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[0]["key"])' "$BUILD/gen/screens.json")"
 rm -f "$BUILD"/src/*.swift
@@ -64,7 +64,7 @@ cp "$HERE/FocusWalkTests.swift" "$BUILD/tests/"
 cat > "$BUILD/project.yml" <<YML
 name: FocusHost
 options:
-  bundleIdPrefix: dev.swiftui-screenshot
+  bundleIdPrefix: dev.blitr
   deploymentTarget:
     tvOS: "26.0"
 settings:
@@ -79,7 +79,7 @@ targets:
     sources: [src]
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: dev.swiftui-screenshot.focus-host
+        PRODUCT_BUNDLE_IDENTIFIER: dev.blitr.focus-host
   FocusWalk:
     type: bundle.ui-testing
     platform: tvOS

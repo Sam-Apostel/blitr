@@ -34,7 +34,7 @@ A frame is taken of a screen that has just appeared, so its `.task` work runs fi
 loop, for at most `--task-timeout` real seconds (default 0.5); the state reached by then is drawn, with a
 warning if a task is still busy. Two things keep that from depending on the machine:
 
-- **`Task.sleep` runs on a virtual clock** (`SwiftUIScreenshotFoundation/RenderClock.swift`). Its overloads
+- **`Task.sleep` runs on a virtual clock** (`BlitrFoundation/RenderClock.swift`). Its overloads
   (`for:`, `nanoseconds:`, `until:clock:`, `for:tolerance:clock:`) shadow the standard library's in every
   module compiled against the SDK. When every running task is asleep, the clock jumps to the earliest
   wake-up, as long as that is within `--settle-time` (default 2 s); a sleep that ends later stays asleep
@@ -75,9 +75,9 @@ warning if a task is still busy. Two things keep that from depending on the mach
 | `Sources/SwiftUI/Render` | `Renderer`, runner entry point, device profiles and chrome, image comparison for `compare` |
 | `Sources/SwiftUI/Inert` | APIs with no effect on a static frame: gestures, animation; accessibility modifiers record into the tree |
 | `Sources/UIKit`, `MapKit`, `CoreLocation`, `WidgetKit`, `ActivityKit`, `AppIntents` | shim framework modules (see "Shim modules"; docs/MAPS.md, docs/WIDGETS.md) |
-| `Sources/Combine`, `SwiftUIScreenshotFoundation` | Combine; Foundation API missing on Linux (localization, formatters, ...) |
+| `Sources/Combine`, `BlitrFoundation` | Combine; Foundation API missing on Linux (localization, formatters, ...) |
 | `Sources/CoreGraphics`, `ImageIO`, `CoreImage`, `CoreText`, `UniformTypeIdentifiers` and the other framework modules | Apple frameworks beyond SwiftUI (docs/FRAMEWORKS.md); CoreGraphics and UniformTypeIdentifiers sit below SwiftUI |
-| `Sources/swiftui-screenshot` | the command-line tool and source preprocessor |
+| `Sources/blitr` | the command-line tool and source preprocessor |
 | `Tests/Corpus` | realistic screens rendered in CI as acceptance tests |
 
 ## Adding things
@@ -123,14 +123,14 @@ Apple frameworks that app code imports next to SwiftUI (`UIKit`, `MapKit`, `Core
 names are only visible where they are imported, as on Apple platforms: an app may declare its own
 `Activity` or `Map` in a file that imports only SwiftUI (`Examples/NameCollisions.swift`).
 
-Their code is linked into the engine library, **libSwiftUIScreenshotEngine** (`.so`; `.dylib` on macOS), not
-into libraries of their own: the `SwiftUIScreenshotEngine` product in `Package.swift` lists them
+Their code is linked into the engine library, **libBlitrEngine** (`.so`; `.dylib` on macOS), not
+into libraries of their own: the `BlitrEngine` product in `Package.swift` lists them
 (`shimModules`). SwiftPM links a target's dependencies into every dynamic product, so a `.dynamic` product
 per shim would carry a second copy of SwiftUI, and with two copies in a process conformance lookups fail at
 run time ("Text does not conform to View"). One library means every compile links
-`-lSwiftUIScreenshotEngine` only (`Installation.linkFlags`) and a runner maps exactly one SwiftUI. The
+`-lBlitrEngine` only (`Installation.linkFlags`) and a runner maps exactly one SwiftUI. The
 library's file name cannot be mistaken for Apple's SwiftUI framework; the module is still `SwiftUI`. The
-SwiftUI module and `SwiftUIScreenshotFoundation` (which does not use SwiftUI, and whose code is in the
+SwiftUI module and `BlitrFoundation` (which does not use SwiftUI, and whose code is in the
 engine library too) autolink it (`-module-link-name`); the modules inside the library are built with
 `-disable-autolink-library` for it, so the library never links against itself.
 
@@ -155,7 +155,7 @@ To add a shim for framework `Foo`:
 
 The tool and engine build and run natively on macOS (issue #19). What differs from Linux:
 
-- **Host differences live in one place.** In the tool, `HostPlatform` (`Sources/swiftui-screenshot/HostPlatform.swift`)
+- **Host differences live in one place.** In the tool, `HostPlatform` (`Sources/blitr/HostPlatform.swift`)
   has the library extension (`.so` / `.dylib`), how a compiled module library names itself (SONAME /
   `@rpath` install name), the deployment target and SDK passed to every compile on macOS, the host's `os(...)`
   spelling for the preprocessor (`Preprocessor.hostOS`), and how the tool finds its own executable. In
@@ -221,7 +221,7 @@ The tool and engine build and run natively on macOS (issue #19). What differs fr
 ```
 scripts/bootstrap.sh            # once: fetches Skia + fonts into Vendor/
 swift build
-"$(swift build --show-bin-path)/swiftui-screenshot" render File.swift -o out/file.png [--layout fit] [--scheme dark] [--width 393]
+"$(swift build --show-bin-path)/blitr" render File.swift -o out/file.png [--layout fit] [--scheme dark] [--width 393]
 ```
 
 Look at the PNG. Compare against what the same code produces on iOS: spacing, sizes, and

@@ -3,9 +3,9 @@ import SwiftUI
 // tvOS navigation in an app with its own chrome: a hand-built top bar of focus sections, a page that scrolls a
 // whole section into view as focus enters it, a row of pills in a horizontal scroll view above a board, and a
 // full-screen cover that closes itself on Menu. Render with --device apple-tv and drive it with --press:
-//   swiftui-screenshot render Examples/TVNavigation.swift --device apple-tv --preview Page --press down,down,down
-//   swiftui-screenshot render Examples/TVNavigation.swift --device apple-tv --preview Board --press down,down,up
-//   swiftui-screenshot render Examples/TVNavigation.swift --device apple-tv --preview Cover --press right,down,right,select,menu
+//   blitr render Examples/TVNavigation.swift --device apple-tv --preview Page --press down,down,down
+//   blitr render Examples/TVNavigation.swift --device apple-tv --preview Board --press down,down,up
+//   blitr render Examples/TVNavigation.swift --device apple-tv --preview Cover --press right,down,right,select,menu
 
 private struct Tile: View {
     let title: String

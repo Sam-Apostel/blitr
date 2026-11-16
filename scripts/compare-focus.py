@@ -23,9 +23,9 @@ import argparse, collections, json, os, re, subprocess, sys
 
 def references_root():
     """Where reference captures live: on this Mac, outside the repository (they are re-captured, never committed).
-    SWIFTUI_SCREENSHOT_REFERENCES overrides it."""
-    return os.environ.get("SWIFTUI_SCREENSHOT_REFERENCES") or os.path.expanduser(
-        "~/Library/Application Support/swiftui-screenshot/references")
+    BLITR_REFERENCES overrides it."""
+    return os.environ.get("BLITR_REFERENCES") or os.path.expanduser(
+        "~/Library/Application Support/blitr/references")
 
 def require_set(path, name, what):
     if not os.path.exists(path):
@@ -37,9 +37,9 @@ DIRS = ["up", "down", "left", "right"]
 class Renderer:
     def __init__(self, root, out, device):
         self.root, self.out, self.device = root, out, device
-        # SWIFTUI_SCREENSHOT_TOOL: another build of the tool (a before/after comparison).
-        self.tool = os.environ.get("SWIFTUI_SCREENSHOT_TOOL") or os.path.join(
-            subprocess.check_output(["swift", "build", "--show-bin-path"], cwd=root, text=True).strip(), "swiftui-screenshot")
+        # BLITR_TOOL: another build of the tool (a before/after comparison).
+        self.tool = os.environ.get("BLITR_TOOL") or os.path.join(
+            subprocess.check_output(["swift", "build", "--show-bin-path"], cwd=root, text=True).strip(), "blitr")
         self.cache = {}
 
     def focus_map(self, source, preview, presses=None):

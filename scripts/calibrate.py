@@ -7,7 +7,7 @@
 
 Reads <references>/<set>/manifest.json (written by scripts/mac/capture-references.sh; the set is
 ios-<version> by default), renders each listed preview with the renderer at the same OS version, device
-and scheme, then runs `swiftui-screenshot compare` on the two directories. For tvOS sets the manifest's
+and scheme, then runs `blitr compare` on the two directories. For tvOS sets the manifest's
 press variants (`<screen>-<preview>-<presses>.png`, the state after those Siri Remote presses) are rendered
 with `--press`, or with `--focus` where FOCUS_VARIANTS names the element the presses land on, so the
 look is compared independently of the focus engine. tvOS images are 2 px/pt and have no status bar. watchOS
@@ -16,7 +16,7 @@ watchOS refuses the status bar override. Prints one line per screen, worst first
 leaves heatmaps, side-by-side images and report.json under <out>/<scheme>/compare.
 
 Reference captures live on this Mac, outside the repository (references_root(), default
-~/Library/Application Support/swiftui-screenshot/references); they are re-captured, never committed.
+~/Library/Application Support/blitr/references); they are re-captured, never committed.
 
 Renders use the time zone the set was captured in (dates and times on screen): the device's
 `simulatorTimeZone` in the manifest, else a manifest-level `timeZone`, else Europe/Brussels, where the sets
@@ -29,9 +29,9 @@ import argparse, concurrent.futures, json, os, re, subprocess, sys
 
 def references_root():
     """Where reference captures live: on this Mac, outside the repository (they are re-captured, never committed).
-    SWIFTUI_SCREENSHOT_REFERENCES overrides it."""
-    return os.environ.get("SWIFTUI_SCREENSHOT_REFERENCES") or os.path.expanduser(
-        "~/Library/Application Support/swiftui-screenshot/references")
+    BLITR_REFERENCES overrides it."""
+    return os.environ.get("BLITR_REFERENCES") or os.path.expanduser(
+        "~/Library/Application Support/blitr/references")
 
 def require_set(path, name, what):
     if not os.path.exists(path):
@@ -72,7 +72,7 @@ def main():
     manifest = json.load(open(os.path.join(ref_root, "manifest.json")))
     ref_dir = os.path.join(ref_root, args.device, args.scheme)
     bin_dir = subprocess.check_output(["swift", "build", "--show-bin-path"], cwd=root, text=True).strip()
-    tool = os.path.join(bin_dir, "swiftui-screenshot")
+    tool = os.path.join(bin_dir, "blitr")
     out = os.path.join(root, args.out, args.scheme)
     ours = os.path.join(out, "ours")
     os.makedirs(ours, exist_ok=True)

@@ -2,7 +2,7 @@
 // never deliver updates, and geocoding throws `CLError.network`. With it, that position is reported.
 
 import Foundation
-internal import SwiftUIScreenshotFoundation
+internal import BlitrFoundation
 
 public enum CLAuthorizationStatus: Int32, Sendable {
     case notDetermined = 0
@@ -296,7 +296,7 @@ open class CLGeocoder: NSObject, @unchecked Sendable {
     public var isGeocoding: Bool { false }
     public override init() { super.init() }
 
-    static var unavailable: CLError { CLError(.network, message: "Geocoding is not available when rendering with swiftui-screenshot (no network services).") }
+    static var unavailable: CLError { CLError(.network, message: "Geocoding is not available when rendering with blitr (no network services).") }
 
     open func reverseGeocodeLocation(_ location: CLLocation, completionHandler: @escaping CLGeocodeCompletionHandler) {
         completionHandler(nil, Self.unavailable)

@@ -20,7 +20,7 @@ output, never committed) carries the per-target detail.
 | 2 | `parse_interface.py`, `build_index.py` | index of our module: argument labels and defaults from the emitted `SwiftUI.swiftinterface`; types, members and enum cases from `swift symbolgraph-extract` (also for Swift, Foundation, Dispatch, Combine, Observation, to recognise non-SwiftUI names) |
 | 3 | `extract.py` | parses every file with `swiftc -dump-parse` and collects modifier calls with labels, initialisers, static/implicit members with the receiving call as context, attributes, macros, environment key paths, conformances, and the names the app declares itself. `swiftc -dump-parse` drops `#if` blocks, so `os()`/`canImport()` conditions are evaluated in the script and the active branch is spliced in per platform config |
 | 4 | `compare.py`, `frameworks.json` | classifies every site: covered, label gap, candidate gap, app-defined, other framework, ignored. `frameworks.json` maps names/prefixes to frameworks (hand-maintained) |
-| 5 | `confirm.py`, `manual_checks.json` | compiles one snippet per candidate (batched, one line each, errors attributed by line) with `swiftui-screenshot render`; `manual_checks.json` holds realistic call-site snippets used as a spot-check of "covered" |
+| 5 | `confirm.py`, `manual_checks.json` | compiles one snippet per candidate (batched, one line each, errors attributed by line) with `blitr render`; `manual_checks.json` holds realistic call-site snippets used as a spot-check of "covered" |
 | 6 | `report.py`, `curation.json` | merges everything into the document. `curation.json` is the hand-made class (a visual, b inert, c platform-specific, d other framework) and one-line note per confirmed SwiftUI gap |
 
 ## Method limits

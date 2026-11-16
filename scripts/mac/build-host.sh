@@ -29,12 +29,12 @@ fi
 TARGET="$ARCH-apple-$OS$DEPLOYMENT-simulator"
 SDK="$(xcrun --sdk $SDK_NAME --show-sdk-path)"
 SWIFTC=(xcrun --sdk $SDK_NAME swiftc -target "$TARGET" -sdk "$SDK" -swift-version 5 -Onone)
-BUNDLE_ID="${BUNDLE_ID:-dev.swiftui-screenshot.reference-host}"
+BUNDLE_ID="${BUNDLE_ID:-dev.blitr.reference-host}"
 
 mkdir -p "$BUILD/bin" "$BUILD/gen" "$BUILD/mods" "$BUILD/obj"
 
 # 1. The preprocessor driver runs on the Mac.
-xcrun swiftc -O "$ROOT/Sources/swiftui-screenshot/Preprocessor.swift" "$HOST/Driver/main.swift" -o "$BUILD/bin/prepare-host"
+xcrun swiftc -O "$ROOT/Sources/blitr/Preprocessor.swift" "$HOST/Driver/main.swift" -o "$BUILD/bin/prepare-host"
 "$BUILD/bin/prepare-host" "$ROOT" "$BUILD/gen" "$@"
 
 # 2. PreviewSupport, then one module per screen.

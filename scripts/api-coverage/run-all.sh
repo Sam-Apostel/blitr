@@ -29,9 +29,9 @@ echo "== 1. corpus"
 "$HERE/fetch-corpus.sh" "$WORK/corpus"
 
 echo "== 2. declaration index of our SwiftUI module (module interface + symbol graph)"
-# libSwiftUIScreenshotEngine links the Foundation shim's library, so that product is built first.
-(cd "$REPO" && swift build --scratch-path "$WORK/ibuild" --product SwiftUIScreenshotEngine)
-(cd "$REPO" && swift build --scratch-path "$WORK/ibuild" --product SwiftUIScreenshotEngine \
+# libBlitrEngine links the Foundation shim's library, so that product is built first.
+(cd "$REPO" && swift build --scratch-path "$WORK/ibuild" --product BlitrEngine)
+(cd "$REPO" && swift build --scratch-path "$WORK/ibuild" --product BlitrEngine \
    -Xswiftc -emit-module-interface -Xswiftc -no-verify-emitted-module-interface)
 BIN=$(cd "$REPO" && swift build --show-bin-path)
 IFACE=$(find "$WORK/ibuild" -name SwiftUI.swiftinterface | head -1)
@@ -57,9 +57,9 @@ echo "== 4. compare"
 PRIV_ARGS=(); [ -n "$PRIVATE" ] && PRIV_ARGS=(--private "$PRIVATE")
 python3 -I "$HERE/compare.py" "$WORK/index.json" "$WORK/compare.json" "${PRIV_ARGS[@]}" "$WORK/usage.json"
 
-echo "== 5. confirm candidates by compiling (swiftui-screenshot)"
-python3 -I "$HERE/confirm.py" "$WORK/compare.json" "$BIN/swiftui-screenshot" "$WORK/confirm.json" --workdir "$WORK"
-python3 -I "$HERE/confirm.py" --manual "$HERE/manual_checks.json" "$BIN/swiftui-screenshot" "$WORK/manual.json" "$WORK" >/dev/null
+echo "== 5. confirm candidates by compiling (blitr)"
+python3 -I "$HERE/confirm.py" "$WORK/compare.json" "$BIN/blitr" "$WORK/confirm.json" --workdir "$WORK"
+python3 -I "$HERE/confirm.py" --manual "$HERE/manual_checks.json" "$BIN/blitr" "$WORK/manual.json" "$WORK" >/dev/null
 
 echo "== 6. report"
 python3 -I "$HERE/report.py" "$WORK/compare.json" "$WORK/confirm.json" "$WORK/manual.json" "$WORK/usage.json" \

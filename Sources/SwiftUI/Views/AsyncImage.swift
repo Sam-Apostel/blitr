@@ -95,7 +95,7 @@ struct _AsyncImageLoad: @unchecked Sendable {
     }
 
     static let cacheDirectory: String = {
-        let path = NSTemporaryDirectory() + "swiftui-screenshot-images-\(getpid())"
+        let path = NSTemporaryDirectory() + "blitr-images-\(getpid())"
         try? FileManager.default.createDirectory(atPath: path, withIntermediateDirectories: true)
         return path
     }()

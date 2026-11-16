@@ -5,7 +5,7 @@ import CoreLocation
 // Checks of the MapKit / CoreLocation shims. Rendering this file runs them: a failed check stops
 // the render with a message; a passing run shows the list of checks.
 //
-//   swiftui-screenshot render Tests/Maps/MapKitChecks.swift --open-fonts
+//   blitr render Tests/Maps/MapKitChecks.swift --open-fonts
 
 private func close(_ a: Double, _ b: Double, _ tolerance: Double) -> Bool { abs(a - b) <= tolerance }
 

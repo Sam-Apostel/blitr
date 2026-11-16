@@ -10,7 +10,7 @@ saying that tiles are not drawn.
 
 The API is in two modules of its own, `Sources/CoreLocation` (Foundation only) and `Sources/MapKit`
 (which imports SwiftUI and re-exports CoreLocation and UIKit, as Apple's does), so `Map`, `Marker` and
-`Annotation` are only visible where MapKit is imported. Their code is linked into libSwiftUIScreenshotEngine, so there
+`Annotation` are only visible where MapKit is imported. Their code is linked into libBlitrEngine, so there
 is one copy of SwiftUI at run time and protocol conformances resolve (ARCHITECTURE.md, "Shim modules").
 
 | File | Contents |
@@ -70,7 +70,7 @@ is one copy of SwiftUI at run time and protocol conformances resolve (ARCHITECTU
 ## Offline tiles
 
 ```
-swiftui-screenshot render Examples/Maps.swift --map-tiles ~/tiles --open-fonts
+blitr render Examples/Maps.swift --map-tiles ~/tiles --open-fonts
 ```
 
 `--map-tiles <dir>` draws raster tiles from `<dir>/<z>/<x>/<y>.png` (`.jpg`, `.jpeg` and `.webp` are read
@@ -116,9 +116,9 @@ How they are drawn:
 ## Checking
 
 ```
-swiftui-screenshot render Examples/Maps.swift --all --open-fonts
-swiftui-screenshot render Examples/Maps.swift --preview tvOS --device apple-tv --open-fonts
-swiftui-screenshot render Tests/Maps/MapKitChecks.swift --open-fonts
+blitr render Examples/Maps.swift --all --open-fonts
+blitr render Examples/Maps.swift --preview tvOS --device apple-tv --open-fonts
+blitr render Tests/Maps/MapKitChecks.swift --open-fonts
 Tests/Maps/tiles.sh
 ```
 

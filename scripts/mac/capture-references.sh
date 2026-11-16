@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Captures reference screenshots and element frames from the iOS Simulator for every preview in
-# Tests/Corpus (and Examples), for comparison with the renderer (`swiftui-screenshot compare`).
+# Tests/Corpus (and Examples), for comparison with the renderer (`blitr compare`).
 #
 #   scripts/mac/capture-references.sh [options]
 #
@@ -9,7 +9,7 @@
 #   --schemes "<list>"    Color schemes (default: "light dark")
 #   --only <key>          Only screens whose key matches this grep pattern (e.g. 01_Settings)
 #   --corpus-only         Skip Examples
-#   --out <dir>           Output root (default: ~/Library/Application Support/swiftui-screenshot/references, or SWIFTUI_SCREENSHOT_REFERENCES)
+#   --out <dir>           Output root (default: ~/Library/Application Support/blitr/references, or BLITR_REFERENCES)
 #   --settle <seconds>    Wait after the view appears before capturing (default: 1.0)
 #
 # Writes <out>/ios-<runtime>/<device-slug>/<scheme>/<screen>-<preview>.png and .json, plus
@@ -23,9 +23,9 @@ DEVICE="iPhone 16"
 SCHEMES="light dark"
 ONLY=""
 CORPUS_ONLY=0
-OUT="${SWIFTUI_SCREENSHOT_REFERENCES:-$HOME/Library/Application Support/swiftui-screenshot/references}"
+OUT="${BLITR_REFERENCES:-$HOME/Library/Application Support/blitr/references}"
 SETTLE="1.0"
-BUNDLE_ID="dev.swiftui-screenshot.reference-host"
+BUNDLE_ID="dev.blitr.reference-host"
 
 while (($#)); do
     case "$1" in
@@ -71,7 +71,7 @@ fi
 
 SLUG="$(echo "$DEVICE" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-|-$//g')"
 DEST="$OUT/ios-$RUNTIME_VERSION/$SLUG"
-BUILD="${TMPDIR:-/tmp}/swiftui-screenshot-reference-host"
+BUILD="${TMPDIR:-/tmp}/blitr-reference-host"
 echo "Simulator: $DEVICE, iOS $RUNTIME_VERSION ($UDID)"
 
 WAS_BOOTED=0

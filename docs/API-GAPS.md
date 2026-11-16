@@ -35,7 +35,7 @@ The measurement scripts were fixed for the shim modules: snippets import WidgetK
 
 ## Confirmed gaps, ranked
 
-Every row was confirmed by compiling a snippet with `swiftui-screenshot` (or is a label/signature mismatch found by the interface comparison and spot-checked). Classes: **a** visual (changes pixels in a static frame, needs a real implementation), **b** inert (no effect on a static frame; a no-op shim is enough), **c** platform-specific (tvOS/watchOS/macOS only; the class it would otherwise be is in brackets), **d** other framework (see the second table). Order: APIs used by the private corpus first, then by call sites.
+Every row was confirmed by compiling a snippet with `blitr` (or is a label/signature mismatch found by the interface comparison and spot-checked). Classes: **a** visual (changes pixels in a static frame, needs a real implementation), **b** inert (no effect on a static frame; a no-op shim is enough), **c** platform-specific (tvOS/watchOS/macOS only; the class it would otherwise be is in brackets), **d** other framework (see the second table). Order: APIs used by the private corpus first, then by call sites.
 
 | # | API | public repos | public sites | private corpus sites | class | what it does visually |
 |---:|---|---:|---:|---:|:---:|---|

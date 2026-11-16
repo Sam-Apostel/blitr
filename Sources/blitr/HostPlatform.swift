@@ -7,9 +7,9 @@ import Foundation
 
 enum HostPlatform {
     /// The engine's library: the SwiftUI module and every shim module linked into one dynamic library
-    /// (Package.swift's `SwiftUIScreenshotEngine` product). Its file name must not be mistaken for Apple's
+    /// (Package.swift's `BlitrEngine` product). Its file name must not be mistaken for Apple's
     /// SwiftUI; the module itself stays `SwiftUI`.
-    static let engineLibrary = "SwiftUIScreenshotEngine"
+    static let engineLibrary = "BlitrEngine"
 
     #if canImport(Darwin)
     /// The host's spelling in `#if os(...)`.
@@ -97,7 +97,7 @@ enum FilteredSDK {
 
     private static func make() -> String? {
         let env = ProcessInfo.processInfo.environment
-        if env["SWIFTUI_SCREENSHOT_FULL_SDK"] == "1" { return nil }
+        if env["BLITR_FULL_SDK"] == "1" { return nil }
         let fm = FileManager.default
         let xcrun = "/usr/bin/xcrun"
         guard let shown = env["SDKROOT"].flatMap({ $0.isEmpty ? nil : $0 })

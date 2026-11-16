@@ -1,6 +1,6 @@
 import Foundation
 
-// swiftui-screenshot: renders SwiftUI source files to PNG on Linux.
+// blitr: renders SwiftUI source files to PNG on Linux.
 //
 // The tool rewrites the given sources (see Preprocessor), compiles them against the
 // bundled `SwiftUI` module into a small runner executable (cached by content), and runs
@@ -8,12 +8,12 @@ import Foundation
 
 let usage = """
 Usage:
-  swiftui-screenshot render <file-or-dir>... [options]   Render previews to PNG
-  swiftui-screenshot list <file-or-dir>...               List the previews found
-  swiftui-screenshot devices                             List device profiles
-  swiftui-screenshot compare <reference> <candidate>     Compare reference screenshots with renders (see compare --help)
-  swiftui-screenshot doctor                              Check the installation
-  swiftui-screenshot version                             Tool version and the Swift version it was built with
+  blitr render <file-or-dir>... [options]   Render previews to PNG
+  blitr list <file-or-dir>...               List the previews found
+  blitr devices                             List device profiles
+  blitr compare <reference> <candidate>     Compare reference screenshots with renders (see compare --help)
+  blitr doctor                              Check the installation
+  blitr version                             Tool version and the Swift version it was built with
 
 What is rendered (first match wins):
   --view "<expr>"        A view expression, e.g. --view "ContentView()"
@@ -122,14 +122,14 @@ struct Installation {
         let env = ProcessInfo.processInfo.environment
 
         // The module sits next to the tool in a build tree, or under ../lib in an installed layout.
-        let sdkCandidates = [env["SWIFTUI_SCREENSHOT_SDK"], binDir, binDir + "/../lib/swiftui-screenshot"].compactMap { $0 }
+        let sdkCandidates = [env["BLITR_SDK"], binDir, binDir + "/../lib/blitr"].compactMap { $0 }
         guard let sdk = sdkCandidates.first(where: { fm.fileExists(atPath: $0 + "/SwiftUI.swiftmodule") }) else {
-            fail("cannot find the SwiftUI module next to the tool (looked in: \(sdkCandidates.joined(separator: ", "))). Set SWIFTUI_SCREENSHOT_SDK.")
+            fail("cannot find the SwiftUI module next to the tool (looked in: \(sdkCandidates.joined(separator: ", "))). Set BLITR_SDK.")
         }
 
         var fonts: [String] = []
         var appleFonts: String?
-        if let dir = env["SWIFTUI_SCREENSHOT_FONTS"] { fonts += dir.split(separator: ":").map(String.init) }
+        if let dir = env["BLITR_FONTS"] { fonts += dir.split(separator: ":").map(String.init) }
         if fm.fileExists(atPath: sdk + "/fonts") { fonts.append(sdk + "/fonts") }
         // In a source checkout the fonts are in <repo>/Vendor/fonts: walk up from the build dir.
         var dir = binDir
@@ -233,7 +233,7 @@ func run(_ executable: String, _ arguments: [String], captureOutput: Bool = true
 
 /// `--env` / `--arg`: what the rendered program finds in ProcessInfo's environment and arguments.
 struct ProgramLaunch {
-    static let runnerArgumentsVariable = "SWIFTUI_SCREENSHOT_RUNNER_ARGUMENTS"
+    static let runnerArgumentsVariable = "BLITR_RUNNER_ARGUMENTS"
     var environment: [(String, String)] = []
     var arguments: [String] = []
 
@@ -410,8 +410,8 @@ func build(_ options: Options, _ installation: Installation) -> Build {
 
     // Cache key: the rewritten sources plus the identity of the module they are compiled against.
     let key = hash(output.files.flatMap { [$0.name, $0.contents] } + [installation.stamp, installation.swiftc])
-    let cacheRoot = ProcessInfo.processInfo.environment["SWIFTUI_SCREENSHOT_CACHE"]
-        ?? (NSHomeDirectory() + "/.cache/swiftui-screenshot")
+    let cacheRoot = ProcessInfo.processInfo.environment["BLITR_CACHE"]
+        ?? (NSHomeDirectory() + "/.cache/blitr")
     let work = cacheRoot + "/" + key
     let runner = work + "/runner"
 
@@ -558,19 +558,19 @@ func runtimeCompiler(_ installation: Installation) -> String? {
 func compilerMismatch(_ installation: Installation) -> String? {
     guard let built = moduleCompiler(installation), let current = runtimeCompiler(installation), built != current else { return nil }
     return "the bundled SwiftUI modules were built with \(built), but \(installation.swiftc) is \(current). "
-        + "Swift modules only load with the exact compiler that built them: install \(built) (set SWIFTC or put it first on PATH), or rebuild swiftui-screenshot with this compiler."
+        + "Swift modules only load with the exact compiler that built them: install \(built) (set SWIFTC or put it first on PATH), or rebuild blitr with this compiler."
 }
 
 func versionCommand(_ installation: Installation) {
     var version = "dev", commit = ""
-    let file = installation.sdk + "/../../share/swiftui-screenshot/VERSION"
+    let file = installation.sdk + "/../../share/blitr/VERSION"
     if let text = try? String(contentsOfFile: file, encoding: .utf8) {
         for line in text.split(separator: "\n") {
             let parts = line.split(separator: ":", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
             if parts.count == 2 { if parts[0] == "version" { version = parts[1] } else if parts[0] == "commit" { commit = parts[1] } }
         }
     }
-    print("swiftui-screenshot \(version)" + (commit.isEmpty ? "" : " (\(commit))"))
+    print("blitr \(version)" + (commit.isEmpty ? "" : " (\(commit))"))
     print("built with:     \(moduleCompiler(installation) ?? "unknown")")
     if let current = runtimeCompiler(installation) { print("compiler now:   \(current)") }
 }

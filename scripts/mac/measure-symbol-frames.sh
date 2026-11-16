@@ -26,8 +26,8 @@ while (($#)); do
         *) echo "unknown option $1" >&2; exit 2 ;;
     esac
 done
-BUILD="${TMPDIR:-/tmp}/swiftui-screenshot-symbol-frames"
-BUNDLE_ID="dev.swiftui-screenshot.symbol-frames"
+BUILD="${TMPDIR:-/tmp}/blitr-symbol-frames"
+BUNDLE_ID="dev.blitr.symbol-frames"
 mkdir -p "$BUILD"
 
 if [[ -z "$TSV" ]]; then

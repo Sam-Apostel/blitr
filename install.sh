@@ -1,27 +1,27 @@
 #!/usr/bin/env bash
-# Installs swiftui-screenshot (a Linux CLI that renders SwiftUI source to PNG) from a release tarball.
+# Installs blitr (a Linux CLI that renders SwiftUI source to PNG) from a release tarball.
 # Written for an unattended root setup script: idempotent, quiet on success, one-line error on failure.
 #
-#   install.sh [--prefix /opt/swiftui-screenshot] [--version vX.Y.Z] [--from <url-or-path-to-tarball>]
+#   install.sh [--prefix /opt/blitr] [--version vX.Y.Z] [--from <url-or-path-to-tarball>]
 #              [--apple-fonts --accept-apple-font-license] [--claude-instructions]
 #              [--bin-dir /usr/local/bin] [--swift-dir /opt/swift]
 #
-#   --prefix        Where the tree is unpacked (default /opt/swiftui-screenshot).
+#   --prefix        Where the tree is unpacked (default /opt/blitr).
 #   --version       Release tag to install (default: the latest release).
 #   --from          A tarball path or URL instead of the GitHub release. For a URL, <url>.sha256 is verified;
 #                   for a path, <path>.sha256 is verified if it exists.
 #   --apple-fonts   Also download Apple's fonts from Apple (needs --accept-apple-font-license).
 #   --claude-instructions
 #                   Add (or refresh) a short block in ~/.claude/CLAUDE.md that tells a coding agent about the tool.
-#   --bin-dir       Where the `swiftui-screenshot` symlink goes (default /usr/local/bin).
+#   --bin-dir       Where the `blitr` symlink goes (default /usr/local/bin).
 #   --swift-dir     Where a missing Swift toolchain is installed (default /opt/swift).
 #
-# Releases are fetched from https://github.com/Sam-Apostel/swift-ui-screenshot.
+# Releases are fetched from https://github.com/Sam-Apostel/blitr.
 # shellcheck disable=SC2015  # `[ a ] && [ b ] || die` is intended
 set -Eeuo pipefail
 
-REPO="Sam-Apostel/swift-ui-screenshot"
-prefix=/opt/swiftui-screenshot
+REPO="Sam-Apostel/blitr"
+prefix=/opt/blitr
 bin_dir=/usr/local/bin
 swift_dir=/opt/swift
 version=""
@@ -120,7 +120,7 @@ case "$from" in
       version="${latest##*/}"
       case "$version" in v*) ;; *) die "could not find the latest release of $REPO (is it published, and public? otherwise use --from)" ;; esac
     fi
-    asset="swiftui-screenshot-$version-linux-$arch.tar.gz"
+    asset="blitr-$version-linux-$arch.tar.gz"
     url="https://github.com/$REPO/releases/download/$version/$asset"
     download "$url" "$tmp/$asset"
     download "$url.sha256" "$tmp/$asset.sha256"
@@ -143,22 +143,22 @@ esac
 
 # 2. Unpack next to the prefix, then swap it in.
 mkdir -p "$(dirname "$prefix")"
-staging="$(mktemp -d "$(dirname "$prefix")/.swiftui-screenshot.XXXXXX")"
+staging="$(mktemp -d "$(dirname "$prefix")/.blitr.XXXXXX")"
 quiet "unpacking $(basename "$tarball")" tar -xzf "$tarball" -C "$staging" --strip-components=1 --no-same-owner
-[ -x "$staging/bin/swiftui-screenshot" ] && [ -f "$staging/share/swiftui-screenshot/VERSION" ] \
-  || die "$(basename "$tarball") does not look like a swiftui-screenshot release"
-info() { sed -n "s/^$1: *//p" "$staging/share/swiftui-screenshot/VERSION" | head -n 1; }
+[ -x "$staging/bin/blitr" ] && [ -f "$staging/share/blitr/VERSION" ] \
+  || die "$(basename "$tarball") does not look like a blitr release"
+info() { sed -n "s/^$1: *//p" "$staging/share/blitr/VERSION" | head -n 1; }
 [ "$(info arch)" = "$arch" ] || die "this tarball is for $(info arch), this machine is $arch"
 tool_version="$(info version)"
 swift_version="$(info swift_version)"
 [ -n "$swift_version" ] || die "the tarball's VERSION file does not say which Swift version it needs"
 
-if [ -f "$prefix/share/swiftui-screenshot/VERSION" ] && cmp -s "$prefix/share/swiftui-screenshot/VERSION" "$staging/share/swiftui-screenshot/VERSION"; then
+if [ -f "$prefix/share/blitr/VERSION" ] && cmp -s "$prefix/share/blitr/VERSION" "$staging/share/blitr/VERSION"; then
   rm -rf "$staging"; staging=""   # already installed
 else
   # Keep Apple's fonts across an upgrade.
-  if [ -d "$prefix/lib/swiftui-screenshot/apple-fonts" ]; then
-    cp -a "$prefix/lib/swiftui-screenshot/apple-fonts" "$staging/lib/swiftui-screenshot/apple-fonts"
+  if [ -d "$prefix/lib/blitr/apple-fonts" ]; then
+    cp -a "$prefix/lib/blitr/apple-fonts" "$staging/lib/blitr/apple-fonts"
   fi
   rm -rf "$prefix.old"
   [ ! -e "$prefix" ] || mv "$prefix" "$prefix.old"
@@ -211,45 +211,45 @@ fi
 
 # 4. The command.
 mkdir -p "$bin_dir"
-ln -sfn "$prefix/bin/swiftui-screenshot" "$bin_dir/swiftui-screenshot"
+ln -sfn "$prefix/bin/blitr" "$bin_dir/blitr"
 
 # 5. Apple's fonts, only on request.
-if [ "$apple_fonts" = 1 ] && [ ! -f "$prefix/lib/swiftui-screenshot/apple-fonts/SF-Pro.ttf" ]; then
-  quiet "fetching Apple fonts" "$prefix/share/swiftui-screenshot/fetch-apple-fonts.sh" --accept-apple-font-license
+if [ "$apple_fonts" = 1 ] && [ ! -f "$prefix/lib/blitr/apple-fonts/SF-Pro.ttf" ]; then
+  quiet "fetching Apple fonts" "$prefix/share/blitr/fetch-apple-fonts.sh" --accept-apple-font-license
 fi
 
 # 6. A note for coding agents.
 if [ "$claude_instructions" = 1 ]; then
   claude_md="${HOME:?HOME is not set}/.claude/CLAUDE.md"
-  begin='<!-- BEGIN swiftui-screenshot (written by install.sh; re-running it replaces this block) -->'
-  end='<!-- END swiftui-screenshot -->'
+  begin='<!-- BEGIN blitr (written by install.sh; re-running it replaces this block) -->'
+  end='<!-- END blitr -->'
   cat > "$tmp/block" <<EOF
 $begin
-## swiftui-screenshot
-\`swiftui-screenshot\` is installed. It renders SwiftUI source to PNG without Xcode or a simulator, by compiling
+## blitr
+\`blitr\` is installed. It renders SwiftUI source to PNG without Xcode or a simulator, by compiling
 your sources against its own SwiftUI implementation. Use it after changing SwiftUI code to see the result.
-- \`swiftui-screenshot render File.swift --all --out-dir out/\` writes one PNG per #Preview / PreviewProvider
+- \`blitr render File.swift --all --out-dir out/\` writes one PNG per #Preview / PreviewProvider
   (\`--preview <n|name>\` for one, \`--view "MyView()"\` for an expression).
-- \`--scheme both\` renders light and dark, \`--device iphone-16|ipad|...\` picks a device (\`swiftui-screenshot devices\`),
+- \`--scheme both\` renders light and dark, \`--device iphone-16|ipad|...\` picks a device (\`blitr devices\`),
   \`--layout fit\` renders just the view, \`--crop <identifier>\` one part of the screen.
 - \`--locale\`, \`--time-zone\`, \`--date\` and \`--location\` set the device's state; renders are offline unless
   \`--allow-network\`.
-- \`swiftui-screenshot list File.swift\` shows the previews; \`--json\` prints one JSON object per image.
+- \`blitr list File.swift\` shows the previews; \`--json\` prints one JSON object per image.
 - Anything not rendered faithfully (unmapped SF Symbol, missing asset, UIKit view) is reported as a
   \`warning:\` line on stderr, or in the \`warnings\` field with \`--json\`. Read them.
 - Read the PNG files to check layout and appearance of UI work.
 - A compile error naming a SwiftUI API that does not exist means the renderer lacks it. That is a limit of
   the tool, not a bug in the user's code: do not rewrite working code to avoid it; render a smaller view and say so.
-- \`swiftui-screenshot doctor\` checks the installation; \`swiftui-screenshot version\` prints versions.
+- \`blitr doctor\` checks the installation; \`blitr version\` prints versions.
 $end
 EOF
   mkdir -p "$(dirname "$claude_md")"
-  if [ -f "$claude_md" ] && grep -qF 'BEGIN swiftui-screenshot' "$claude_md"; then
-    grep -qF "$end" "$claude_md" || die "$claude_md has a swiftui-screenshot block without its END marker; fix it by hand"
+  if [ -f "$claude_md" ] && grep -qF 'BEGIN blitr' "$claude_md"; then
+    grep -qF "$end" "$claude_md" || die "$claude_md has a blitr block without its END marker; fix it by hand"
     # Replace everything between the markers (inclusive) with the new block.
     awk -v blockfile="$tmp/block" '
-      /BEGIN swiftui-screenshot/ && !done { while ((getline line < blockfile) > 0) print line; skipping = 1; next }
-      skipping && /END swiftui-screenshot/ { skipping = 0; done = 1; next }
+      /BEGIN blitr/ && !done { while ((getline line < blockfile) > 0) print line; skipping = 1; next }
+      skipping && /END blitr/ { skipping = 0; done = 1; next }
       !skipping { print }
     ' "$claude_md" > "$tmp/CLAUDE.md"
     cat "$tmp/CLAUDE.md" > "$claude_md"
@@ -264,8 +264,8 @@ fi
 
 # 7. Check it works.
 swift_bin="$(dirname "$swiftc_path")"
-if ! PATH="$swift_bin:$PATH" "$bin_dir/swiftui-screenshot" doctor >"$tmp/doctor" 2>&1; then
+if ! PATH="$swift_bin:$PATH" "$bin_dir/blitr" doctor >"$tmp/doctor" 2>&1; then
   sed 's/^/    /' "$tmp/doctor" >&2
-  die "swiftui-screenshot doctor reported a problem (output above)"
+  die "blitr doctor reported a problem (output above)"
 fi
-echo "swiftui-screenshot $tool_version installed in $prefix (Swift $swift_version at $swift_bin)"
+echo "blitr $tool_version installed in $prefix (Swift $swift_version at $swift_bin)"

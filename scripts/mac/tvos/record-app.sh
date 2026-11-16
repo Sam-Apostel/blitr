@@ -54,13 +54,13 @@ trap '((WAS_BOOTED == 0)) && xcrun simctl shutdown "$UDID" >/dev/null 2>&1 || tr
 if ((WAS_BOOTED == 0)); then xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b >/dev/null; fi
 xcrun simctl install "$UDID" "$APP"
 
-BUILD="${TMPDIR:-/tmp}/swiftui-screenshot-tvos-app-paths"
+BUILD="${TMPDIR:-/tmp}/blitr-tvos-app-paths"
 mkdir -p "$BUILD/tests"
 cp "$HERE/AppPathTests.swift" "$BUILD/tests/"
 cat > "$BUILD/project.yml" <<YML
 name: AppPaths
 options:
-  bundleIdPrefix: dev.swiftui-screenshot
+  bundleIdPrefix: dev.blitr
   deploymentTarget:
     tvOS: "26.0"
 settings:

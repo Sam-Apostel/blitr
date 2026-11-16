@@ -36,7 +36,7 @@ struct ModuleBuilder {
     var noCache = false
 
     static var cacheRoot: String {
-        ProcessInfo.processInfo.environment["SWIFTUI_SCREENSHOT_CACHE"] ?? (NSHomeDirectory() + "/.cache/swiftui-screenshot")
+        ProcessInfo.processInfo.environment["BLITR_CACHE"] ?? (NSHomeDirectory() + "/.cache/blitr")
     }
 
     /// Modules shipped next to the SwiftUI module (SwiftUI, Combine, the shim frameworks, CoreText, the
@@ -84,7 +84,7 @@ struct ModuleBuilder {
     func run(_ arguments: [String]) -> (status: Int32, output: String) {
         let arguments = HostPlatform.compilerFlags + arguments
         if verbose { note(([installation.swiftc] + arguments.map { $0.contains(" ") ? "'\($0)'" : $0 }).joined(separator: " ")) }
-        let result = swiftuiScreenshotRun(installation.swiftc, arguments)
+        let result = blitrRun(installation.swiftc, arguments)
         return (result.status, result.stderr + result.stdout)
     }
 
@@ -163,16 +163,16 @@ struct ModuleBuilder {
         return built
     }
 
-    static let foundationShim = "SwiftUIScreenshotFoundation"
+    static let foundationShim = "BlitrFoundation"
 
-    /// Modules imported into every file compiled against the SDK (SWIFTUI_SCREENSHOT_IMPORTS, comma-separated):
+    /// Modules imported into every file compiled against the SDK (BLITR_IMPORTS, comma-separated):
     /// lets a stand-in module add members to SDK types while scouting a project.
     static var extraImports: [String] {
-        (ProcessInfo.processInfo.environment["SWIFTUI_SCREENSHOT_IMPORTS"] ?? "").split(separator: ",").map(String.init)
+        (ProcessInfo.processInfo.environment["BLITR_IMPORTS"] ?? "").split(separator: ",").map(String.init)
     }
 
     static var extraModuleDirectories: [String] {
-        (ProcessInfo.processInfo.environment["SWIFTUI_SCREENSHOT_MODULES"] ?? "").split(separator: ":").map(String.init)
+        (ProcessInfo.processInfo.environment["BLITR_MODULES"] ?? "").split(separator: ":").map(String.init)
             .filter { ProjectFiles.isDirectory($0) }
     }
 
@@ -194,7 +194,7 @@ struct ModuleBuilder {
     }
 
     /// Search paths and libraries for a module. Every module imports the Foundation shim implicitly.
-    /// Compiles against the SDK link the engine library (libSwiftUIScreenshotEngine), which also holds Combine
+    /// Compiles against the SDK link the engine library (libBlitrEngine), which also holds Combine
     /// and the shim frameworks (UIKit, MapKit, WidgetKit, ...), so a process has one copy of SwiftUI whatever it
     /// imports. The Foundation shim's code is in it too; modules compiled without the SDK link it but see only
     /// the shim's module.
@@ -206,7 +206,7 @@ struct ModuleBuilder {
             arguments += ["-I", shim, "-L", installation.sdk, "-l" + HostPlatform.engineLibrary, "-Xlinker", "-rpath", "-Xlinker", installation.sdk]
         }
         if sdk {
-            // Extra module directories (SWIFTUI_SCREENSHOT_MODULES, colon-separated): stand-ins for frameworks
+            // Extra module directories (BLITR_MODULES, colon-separated): stand-ins for frameworks
             // the SDK lacks, each a `Name.swiftmodule` with an optional `libName.so` (`libName.dylib` on macOS).
             for directory in ModuleBuilder.extraModuleDirectories {
                 arguments += ["-I", directory, "-L", directory, "-Xlinker", "-rpath", "-Xlinker", directory]
@@ -250,7 +250,7 @@ struct ModuleBuilder {
         }
         // The entry expressions (`--view`, the App type) may name things from the target's dependencies.
         let imports = dependencies.map { "import \($0.name)\n" }.joined()
-        let main = CompiledSource(path: "/__swiftui_screenshot__/main.swift", contents: imports + rewritten.main)
+        let main = CompiledSource(path: "/__blitr__/main.swift", contents: imports + rewritten.main)
         let all = rewritten.files + plan.generated + [main]
         var flags = ["-swift-version", ModuleBuilder.swiftVersionFlag(target.swiftVersion)]
         for condition in target.compilationConditions { flags += ["-D", condition] }
@@ -326,6 +326,6 @@ struct ModuleBuilder {
 }
 
 /// `run` from Tool.swift, under a name that cannot clash with members called `run`.
-func swiftuiScreenshotRun(_ executable: String, _ arguments: [String]) -> (status: Int32, stdout: String, stderr: String) {
+func blitrRun(_ executable: String, _ arguments: [String]) -> (status: Int32, stdout: String, stderr: String) {
     run(executable, arguments)
 }

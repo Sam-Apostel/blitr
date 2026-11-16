@@ -1,15 +1,15 @@
 # tvOS focus
 
-`swiftui-screenshot` models the tvOS focus engine: which element has focus, where each Siri Remote
+`blitr` models the tvOS focus engine: which element has focus, where each Siri Remote
 press moves it, and how to reach every element. Nothing needs a simulator; everything is computed from
 the laid-out frame.
 
 ```
-swiftui-screenshot render Home.swift --device apple-tv -o out/home.png \
+blitr render Home.swift --device apple-tv -o out/home.png \
     --focus-map out/home-focus.json --focus-overlay out/home-focus.png
 
-swiftui-screenshot render Home.swift --device apple-tv -o out/after.png --press down,down,right,select
-swiftui-screenshot render Home.swift --device apple-tv -o out/x.png --focus "Top Movies" --press right
+blitr render Home.swift --device apple-tv -o out/after.png --press down,down,right,select
+blitr render Home.swift --device apple-tv -o out/x.png --focus "Top Movies" --press right
 ```
 
 `Examples/TVFocus.swift` shows the common layouts (poster grid, shelves, a layout that needs

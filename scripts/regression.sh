@@ -32,7 +32,7 @@ find Tests/Corpus Examples -name '*.swift' | sort |
     file="$1"; shift; bin="$1"; shift; out="$1"; shift
     device=(); case "$file" in *TV*) device=(--device apple-tv) ;; esac
     dir="$out/${file%.swift}"
-    if ! log=$("$bin/swiftui-screenshot" render "$file" --all --scheme both --open-fonts --date 2026-06-01T09:41:00Z --time-zone UTC "${device[@]}" --out-dir "$dir" "$@" 2>&1); then
+    if ! log=$("$bin/blitr" render "$file" --all --scheme both --open-fonts --date 2026-06-01T09:41:00Z --time-zone UTC "${device[@]}" --out-dir "$dir" "$@" 2>&1); then
       echo "FAILED $file"; echo "$log" | tail -20; mkdir -p "$dir"; touch "$dir/FAILED"
     fi' _ {} "$bin" "$out" "$@"
 echo "rendered $(find "$out" -name '*.png' | wc -l | tr -d ' ') images into $out"

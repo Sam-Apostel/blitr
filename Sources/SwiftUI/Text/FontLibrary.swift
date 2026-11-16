@@ -316,7 +316,7 @@ final class FontLibrary {
             }
         }
         guard let file = chosen else {
-            fatalError("No usable system font found. Run scripts/bootstrap.sh, or point SWIFTUI_SCREENSHOT_FONTS at a directory containing InterVariable.ttf.")
+            fatalError("No usable system font found. Run scripts/bootstrap.sh, or point BLITR_FONTS at a directory containing InterVariable.ttf.")
         }
         var coords: [UInt32: Float] = [fourCC("wght"): file.axisWeight(Float(font.weight)), fourCC("opsz"): Float(font.size)]
         if font.width != 0 {

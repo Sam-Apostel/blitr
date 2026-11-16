@@ -1,7 +1,7 @@
 import SwiftUI
 
 // tvOS focus: render with --device apple-tv and add --focus-map / --focus-overlay / --press.
-//   swiftui-screenshot render Examples/TVFocus.swift --device apple-tv --all --out-dir out \
+//   blitr render Examples/TVFocus.swift --device apple-tv --all --out-dir out \
 //       --focus-map out/focus.json --focus-overlay out/focus.png
 
 // MARK: - Poster grid

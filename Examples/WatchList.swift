@@ -1,7 +1,7 @@
 // A plain watch list: a NavigationStack title over a few rows. Render with `--device apple-watch`,
 // `apple-watch-series-10-42mm` or `apple-watch-ultra-2`.
 //
-//   swiftui-screenshot render Examples/WatchList.swift --device apple-watch --all --out-dir out/watch
+//   blitr render Examples/WatchList.swift --device apple-watch --all --out-dir out/watch
 import SwiftUI
 
 struct WatchPlant: Identifiable {

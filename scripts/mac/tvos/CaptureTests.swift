@@ -7,7 +7,7 @@ import XCTest
 final class CaptureTests: XCTestCase {
     func testCapture() throws {
         let env = ProcessInfo.processInfo.environment
-        let app = XCUIApplication(bundleIdentifier: env["CAPTURE_BUNDLE"] ?? "dev.swiftui-screenshot.reference-host")
+        let app = XCUIApplication(bundleIdentifier: env["CAPTURE_BUNDLE"] ?? "dev.blitr.reference-host")
         app.launchArguments = ["-screen", env["CAPTURE_SCREEN"] ?? "", "-preview", env["CAPTURE_PREVIEW"] ?? "0",
                                "-settle", "0.5", "-redump", "0.5"]
         app.launch()

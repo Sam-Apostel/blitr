@@ -2,7 +2,7 @@ import SwiftUI
 
 // Prints what the device profile gives an app: size classes, safe-area insets, screen size, idiom.
 // Render it on different devices to see them change:
-//   swiftui-screenshot render Examples/Devices.swift --device ipad-pro-13 --orientation landscape
+//   blitr render Examples/Devices.swift --device ipad-pro-13 --orientation landscape
 
 struct DeviceInfo: View {
     @Environment(\.horizontalSizeClass) private var horizontal

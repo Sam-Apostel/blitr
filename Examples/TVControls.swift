@@ -3,9 +3,9 @@ import SwiftUI
 // tvOS controls and system chrome, one preview per area. Each preview shows the unfocused, focused,
 // disabled and selected states side by side; the first element in reading order starts focused.
 //
-//   swiftui-screenshot render Examples/TVControls.swift --device apple-tv --all --out-dir out
-//   swiftui-screenshot render Examples/TVControls.swift --device apple-tv --all --out-dir out --scheme dark
-//   swiftui-screenshot render Examples/TVControls.swift --device apple-tv --all --out-dir out --os 18
+//   blitr render Examples/TVControls.swift --device apple-tv --all --out-dir out
+//   blitr render Examples/TVControls.swift --device apple-tv --all --out-dir out --scheme dark
+//   blitr render Examples/TVControls.swift --device apple-tv --all --out-dir out --os 18
 //
 // Move focus to see other elements focused:
 //   ... --preview Buttons --focus "Prominent"            focus a button by its label
