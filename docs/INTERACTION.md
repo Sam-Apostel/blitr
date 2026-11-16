@@ -47,6 +47,7 @@ list the candidates.
 | `long-press <selector>` | Runs `onLongPressGesture`. |
 | `dismiss` | Dismisses the topmost sheet, cover, alert or dialog; otherwise goes back. |
 | `back` | Pops the top screen of the innermost navigation stack (screens pushed by steps, and `NavigationStack(path:)` bindings). |
+| `shake` | Shakes the device: UIKit's `motionBegan` and `motionEnded` with `.motionShake` on the key window, so an app's `extension UIWindow { override func motionEnded(...) }` runs (see docs/FRAMEWORKS.md, overrides in extensions). |
 | `press up\|down\|left\|right\|select\|menu\|playpause` | A Siri Remote press (docs/FOCUS.md). |
 | `wait <seconds>` | Lets time pass: time-driven content keeps moving; animated outputs hold the frame. `Task.sleep` calls that end by then return, and what they change shows after the wait. |
 | `snapshot [name]` | Emits a frame here (`--frames`, `--filmstrip`). |

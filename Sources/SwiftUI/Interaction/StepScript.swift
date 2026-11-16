@@ -16,6 +16,7 @@ enum StepAction: Equatable {
     case longPress(Selector)
     case dismiss
     case back
+    case shake
     case press(RemotePress)
     case wait(Double)
     case snapshot(String?)
@@ -38,7 +39,7 @@ struct StepScriptError: Error, CustomStringConvertible {
 
 enum StepScript {
     static let verbs = ["tap", "type", "submit", "set", "select-tab", "scroll", "scroll-to", "swipe", "long-press",
-                        "dismiss", "back", "press", "wait", "snapshot"]
+                        "dismiss", "back", "shake", "press", "wait", "snapshot"]
 
     static let summary = """
     Steps:
@@ -52,6 +53,7 @@ enum StepScript {
       swipe <selector> left|right [action]   run a row's swipe action; page a paging TabView
       long-press <selector>
       dismiss | back
+      shake                         shake the device (UIKit's motionBegan/motionEnded on the key window)
       press up|down|left|right|select|menu|playpause
       wait <seconds>
       snapshot [name]
@@ -238,6 +240,9 @@ enum StepScript {
         case "back":
             try need(0...0, "back")
             return .back
+        case "shake":
+            try need(0...0, "shake")
+            return .shake
         case "press":
             try need(1...1, "press up|down|left|right|select|menu|playpause")
             guard let press = RemotePress(argument: args[0].text) else {

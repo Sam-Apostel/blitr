@@ -350,6 +350,29 @@ open class UIWindow: UIView {
     open func becomeKey() {}
     open func resignKey() {}
     open func sendEvent(_ event: UIEvent) {}
+
+    // `dynamic`, so that an app's `extension UIWindow { override func motionEnded(...) }` (an Objective-C category
+    // override on iOS) can replace them: the tool's preprocessor turns it into an `@_dynamicReplacement`. The
+    // `shake` interaction step calls them on the key window.
+    open dynamic override func motionBegan(_ motion: UIEvent.EventSubtype, with event: UIEvent?) { super.motionBegan(motion, with: event) }
+    open dynamic override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) { super.motionEnded(motion, with: event) }
+    open dynamic override func motionCancelled(_ motion: UIEvent.EventSubtype, with event: UIEvent?) { super.motionCancelled(motion, with: event) }
+}
+
+/// The event of a shake, as UIKit passes it to `motionBegan` and `motionEnded`.
+final class _ShakeEvent: UIEvent {
+    override var type: EventType { .motion }
+    override var subtype: EventSubtype { .motionShake }
+}
+
+/// Found by name by the `shake` interaction step (SwiftUI cannot import UIKit, which imports SwiftUI).
+enum _UIKitDeviceEvents: _DeviceEventDelivery {
+    @MainActor static func _shake() {
+        let window = UIApplication.shared.keyWindow
+        let event = _ShakeEvent()
+        window?.motionBegan(.motionShake, with: event)
+        window?.motionEnded(.motionShake, with: event)
+    }
 }
 
 // MARK: - Gesture recognizers (never recognise: nothing touches a screenshot)
