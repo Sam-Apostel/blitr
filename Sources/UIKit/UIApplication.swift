@@ -154,7 +154,11 @@ public protocol UICoordinateSpace: AnyObject {
 open class UIScreen: NSObject, UICoordinateSpace, UITraitEnvironment {
     public static let main = UIScreen()
     public static var screens: [UIScreen] { [main] }
-    public var bounds: CGRect { CGRect(origin: .zero, size: _currentCanvasSize()) }
+    public var bounds: CGRect {
+        let c = _currentConfiguration()
+        if c.width == nil, c.height == nil, let main = c.device.mainScreenSize { return CGRect(origin: .zero, size: main) }
+        return CGRect(origin: .zero, size: _currentCanvasSize())
+    }
     public var nativeBounds: CGRect {
         let s = scale
         return CGRect(x: 0, y: 0, width: bounds.width * s, height: bounds.height * s)

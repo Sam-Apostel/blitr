@@ -21,6 +21,9 @@ enum SensorHousing {
     case notch(size: CGSize)
     /// The pill: its size and the distance of its top edge from the top of the screen.
     case dynamicIsland(size: CGSize, top: CGFloat)
+    /// A round camera cutout: its diameter and its centre, measured in from the top trailing corner of
+    /// the portrait screen (the iPhone Duo's cover display).
+    case punchHole(diameter: CGFloat, fromTopTrailing: CGPoint)
 
     var label: String {
         switch self {
@@ -28,6 +31,7 @@ enum SensorHousing {
         case .homeButton: return "home button"
         case .notch: return "notch"
         case .dynamicIsland: return "Dynamic Island"
+        case .punchHole: return "camera"
         }
     }
 }
@@ -45,27 +49,78 @@ package struct DeviceProfile {
     var housing: SensorHousing
     var aliases: [String] = []
     package var orientation: DeviceOrientation = .portrait
+    /// Landscape-right insets when they differ from the landscape(-left) ones (the iPhone Duo's cover display).
+    var landscapeRightSafeArea: EdgeInsets? = nil
+    /// Radius of the two leading corners of the portrait display when they differ from `cornerRadius`
+    /// (the iPhone Duo's cover display is nearly square along the hinge).
+    var leadingCornerRadius: CGFloat? = nil
+    /// The iPhone Duo's status bar (see `RingStatusBar`); nil for the usual ones.
+    var ringStatusBar: RingStatusBar? = nil
+    /// Size classes when they do not follow the iPhone rules below: (horizontal, vertical) per orientation.
+    var sizeClasses: (portrait: (UserInterfaceSizeClass, UserInterfaceSizeClass),
+                      landscape: (UserInterfaceSizeClass, UserInterfaceSizeClass))? = nil
+    /// What `UIScreen.main.bounds` reports when it is not the rendered screen (the open iPhone Duo still
+    /// reports its cover display).
+    package var mainScreenSize: CGSize? = nil
 
     /// Size in the current orientation.
     package var size: CGSize {
         orientation.isLandscape ? CGSize(width: portraitSize.height, height: portraitSize.width) : portraitSize
     }
     /// Safe-area insets in the current orientation.
-    package var safeArea: EdgeInsets { orientation.isLandscape ? landscapeSafeArea : portraitSafeArea }
+    package var safeArea: EdgeInsets {
+        if orientation == .landscapeRight, let right = landscapeRightSafeArea { return right }
+        return orientation.isLandscape ? landscapeSafeArea : portraitSafeArea
+    }
 
     /// iPhones in landscape hide the status bar; iPads keep it. A watch shows the time in its top corner.
-    var showsStatusBar: Bool { idiom == .pad || idiom == .watch || (idiom == .phone && !orientation.isLandscape) }
+    var showsStatusBar: Bool {
+        if let ring = ringStatusBar { return !orientation.isLandscape || ring.rowInLandscape }
+        return idiom == .pad || idiom == .watch || (idiom == .phone && !orientation.isLandscape)
+    }
 
     /// Width size class of a full-screen app. iPads are regular. iPhones are compact in portrait, and
     /// in landscape regular when the portrait width is 414pt or more (the Plus/Max/Air sizes, and the 11).
     package var horizontalSizeClass: UserInterfaceSizeClass {
+        if let classes = sizeClasses { return orientation.isLandscape ? classes.landscape.0 : classes.portrait.0 }
         if idiom == .watch { return .compact }
         if idiom != .phone { return .regular }
         return orientation.isLandscape && portraitSize.width >= 414 ? .regular : .compact
     }
     /// iPhones are compact in landscape, watches always; everything else is regular.
     package var verticalSizeClass: UserInterfaceSizeClass {
-        idiom == .watch || (idiom == .phone && orientation.isLandscape) ? .compact : .regular
+        if let classes = sizeClasses { return orientation.isLandscape ? classes.landscape.1 : classes.portrait.1 }
+        return idiom == .watch || (idiom == .phone && orientation.isLandscape) ? .compact : .regular
+    }
+
+    /// The portrait display's corner radii (leading corners first).
+    var portraitCornerRadii: RectangleCornerRadii {
+        let r = cornerRadius, l = leadingCornerRadius ?? cornerRadius
+        return RectangleCornerRadii(topLeading: l, bottomLeading: l, bottomTrailing: r, topTrailing: r)
+    }
+    /// The display's corner radii in the current orientation: the portrait corners turn with the device.
+    var displayCornerRadii: RectangleCornerRadii {
+        let p = portraitCornerRadii
+        switch orientation {
+        case .portrait: return p
+        // The device's top goes left: portrait top-leading lands bottom-leading, top-trailing top-leading.
+        case .landscapeLeft:
+            return RectangleCornerRadii(topLeading: p.topTrailing, bottomLeading: p.topLeading,
+                                        bottomTrailing: p.bottomLeading, topTrailing: p.bottomTrailing)
+        // The device's top goes right: portrait top-leading lands top-trailing, bottom-leading top-leading.
+        case .landscapeRight:
+            return RectangleCornerRadii(topLeading: p.bottomLeading, bottomLeading: p.bottomTrailing,
+                                        bottomTrailing: p.topTrailing, topTrailing: p.topLeading)
+        }
+    }
+
+    /// The iPhone Duo's status bar: the time, then a ring (the battery level) around the Wi-Fi glyph, with the
+    /// cellular bars as four dots in the ring's gap. In portrait it is a column in the trailing safe-area inset;
+    /// with `rowInLandscape` the landscape screen shows it as a row along the top, otherwise none.
+    /// `columnTop` is the top of the time's digits in the column.
+    struct RingStatusBar {
+        var columnTop: CGFloat
+        var rowInLandscape: Bool
     }
 
     // MARK: Lookup
@@ -117,6 +172,16 @@ package struct DeviceProfile {
         DeviceProfile(id: id, name: name, idiom: .watch, portraitSize: CGSize(width: width, height: height), scale: 2,
                       portraitSafeArea: edges(top, side, bottom, side), landscapeSafeArea: edges(top, side, bottom, side),
                       cornerRadius: radius, housing: .none, aliases: aliases)
+    }
+
+    /// The iPhone Duo's inner display (open or half open; see the table).
+    private static func duoInner(_ id: String, _ name: String, aliases: [String]) -> DeviceProfile {
+        DeviceProfile(id: id, name: name, idiom: .phone, portraitSize: CGSize(width: 951, height: 669), scale: 3,
+                      portraitSafeArea: edges(0, 0, 34, 84), landscapeSafeArea: edges(82, 0, 34, 0), cornerRadius: 55,
+                      housing: .none, aliases: aliases,
+                      ringStatusBar: .init(columnTop: 34, rowInLandscape: true),
+                      sizeClasses: (portrait: (.regular, .regular), landscape: (.regular, .regular)),
+                      mainScreenSize: CGSize(width: 466, height: 678))
     }
 
     // Notch sizes. 209x30 is the iPhone X/11/12 notch, 162x34 the narrower one of the 13 and 14.
@@ -178,6 +243,33 @@ package struct DeviceProfile {
         phone("iphone-air", "iPhone Air", 420, 912, top: 68, radius: 62, housing: .dynamicIsland(size: CGSize(width: 125, height: 37), top: 20),
               aliases: ["iphone-17-air"]),
 
+        // iPhone Duo (iPhone19,4), a foldable with two displays; iOS 27.1 and later only. One profile per posture
+        // (Device Hub's Closed, Partially Open and Open), each in portrait and both landscapes; upside down the
+        // interface stays as in portrait (measured: the same screenshot in every posture).
+        // measured: iOS 27.2 simulator. Closed, apps run on the cover display: 466x678 @3x, the status bar a
+        // column in a trailing 84pt inset, 34pt at the bottom (no home indicator drawn). In landscape (678x466)
+        // the 84pt inset follows the camera (left in landscape-left, right in landscape-right) and the status
+        // bar is hidden. Size classes compact/regular, landscape compact/compact. Display corners 59pt, 8pt along
+        // the hinge (the simulator's display mask).
+        DeviceProfile(id: "iphone-duo", name: "iPhone Duo", idiom: .phone, portraitSize: CGSize(width: 466, height: 678), scale: 3,
+                      portraitSafeArea: edges(0, 0, 34, 84), landscapeSafeArea: edges(0, 84, 34, 0), cornerRadius: 59,
+                      // The camera cutout is not in simulator screenshots; its size and place are estimated
+                      // from the simulator's device artwork in Device Hub.
+                      housing: .punchHole(diameter: 37, fromTopTrailing: CGPoint(x: 48, y: 50)),
+                      aliases: ["iphone-duo-folded", "iphone-duo-closed", "iphone-duo-cover", "iPhone Duo (folded)", "iPhone Duo (closed)"],
+                      landscapeRightSafeArea: edges(0, 0, 34, 84), leadingCornerRadius: 8,
+                      ringStatusBar: .init(columnTop: 86.67, rowInLandscape: false),
+                      sizeClasses: (portrait: (.compact, .regular), landscape: (.compact, .compact))),
+        // measured: iOS 27.2 simulator. Open, apps run on the inner display. Held upright it is landscape-shaped,
+        // 951x669 @3x, with the same trailing status column (84pt) and 34pt at the bottom; turned either way it
+        // is 669x951 with the status bar a row in an 82pt top inset. Regular/regular in every orientation.
+        // UIScreen.main.bounds still reports the cover display, 466x678.
+        duoInner("iphone-duo-open", "iPhone Duo (open)", aliases: ["iphone-duo-unfolded", "iphone-duo-inner", "iPhone Duo (unfolded)"]),
+        // measured: iOS 27.2 simulator. Partially Open (half folded) also runs apps on the inner display, with the
+        // same sizes, insets, status bar and size classes as Open in all three orientations.
+        duoInner("iphone-duo-half-open", "iPhone Duo (half open)",
+                 aliases: ["iphone-duo-partially-open", "iphone-duo-half-folded", "iphone-duo-tent", "iPhone Duo (partially open)"]),
+
         // Apple Watch. Screen sizes are Apple's (416x496, 374x446 and 410x502 pixels at 2x). The display
         // corner radii are estimates scaled from the 41/45mm generation.
         // measured: watchOS 26.5 simulator: the safe-area insets (a full-screen app's first text at x 2 and at
@@ -209,7 +301,9 @@ package struct DeviceProfile {
             let nm = d.name.padding(toLength: nameWidth, withPad: " ", startingAt: 0)
             let sz = "\(n(d.portraitSize.width))x\(n(d.portraitSize.height)) @\(n(d.scale))x".padding(toLength: 16, withPad: " ", startingAt: 0)
             lines.append("\(id)\(nm)\(sz)\(d.housing.label.padding(toLength: 15, withPad: " ", startingAt: 0))"
-                         + "safe \(n(a.top))/\(n(a.leading))/\(n(a.bottom))/\(n(a.trailing)) land \(n(l.top))/\(n(l.leading))/\(n(l.bottom))/\(n(l.trailing))")
+                         + "safe \(n(a.top))/\(n(a.leading))/\(n(a.bottom))/\(n(a.trailing)) land \(n(l.top))/\(n(l.leading))/\(n(l.bottom))/\(n(l.trailing))"
+                         + (d.landscapeRightSafeArea.map { r in
+                             " (right \(n(r.top))/\(n(r.leading))/\(n(r.bottom))/\(n(r.trailing)))" } ?? ""))
         }
         return lines.joined(separator: "\n")
     }

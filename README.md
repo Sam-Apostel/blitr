@@ -159,8 +159,9 @@ and can store and check per-image scores as a baseline. Options and the report f
 ## Platforms and devices
 
 `swiftui-screenshot devices` lists every profile with its size, scale, cutout and safe area: iPhone SE and 11
-through the 17 family, 16e and Air; iPad, mini, Air and Pro in 11 and 13 inch; Apple TV 4K and HD; Apple Watch
-Series 10 in 46 and 42mm and Ultra 2. The default is
+through the 17 family, 16e and Air; the foldable iPhone Duo closed (`iphone-duo`, its cover display), open
+(`iphone-duo-open`, the inner display, landscape-shaped when held upright) and half open (`iphone-duo-half-open`); iPad, mini, Air and Pro in 11 and 13
+inch; Apple TV 4K and HD; Apple Watch Series 10 in 46 and 42mm and Ultra 2. The default is
 `iphone-16`. Portrait and landscape both work, with the Dynamic Island or notch (`--show-island`) and rounded
 display corners (`--rounded-corners`) optional.
 
