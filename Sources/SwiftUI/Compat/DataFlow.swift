@@ -8,11 +8,30 @@ final class CompatStore {
     var retained: [AnyObject] = []
     var hookInstalled = false
 
-    /// Any change published by an ObservableObject means state may have moved after layout.
+    /// Any change published by an ObservableObject means state may have moved after layout. Our Combine
+    /// (Linux) reports every object's change through one hook; Apple's (Darwin) has none, so each object a
+    /// view observes is subscribed to on its own.
     func installObservationHook() {
+        #if !canImport(Darwin)
         guard !hookInstalled else { return }
         hookInstalled = true
         ObservableObjectPublisher._didChange = { CompatStore.markChanged() }
+        #endif
+    }
+
+    #if canImport(Darwin)
+    private struct Subscription { weak var object: AnyObject?; var cancellable: AnyCancellable }
+    private var subscriptions: [ObjectIdentifier: Subscription] = [:]
+    #endif
+
+    func observe<Object: ObservableObject>(_ object: Object) {
+        installObservationHook()
+        #if canImport(Darwin)
+        let id = ObjectIdentifier(object)
+        if let existing = subscriptions[id], existing.object === object { return }
+        if subscriptions.count > 512 { subscriptions = subscriptions.filter { $0.value.object != nil } }
+        subscriptions[id] = Subscription(object: object, cancellable: object.objectWillChange.sink { _ in CompatStore.markChanged() })
+        #endif
     }
 
     static func markChanged() {
@@ -42,7 +61,7 @@ public struct ObservedObject<ObjectType: ObservableObject>: DynamicProperty, Ins
     public init(initialValue: ObjectType) { wrappedValue = initialValue }
     public var projectedValue: Wrapper { Wrapper(object: wrappedValue) }
 
-    @MainActor func install(_ ic: inout InstallContext) { CompatStore.shared.installObservationHook() }
+    @MainActor func install(_ ic: inout InstallContext) { CompatStore.shared.observe(wrappedValue) }
 }
 
 // MARK: - StateObject
@@ -72,10 +91,10 @@ public struct StateObject<ObjectType: ObservableObject>: DynamicProperty, Instal
 
     /// The object is created once per view identity; later passes reuse it and ignore the autoclosure.
     @MainActor func install(_ ic: inout InstallContext) {
-        CompatStore.shared.installObservationHook()
         let box = self.box
         let holder = ic.storage { Holder(box.resolve()) }
         box.object = holder.object
+        CompatStore.shared.observe(holder.object)
     }
 }
 
@@ -105,8 +124,8 @@ public struct EnvironmentObject<ObjectType: ObservableObject>: DynamicProperty, 
     public var projectedValue: Wrapper { Wrapper(object: wrappedValue) }
 
     @MainActor func install(_ ic: inout InstallContext) {
-        CompatStore.shared.installObservationHook()
         box.env = ic.ctx.env
+        if let object = ic.ctx.env[object: ObjectType.self] as? ObjectType { CompatStore.shared.observe(object) } else { CompatStore.shared.installObservationHook() }
     }
 }
 

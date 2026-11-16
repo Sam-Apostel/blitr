@@ -36,24 +36,24 @@ public final class CGColorSpace: Hashable, @unchecked Sendable {
     public static func == (a: CGColorSpace, b: CGColorSpace) -> Bool { a.model == b.model && a.name == b.name }
     public func hash(into hasher: inout Hasher) { hasher.combine(model); hasher.combine(name) }
 
-    public static let sRGB: CFString = "kCGColorSpaceSRGB"
-    public static let extendedSRGB: CFString = "kCGColorSpaceExtendedSRGB"
-    public static let linearSRGB: CFString = "kCGColorSpaceLinearSRGB"
-    public static let extendedLinearSRGB: CFString = "kCGColorSpaceExtendedLinearSRGB"
-    public static let genericRGBLinear: CFString = "kCGColorSpaceGenericRGBLinear"
-    public static let displayP3: CFString = "kCGColorSpaceDisplayP3"
-    public static let extendedDisplayP3: CFString = "kCGColorSpaceExtendedDisplayP3"
-    public static let linearDisplayP3: CFString = "kCGColorSpaceLinearDisplayP3"
-    public static let adobeRGB1998: CFString = "kCGColorSpaceAdobeRGB1998"
-    public static let itur_709: CFString = "kCGColorSpaceITUR_709"
-    public static let itur_2020: CFString = "kCGColorSpaceITUR_2020"
-    public static let genericGrayGamma2_2: CFString = "kCGColorSpaceGenericGrayGamma2_2"
-    public static let extendedGray: CFString = "kCGColorSpaceExtendedGray"
-    public static let linearGray: CFString = "kCGColorSpaceLinearGray"
-    public static let extendedLinearGray: CFString = "kCGColorSpaceExtendedLinearGray"
-    public static let genericCMYK: CFString = "kCGColorSpaceGenericCMYK"
-    public static let genericXYZ: CFString = "kCGColorSpaceGenericXYZ"
-    public static let genericLab: CFString = "kCGColorSpaceGenericLab"
+    public static let sRGB: CFString = _cfString("kCGColorSpaceSRGB")
+    public static let extendedSRGB: CFString = _cfString("kCGColorSpaceExtendedSRGB")
+    public static let linearSRGB: CFString = _cfString("kCGColorSpaceLinearSRGB")
+    public static let extendedLinearSRGB: CFString = _cfString("kCGColorSpaceExtendedLinearSRGB")
+    public static let genericRGBLinear: CFString = _cfString("kCGColorSpaceGenericRGBLinear")
+    public static let displayP3: CFString = _cfString("kCGColorSpaceDisplayP3")
+    public static let extendedDisplayP3: CFString = _cfString("kCGColorSpaceExtendedDisplayP3")
+    public static let linearDisplayP3: CFString = _cfString("kCGColorSpaceLinearDisplayP3")
+    public static let adobeRGB1998: CFString = _cfString("kCGColorSpaceAdobeRGB1998")
+    public static let itur_709: CFString = _cfString("kCGColorSpaceITUR_709")
+    public static let itur_2020: CFString = _cfString("kCGColorSpaceITUR_2020")
+    public static let genericGrayGamma2_2: CFString = _cfString("kCGColorSpaceGenericGrayGamma2_2")
+    public static let extendedGray: CFString = _cfString("kCGColorSpaceExtendedGray")
+    public static let linearGray: CFString = _cfString("kCGColorSpaceLinearGray")
+    public static let extendedLinearGray: CFString = _cfString("kCGColorSpaceExtendedLinearGray")
+    public static let genericCMYK: CFString = _cfString("kCGColorSpaceGenericCMYK")
+    public static let genericXYZ: CFString = _cfString("kCGColorSpaceGenericXYZ")
+    public static let genericLab: CFString = _cfString("kCGColorSpaceGenericLab")
 
     private static let knownNames: Set<String> = Set([
         sRGB, extendedSRGB, linearSRGB, extendedLinearSRGB, genericRGBLinear, displayP3, extendedDisplayP3, linearDisplayP3,
@@ -61,9 +61,9 @@ public final class CGColorSpace: Hashable, @unchecked Sendable {
         genericCMYK, genericXYZ, genericLab,
     ].map { $0 as String })
 
-    package static let deviceRGB = CGColorSpace(model: .rgb, name: "kCGColorSpaceDeviceRGB")
-    package static let deviceGray = CGColorSpace(model: .monochrome, name: "kCGColorSpaceDeviceGray")
-    package static let deviceCMYK = CGColorSpace(model: .cmyk, name: "kCGColorSpaceDeviceCMYK")
+    package static let deviceRGB = CGColorSpace(model: .rgb, name: _cfString("kCGColorSpaceDeviceRGB"))
+    package static let deviceGray = CGColorSpace(model: .monochrome, name: _cfString("kCGColorSpaceDeviceGray"))
+    package static let deviceCMYK = CGColorSpace(model: .cmyk, name: _cfString("kCGColorSpaceDeviceCMYK"))
     package static let srgb = CGColorSpace(model: .rgb, name: sRGB)
 }
 

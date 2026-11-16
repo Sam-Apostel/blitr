@@ -26,17 +26,10 @@ jobs:
 
       - name: Render every example and the acceptance corpus
         run: |
-          bin="$(swift build --show-bin-path)"
-          "$bin/swiftui-screenshot" doctor
+          "$(swift build --show-bin-path)/swiftui-screenshot" doctor
           # Every file must compile against the module and render; a failure here is a regression.
-          find Examples Tests/Corpus -name '*.swift' | sort | while read -r file; do
-            echo "::group::$file"
-            # tvOS screens render on the Apple TV profile (which also compiles their #if os(tvOS) branches).
-            device=""
-            case "$file" in *TV*.swift) device="--device apple-tv" ;; esac
-            "$bin/swiftui-screenshot" render "$file" --all --out-dir "out/$(dirname "$file")" --scheme both $device
-            echo "::endgroup::"
-          done
+          # The same script and options as on a Mac, so the two hosts' images can be compared.
+          REGRESSION_STRICT=1 scripts/regression.sh out/render --jobs 4
 
       - name: Project mode (XcodeGen, Xcode project and Swift package fixture)
         run: Tests/Projects/run.sh out/Projects

@@ -233,7 +233,8 @@ final class FontLibrary {
         case (.serif, false): found = find(["NewYork.ttf", "SourceSerif4[opsz,wght].ttf", "SourceSerif4-VariableFont_opsz,wght.ttf", "NotoSerif-Regular.ttf"])
         case (.serif, true): found = find(["NewYorkItalic.ttf", "SourceSerif4-Italic[opsz,wght].ttf", "SourceSerif4-Italic-VariableFont_opsz,wght.ttf"])
         case (.monospaced, _):
-            found = find([italic ? "SF-Mono-Italic.ttf" : "SF-Mono.ttf"]) ?? staticFile(prefix: "SF-Mono", weight: weight, italic: italic)
+            found = find([italic ? "SF-Mono-Italic.ttf" : "SF-Mono.ttf", italic ? "SFNSMonoItalic.ttf" : "SFNSMono.ttf"])
+                ?? staticFile(prefix: "SF-Mono", weight: weight, italic: italic)
                 ?? find(italic ? ["JetBrainsMono-Italic[wght].ttf", "JetBrainsMono-Italic-VariableFont_wght.ttf"]
                                : ["JetBrainsMono[wght].ttf", "JetBrainsMono-VariableFont_wght.ttf", "DejaVuSansMono.ttf"])
         }
@@ -330,7 +331,7 @@ final class FontLibrary {
     func fallbackInstance(for scalar: Unicode.Scalar, like font: ResolvedFont) -> FontInstance? {
         if fallbacks == nil {
             var list: [FontFile] = []
-            let candidates = ["AppleColorEmoji.ttf", "NotoColorEmoji.ttf"]
+            let candidates = ["AppleColorEmoji.ttf", "Apple Color Emoji.ttc", "NotoColorEmoji.ttf"]
             if let f = find(candidates) { list.append(f) }
             for path in ["/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf",
                          "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",

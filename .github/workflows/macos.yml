@@ -1,9 +1,6 @@
-name: macOS (port in progress)
+name: macOS
 
-# PORT IN PROGRESS (issue #19). The native macOS build is not done yet: until step 2 of the issue lands
-# (module clashes with Apple's frameworks), this job is expected to fail at `swift build`. Its logs and
-# whatever it rendered are uploaded either way.
-#
+# The native macOS build (issue #19): build, the regression set, the three suites, and the release tarball.
 # Started by hand only: the repository is private and macOS runner minutes count 10x against the quota.
 on:
   workflow_dispatch:
@@ -11,7 +8,7 @@ on:
       swift-version:
         description: Swift toolchain to install with swiftly (empty uses the runner's Xcode toolchain)
         required: false
-        default: "6.4.2"
+        default: ""
 
 defaults:
   run:
@@ -19,7 +16,7 @@ defaults:
 
 jobs:
   macos:
-    name: Build and render on macOS (in progress)
+    name: Build, render and test on macOS
     runs-on: macos-latest
     env:
       SWIFTUI_SCREENSHOT_CACHE: ${{ github.workspace }}/.cache/swiftui-screenshot
@@ -56,26 +53,35 @@ jobs:
           otool -L "$bin/libSwiftUIScreenshotEngine.dylib" | tee otool-engine.txt
           if grep -q 'SwiftUI.framework' otool-engine.txt; then echo "the engine links Apple's SwiftUI" >&2; exit 1; fi
 
-      - name: Render examples
+      - name: Render the regression set
+        run: REGRESSION_STRICT=1 scripts/regression.sh out/macos --jobs 3
+
+      - name: Compiled previews must not link Apple's SwiftUI
         run: |
-          bin="$(swift build --show-bin-path)"
-          "$bin/swiftui-screenshot" doctor || true
-          mkdir -p out/macos
-          "$bin/swiftui-screenshot" render Examples/Hello.swift --open-fonts --scheme both --out-dir out/macos -v 2>&1 | tee render.log
-          "$bin/swiftui-screenshot" render Tests/Corpus/01_Settings.swift --all --open-fonts --scheme both --out-dir out/macos 2>&1 | tee -a render.log
-          "$bin/swiftui-screenshot" render Examples/TVControls.swift --device apple-tv --open-fonts --out-dir out/macos 2>&1 | tee -a render.log
-          # The compiled previews must not link Apple's SwiftUI either.
           runner="$(find "$SWIFTUI_SCREENSHOT_CACHE" -name runner -type f | head -1)"
           otool -L "$runner" | tee otool-runner.txt
-          if grep -q 'SwiftUI.framework' otool-runner.txt; then echo "a compiled preview links Apple's SwiftUI" >&2; exit 1; fi
+          if grep -qE 'SwiftUI|UIKit|AppKit' otool-runner.txt; then echo "a compiled preview links an Apple UI framework" >&2; exit 1; fi
+
+      - name: Project mode
+        run: Tests/Projects/run.sh out/Projects
+
+      - name: Framework shims
+        run: Tests/Frameworks/run.sh out/Frameworks
+
+      - name: Interaction capture
+        run: Tests/Interaction/run.sh out/Interaction
+
+      - name: Release tarball
+        run: scripts/make-dist.sh
 
       - name: Upload renders and logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: macos-port-in-progress
+          name: macos
           path: |
-            out/macos/*.png
+            out/macos/**/*.png
+            dist/*.tar.gz
             build.log
             render.log
             otool-*.txt

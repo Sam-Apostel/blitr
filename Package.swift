@@ -28,6 +28,19 @@ let linkEngine: [SwiftSetting] = [.unsafeFlags(["-module-link-name", engineLibra
 // Modules linked into the engine library next to the SwiftUI module itself (Combine is a dependency of SwiftUI).
 let shimModules = ["Combine", "UniformTypeIdentifiers", "CoreGraphics", "ImageIO", "CoreImage", "CoreText", "ObjectiveC", "QuartzCore", "UIKit", "CoreLocation", "MapKit", "AppIntents", "ActivityKit", "WidgetKit", "CryptoKit", "Security", "Network", "CoreSpotlight", "UserNotifications", "EventKit", "WatchConnectivity", "Contacts", "PhotosUI", "AuthenticationServices", "PassKit", "PDFKit", "Vision", "VisionKit", "EventKitUI", "ContactsUI", "Translation", "QuickLook", "AppKit", "StoreKit", "AVFoundation", "AVKit", "SafariServices", "MessageUI", "CoreMotion", "CoreHaptics", "TipKit", "os", "OSLog", "WatchKit"]
 
+// Modules that are Apple's own on macOS, and whose targets here are left out there:
+// - Combine, ObjectiveC and Security: Apple's Foundation imports them, so a module of ours with the same name
+//   would be found in place of Apple's while Foundation itself is loaded.
+// - os and OSLog: Darwin's C headers already declare the os_unfair_lock API ours provides, and Apple's
+//   logging and locks are the real thing.
+// Every other shim keeps its name and shadows the SDK's framework, as module search paths come before the
+// SDK (issue #19).
+#if os(macOS)
+let appleProvided: Set<String> = ["Combine", "ObjectiveC", "Security", "os", "OSLog"]
+#else
+let appleProvided: Set<String> = []
+#endif
+
 let package = Package(
     name: "swift-ui-screenshot",
     // Ignored on Linux. On macOS, the oldest system the engine is built for (HostPlatform.deploymentTarget).
@@ -40,7 +53,7 @@ let package = Package(
         // (SwiftPM links a target's dependencies into every dynamic product), and two copies in a process
         // break protocol conformance lookups at run time. Importers link `-lSwiftUIScreenshotEngine`
         // (docs/ARCHITECTURE.md).
-        .library(name: engineLibrary, type: .dynamic, targets: ["SwiftUI"] + shimModules),
+        .library(name: engineLibrary, type: .dynamic, targets: ["SwiftUI"] + shimModules.filter { !appleProvided.contains($0) }),
         // Foundation's localization API (String(localized:), LocalizedStringResource), which Linux Foundation
         // lacks; SwiftUI re-exports it and project mode imports it into Foundation-only packages.
         // The command-line tool: compiles user sources against the modules above and renders them.
@@ -108,3 +121,11 @@ let package = Package(
         .executableTarget(name: "swiftui-screenshot", swiftSettings: [.swiftLanguageMode(.v5)]),
     ]
 )
+
+package.targets.removeAll { appleProvided.contains($0.name) }
+for target in package.targets {
+    target.dependencies.removeAll {
+        if case .byNameItem(let name, _) = $0 { return appleProvided.contains(name) }
+        return false
+    }
+}

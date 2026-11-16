@@ -11,6 +11,8 @@ Where the renderer stands, what is open (in priority order), and which items nee
 - **tvOS focus** (`docs/FOCUS.md`): `--press`, `--focus`, `--focus-map` and `--focus-overlay`. Checked against tvOS 26.5 recordings: 18 of 465 moves still differ.
 - **Interaction capture** (`docs/INTERACTION.md`): scripted taps, typing and scrolling. Outputs are frames, filmstrips, GIF, APNG, WebP and MP4, plus full-content captures.
 - **Time and network:** `Task.sleep` runs on a virtual clock and renders are offline by default.
+- **Native macOS** (issue #19): the same engine builds and renders on a Mac, against a filtered SDK so user code
+  sees the same frameworks as on Linux (ARCHITECTURE.md, "macOS").
 - **Calibration** (`docs/REFERENCE.md`, `scripts/calibrate.py`): simulator references live on the `data/references` branch (`ios-27.0`, `ios-26.5`, `tvos-26.5`). The tool renders and compares against them.
 
 | Set | Typical screen difference |
@@ -26,7 +28,6 @@ The iOS 27 sum over all screens is 26.6% in light and 30.5% in dark.
 
 | # | Item | Needs a Mac |
 |---|---|---|
-| [#19](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/19) | Run natively on macOS. Step 1 (gating and plumbing) is done. Step 2 is the module clashes, CoreGraphics first. | yes |
 | [#14](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/14) | Re-capture tvOS 26.5 dark mode: the current dark set is a copy of light. | yes |
 | [#16](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/16) | watchOS reference captures | yes |
 | [#24](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/24) | watchOS chrome: lists, navigation, measured safe areas. Blocked by #16. | after #16 |
@@ -42,7 +43,7 @@ The iOS 27 sum over all screens is 26.6% in light and 30.5% in dark.
 
 - **Build:** `scripts/bootstrap.sh`, then `swift build`.
 - **Check it still works:** `Tests/Projects/run.sh`, `Tests/Frameworks/run.sh` and `Tests/Interaction/run.sh`, plus the regression loop below. CI runs the same.
-- **Regression loop:** render every `Tests/Corpus/*.swift`, `Examples/*.swift`, `Examples/ApiGaps/*.swift` and `Examples/Frameworks/*.swift` with `--open-fonts`. Use `--device apple-tv` for files matching `*TV*`. Do it before and after a change and compare the PNGs byte for byte. `ContainersLayout` (live clock) and `Interactions-Loading` (`TimelineView`) differ from run to run, so ignore them.
+- **Regression loop:** `scripts/regression.sh OUT_DIR`, then `scripts/regression.sh --compare BEFORE AFTER`. It renders every `.swift` file under `Tests/Corpus` and `Examples` with `--open-fonts`. Use `--device apple-tv` for files matching `*TV*`. Do it before and after a change and compare the PNGs byte for byte. It renders at a fixed `--date` and time zone, so clocks and timelines draw the same every run.
 - **Calibration:**
   1. Run `scripts/calibrate.py --ios 27.0 --scheme light --jobs 1`, or `--platform tvos --set tvos-26.5`.
   2. Measure from the reference PNGs and accessibility JSONs.

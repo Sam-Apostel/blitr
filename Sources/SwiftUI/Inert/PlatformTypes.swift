@@ -86,6 +86,7 @@ open class NSUserActivity: NSObject {
 // UTType is in the UniformTypeIdentifiers module, which SwiftUI re-exports.
 
 // Foundation's FileWrapper is missing on Linux.
+#if !canImport(Darwin)
 open class FileWrapper: NSObject {
     open var regularFileContents: Data?
     open var fileWrappers: [String: FileWrapper]?
@@ -93,6 +94,7 @@ open class FileWrapper: NSObject {
     public init(regularFileWithContents contents: Data) { regularFileContents = contents; super.init() }
     public init(directoryWithFileWrappers wrappers: [String: FileWrapper]) { fileWrappers = wrappers; super.init() }
 }
+#endif
 
 // Document types used by fileExporter / fileImporter (DocumentGroup would also use them).
 public struct FileDocumentReadConfiguration {

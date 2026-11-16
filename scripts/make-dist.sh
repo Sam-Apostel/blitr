@@ -11,8 +11,8 @@
 # Usage: scripts/make-dist.sh [VERSION]     (default: git describe --tags --always)
 # Needs Vendor/ (scripts/bootstrap.sh), the Swift toolchain on PATH, and patchelf
 # (apt-get install -y patchelf). Apple's fonts (Vendor/apple-fonts) are never packaged.
-# On macOS (in progress, issue #19; not tried on a Mac yet) it needs Xcode's install_name_tool, otool and
-# codesign instead of patchelf, and the tarball expects Homebrew's harfbuzz at run time.
+# On macOS it needs Xcode's install_name_tool, otool and codesign instead of patchelf, and the tarball
+# expects Homebrew's harfbuzz at run time.
 # shellcheck disable=SC2015,SC2016  # `[ a ] && [ b ] || die` is intended; '$ORIGIN' must stay literal
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
@@ -62,8 +62,10 @@ cp "$bin/swiftui-screenshot" "$stage/bin/"
 # library; so is the Foundation shim (docs/ARCHITECTURE.md, "Shim modules"). The module list is
 # Package.swift's `shimModules`, so a new shim is one entry there.
 shims="$(sed -n 's/^let shimModules = \[\(.*\)\]/\1/p' Package.swift | tr -d '",')"
+# On macOS, Combine, ObjectiveC, Security, os and OSLog are Apple's (Package.swift's `appleProvided`).
 for m in SwiftUI SwiftUIScreenshotFoundation $shims; do
-  cp -r "$bin/$m.swiftmodule" "$lib/"
+  if [ -d "$bin/$m.swiftmodule" ]; then cp -r "$bin/$m.swiftmodule" "$lib/"
+  elif [ "$os" = linux ]; then echo "make-dist: $m.swiftmodule was not built" >&2; exit 1; fi
 done
 cp "$bin/$engine" "$lib/"
 

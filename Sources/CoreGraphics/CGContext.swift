@@ -59,8 +59,9 @@ public final class CGGradient: @unchecked Sendable {
 
     /// `colors` is an array of `CGColor`; without `locations` they are spread evenly.
     public init?(colorsSpace space: CGColorSpace?, colors: CFArray, locations: UnsafePointer<CGFloat>?) {
-        let list = (0..<colors.count).compactMap { colors.object(at: $0) as? CGColor }
-        guard !list.isEmpty, list.count == colors.count else { return nil }
+        let array = colors as NSArray
+        let list = (0..<array.count).compactMap { array.object(at: $0) as? CGColor }
+        guard !list.isEmpty, list.count == array.count else { return nil }
         stops = list.enumerated().map { index, color in
             let location = locations.map { Double($0[index]) } ?? (list.count > 1 ? Double(index) / Double(list.count - 1) : 0)
             return (color.rgba, location)

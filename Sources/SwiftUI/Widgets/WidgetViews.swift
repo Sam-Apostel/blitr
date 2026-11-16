@@ -30,7 +30,7 @@ extension Text {
     }
 
     @_disfavoredOverload
-    public init(_ resource: LocalizedStringResource) { self.init(storage: .verbatim(resource.defaultValue)) }
+    public init(_ resource: LocalizedStringResource) { self.init(storage: .verbatim(resource._resolvedText)) }
 }
 
 // MARK: - Timer progress

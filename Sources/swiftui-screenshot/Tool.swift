@@ -125,6 +125,10 @@ struct Installation {
             dir = (dir as NSString).deletingLastPathComponent
         }
         if fm.fileExists(atPath: sdk + "/apple-fonts/SF-Pro.ttf") { appleFonts = sdk + "/apple-fonts" }
+        #if canImport(Darwin)
+        // A Mac has SF Pro, SF Pro Rounded, SF Mono, New York and Apple Color Emoji installed with the system.
+        if appleFonts == nil, fm.fileExists(atPath: "/System/Library/Fonts/SFNS.ttf") { appleFonts = "/System/Library/Fonts" }
+        #endif
 
         var swiftc = env["SWIFTC"] ?? ""
         if swiftc.isEmpty {
@@ -381,7 +385,7 @@ func build(_ options: Options, _ installation: Installation) -> Build {
             if let mismatch = compilerMismatch(installation) { fail(mismatch) }
             let report = UnsupportedReport(diagnostics: diagnostics, stubbedModules: [:])
             if !report.isEmpty { note(report.text()) }
-            fail("the sources did not compile against the Linux SwiftUI module. Errors about unknown members usually mean an API this renderer does not implement yet.")
+            fail("the sources did not compile against this renderer's SwiftUI module. Errors about unknown members usually mean an API this renderer does not implement yet.")
         }
     }
 

@@ -83,6 +83,7 @@ open class UIResponder: NSObject {
     open func target(forAction action: Selector, withSender sender: Any?) -> Any? { nil }
 }
 
+#if !canImport(Darwin)
 /// Foundation's UndoManager is missing on Linux: a registry that records nothing.
 open class UndoManager: NSObject {
     public override init() { super.init() }
@@ -108,6 +109,7 @@ open class UndoManager: NSObject {
     open func setActionName(_ actionName: String) {}
     open func registerUndo<TargetType: AnyObject>(withTarget target: TargetType, handler: @escaping (TargetType) -> Void) {}
 }
+#endif
 extension NSNotification.Name {
     public static let NSUndoManagerDidUndoChange = Notification.Name("NSUndoManagerDidUndoChangeNotification")
     public static let NSUndoManagerDidRedoChange = Notification.Name("NSUndoManagerDidRedoChangeNotification")

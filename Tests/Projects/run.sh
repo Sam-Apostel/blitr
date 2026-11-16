@@ -37,7 +37,7 @@ check "only the entry's closure is compiled" has "compiling 4 of 9 files of Orch
 check "the remote package is reported by name" has "warning: SunCalc (remote package"
 check "the package's font is found" lacks "Font \"OrchardPixel\" not found"
 check "no asset is missing" lacks "not found"
-check "both previews, both schemes" test "$(ls "$out/list" | wc -l)" = 4
+check "both previews, both schemes" test "$(ls "$out/list" | wc -l | tr -d " ")" = 4
 
 echo "== caching"
 run 0 render $fixture/App/Sources/TreeDetailView.swift --open-fonts -v -o "$out/detail.png"
@@ -68,7 +68,7 @@ check "same picture as through the XcodeGen spec" cmp "$out/list-en.png" "$out/l
 "$bin" list $fixture/App/Sources/HarvestListView.swift >"$out/list-xcodegen.txt" 2>/dev/null
 "$bin" list $fixture/App/Sources/HarvestListView.swift --project $fixture/Orchard.xcodeproj >"$out/list-pbxproj.txt" 2>/dev/null
 check "both readers list the same previews" cmp "$out/list-xcodegen.txt" "$out/list-pbxproj.txt"
-check "list covers the whole target" test "$(wc -l <"$out/list-xcodegen.txt")" = 4
+check "list covers the whole target" test "$(wc -l <"$out/list-xcodegen.txt" | tr -d " ")" = 4
 
 echo "== tvOS target"
 run 0 render $fixture/TV/Sources/TVBoardView.swift --open-fonts -v -o "$out/tv.png"
@@ -91,7 +91,7 @@ run 1 render $fixture/App/Sources/ToolsView.swift --open-fonts -o "$out/tools.pn
 check "nothing is rendered" test ! -e "$out/tools.png"
 check "the summary names the framework" has "ARKit: 1 file imports it"
 run 1 render $fixture/App/Sources/HarvestListView.swift --whole-target --open-fonts -o "$out/whole.png"
-check "--whole-target compiles the unsupported files too" has "Frameworks not available on Linux"
+check "--whole-target compiles the unsupported files too" has "Frameworks this renderer does not provide"
 run 1 check $fixture/App/Sources/ToolsView.swift
 check "check lists the framework and what is used from it" has "ARKit: 1 file imports it; uses ARWorldTrackingConfiguration ×2, ARSession ×1"
 check "check lists the remote package's module" has "SunCalc: 1 file imports it"

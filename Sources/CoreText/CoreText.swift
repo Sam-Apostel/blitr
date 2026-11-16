@@ -10,7 +10,7 @@ public enum CTFontManagerError: Int, Sendable {
     case fileNotFound = 101, insufficientPermissions = 102, unrecognizedFormat = 103, invalidFontData = 104, alreadyRegistered = 105
     case notRegistered = 201, inUse = 202, systemRequired = 203
 }
-public let kCTFontManagerErrorDomain: CFString = "com.apple.CoreText.CTFontManagerErrorDomain"
+public let kCTFontManagerErrorDomain: CFString = _cfString("com.apple.CoreText.CTFontManagerErrorDomain")
 
 private func fail(_ code: CTFontManagerError, _ url: URL?, _ error: UnsafeMutablePointer<Unmanaged<CFError>?>?) -> Bool {
     error?.pointee = Unmanaged.passRetained(NSError(domain: kCTFontManagerErrorDomain as String, code: code.rawValue,
@@ -39,22 +39,22 @@ public func CTFontManagerUnregisterFontsForURL(_ fontURL: CFURL, _ scope: CTFont
 public func CTFontManagerRegisterFontURLs(_ fontURLs: CFArray, _ scope: CTFontManagerScope, _ enabled: Bool,
                                           _ registrationHandler: ((CFArray, Bool) -> Bool)?) {
     var errors: [NSError] = []
-    for case let url as URL in fontURLs.compactMap({ ($0 as? URL) ?? ($0 as? NSURL).map { $0 as URL } }) {
+    for case let url as URL in (fontURLs as NSArray).compactMap({ ($0 as? URL) ?? ($0 as? NSURL).map { $0 as URL } }) {
         var error: Unmanaged<CFError>?
         if !CTFontManagerRegisterFontsForURL(url as NSURL, scope, &error), let e = error?.takeRetainedValue() { errors.append(e) }
     }
-    _ = registrationHandler?(errors as NSArray, true)
+    _ = registrationHandler?(errors as NSArray as CFArray, true)
 }
 public func CTFontManagerUnregisterFontURLs(_ fontURLs: CFArray, _ scope: CTFontManagerScope, _ registrationHandler: ((CFArray, Bool) -> Bool)?) {
-    for case let url as URL in fontURLs.compactMap({ ($0 as? URL) ?? ($0 as? NSURL).map { $0 as URL } }) {
+    for case let url as URL in (fontURLs as NSArray).compactMap({ ($0 as? URL) ?? ($0 as? NSURL).map { $0 as URL } }) {
         FontRegistry.remove(url.path)
     }
-    _ = registrationHandler?(NSArray(), true)
+    _ = registrationHandler?(NSArray() as CFArray, true)
 }
 @discardableResult
 public func CTFontManagerRegisterFontsForURLs(_ fontURLs: CFArray, _ scope: CTFontManagerScope, _ errors: UnsafeMutablePointer<Unmanaged<CFArray>?>?) -> Bool {
     var ok = true
-    CTFontManagerRegisterFontURLs(fontURLs, scope, true) { failures, _ in ok = failures.count == 0; return true }
+    CTFontManagerRegisterFontURLs(fontURLs, scope, true) { failures, _ in ok = (failures as NSArray).count == 0; return true }
     return ok
 }
 
@@ -144,10 +144,10 @@ public func CTFontDescriptorCopyAttribute(_ descriptor: CTFontDescriptor, _ attr
     default: return nil
     }
 }
-public let kCTFontNameAttribute: CFString = "NSFontNameAttribute"
-public let kCTFontFamilyNameAttribute: CFString = "NSFontFamilyAttribute"
-public let kCTFontSizeAttribute: CFString = "NSFontSizeAttribute"
-public let kCTFontTraitsAttribute: CFString = "NSCTFontTraitsAttribute"
+public let kCTFontNameAttribute: CFString = _cfString("NSFontNameAttribute")
+public let kCTFontFamilyNameAttribute: CFString = _cfString("NSFontFamilyAttribute")
+public let kCTFontSizeAttribute: CFString = _cfString("NSFontSizeAttribute")
+public let kCTFontTraitsAttribute: CFString = _cfString("NSCTFontTraitsAttribute")
 
 /// A font at a size. Metrics come from the font file when one by that name is registered (or the
 /// descriptor's file), and from the system font's proportions otherwise.

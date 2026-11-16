@@ -2,6 +2,7 @@
 // interpreted as on Apple platforms.
 import Foundation
 
+#if !canImport(Darwin)
 extension AttributedString {
     public struct LocalizationOptions: Hashable, Sendable {
         public init() {}
@@ -27,3 +28,4 @@ extension AttributedString {
         (try? AttributedString(markdown: text, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(text)
     }
 }
+#endif

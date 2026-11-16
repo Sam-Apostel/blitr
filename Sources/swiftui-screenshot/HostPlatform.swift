@@ -4,8 +4,6 @@ import Foundation
 // library names itself, and where the running executable is. Everything else in the tool is the same on
 // Linux and macOS, so platform checks belong here and nowhere else.
 //
-// macOS support is in progress (issue #19): the Darwin branches are written to be correct but have not
-// been built or run on a Mac yet.
 
 enum HostPlatform {
     /// The engine's library: the SwiftUI module and every shim module linked into one dynamic library
@@ -48,19 +46,21 @@ enum HostPlatform {
     }
 
     /// Flags every swiftc invocation of the tool gets ahead of its own: none on Linux; on macOS the
-    /// deployment target the engine's modules were built for.
-    static var compilerFlags: [String] {
+    /// deployment target the engine's modules were built for and the filtered SDK (`FilteredSDK`).
+    static let compilerFlags: [String] = {
         #if canImport(Darwin)
         #if arch(arm64)
         let arch = "arm64"
         #else
         let arch = "x86_64"
         #endif
-        return ["-target", "\(arch)-apple-macosx\(deploymentTarget)"]
+        let target = ["-target", "\(arch)-apple-macosx\(deploymentTarget)"]
+        guard let sdk = FilteredSDK.path else { return target }
+        return target + ["-sdk", sdk]
         #else
         return []
         #endif
-    }
+    }()
 
     /// The running executable, with symbolic links resolved (an installed tool is usually reached through
     /// a link in a bin directory, and the SDK is found next to the real file).
@@ -79,3 +79,101 @@ enum HostPlatform {
         #endif
     }
 }
+
+#if canImport(Darwin)
+/// The macOS SDK as user code sees it: only the frameworks Apple's Foundation is built from (Foundation,
+/// CoreFoundation, Combine, Security, CoreServices, ...) plus os, OSLog and Observation. Every other framework
+/// is left out, so `import ARKit` is "no such module" and `#if canImport(HealthKit)` is false, as on Linux, and
+/// no Apple UI framework (which would bring Apple's SwiftUI or UIKit with it) can reach a render. Our modules
+/// still shadow the SDK's of the same name through `-I`.
+///
+/// It is a directory of symbolic links into the real SDK, made once per SDK in the tool's cache. Apple's
+/// prebuilt modules still apply to it.
+enum FilteredSDK {
+    static let path: String? = make()
+
+    /// The modules user code may import from the SDK, beyond the ones Foundation brings with it.
+    static let roots = ["Foundation", "Combine", "Security", "os", "OSLog", "Observation", "Dispatch", "Darwin"]
+
+    private static func make() -> String? {
+        let env = ProcessInfo.processInfo.environment
+        if env["SWIFTUI_SCREENSHOT_FULL_SDK"] == "1" { return nil }
+        let fm = FileManager.default
+        let xcrun = "/usr/bin/xcrun"
+        guard let shown = env["SDKROOT"].flatMap({ $0.isEmpty ? nil : $0 })
+                ?? capture(xcrun, ["--sdk", "macosx", "--show-sdk-path"]),
+              let real = (try? URL(fileURLWithPath: shown).resolvingSymlinksInPath().path) else { return nil }
+        let settings = (try? fm.attributesOfItem(atPath: real + "/SDKSettings.json"))?[.modificationDate] as? Date
+        let key = hash([real, settings.map { "\($0.timeIntervalSince1970)" } ?? "", "filtered-sdk-1"])
+        let destination = ModuleBuilder.cacheRoot + "/sdk-" + key
+        if fm.fileExists(atPath: destination + "/SDKSettings.json") { return destination }
+
+        // The modules Foundation and the other roots are made of, from a dependency scan.
+        let work = ModuleBuilder.cacheRoot + "/sdk-scan-\(getpid())"
+        try? fm.createDirectory(atPath: work, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(atPath: work) }
+        let source = work + "/roots.swift"
+        try? roots.map { "import \($0)" }.joined(separator: "\n").write(toFile: source, atomically: true, encoding: .utf8)
+        let swiftc = env["SWIFTC"] ?? "swiftc"
+        let scanArguments = (env["SWIFTC"] == nil ? ["swiftc"] : []) + ["-scan-dependencies", source, "-sdk", real,
+                                                                        "-o", work + "/scan.json"]
+        guard capture(env["SWIFTC"] == nil ? xcrun : swiftc, scanArguments) != nil,
+              let scan = try? String(contentsOfFile: work + "/scan.json", encoding: .utf8) else {
+            note("warning: could not scan the macOS SDK; user code sees every framework in it")
+            return nil
+        }
+        var allowed = Set<String>()
+        for pattern in [#"/System/Library/Frameworks/([A-Za-z0-9_]+)\.framework"#, #"/usr/lib/swift/([A-Za-z0-9_]+)\.swiftmodule"#] {
+            let regex = try! NSRegularExpression(pattern: pattern)
+            for match in regex.matches(in: scan, range: NSRange(scan.startIndex..., in: scan)) {
+                if let range = Range(match.range(at: 1), in: scan) { allowed.insert(String(scan[range])) }
+            }
+        }
+        allowed.formUnion(roots)
+        let frameworks = Set(((try? fm.contentsOfDirectory(atPath: real + "/System/Library/Frameworks")) ?? [])
+            .filter { $0.hasSuffix(".framework") }.map { String($0.dropLast(".framework".count)) })
+
+        let staging = destination + ".staging-\(getpid())"
+        try? fm.removeItem(atPath: staging)
+        /// Mirrors `relative` with a link per entry, except `descend` (made a directory and filled by the caller)
+        /// and entries `keep` turns down.
+        func mirror(_ relative: String, descend: String? = nil, keep: (String) -> Bool = { _ in true }) -> Bool {
+            let from = relative.isEmpty ? real : real + "/" + relative
+            let to = relative.isEmpty ? staging : staging + "/" + relative
+            guard (try? fm.createDirectory(atPath: to, withIntermediateDirectories: true)) != nil,
+                  let entries = try? fm.contentsOfDirectory(atPath: from) else { return false }
+            for entry in entries where entry != descend && keep(entry) {
+                guard (try? fm.createSymbolicLink(atPath: to + "/" + entry, withDestinationPath: from + "/" + entry)) != nil else { return false }
+            }
+            return true
+        }
+        let built = mirror("", descend: "System") && mirror("System", descend: "Library")
+            && mirror("System/Library", descend: "Frameworks")
+            && mirror("System/Library/Frameworks") { entry in
+                !entry.hasSuffix(".framework") || allowed.contains(String(entry.dropLast(".framework".count)))
+            }
+        // usr: everything but usr/lib/swift, whose overlays for left-out frameworks are left out too.
+        let usr = built && (try? fm.removeItem(atPath: staging + "/usr")) != nil
+            && mirror("usr", descend: "lib") && mirror("usr/lib", descend: "swift")
+            && mirror("usr/lib/swift") { entry in
+                let name = String(entry.split(separator: ".").first ?? "")
+                return !frameworks.contains(name) || allowed.contains(name)
+            }
+        guard usr else {
+            try? fm.removeItem(atPath: staging)
+            note("warning: could not make the filtered macOS SDK; user code sees every framework in it")
+            return nil
+        }
+        if (try? fm.moveItem(atPath: staging, toPath: destination)) == nil {
+            try? fm.removeItem(atPath: staging)   // another render made it first
+        }
+        return fm.fileExists(atPath: destination + "/SDKSettings.json") ? destination : nil
+    }
+
+    private static func capture(_ executable: String, _ arguments: [String]) -> String? {
+        let result = run(executable, arguments)
+        guard result.status == 0 else { return nil }
+        return result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+#endif

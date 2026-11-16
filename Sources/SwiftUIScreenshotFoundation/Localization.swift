@@ -17,8 +17,12 @@ import Foundation
 //
 // Unlike the gap-fillers in FoundationGaps.swift, this file is not compiled out on Darwin, although Apple's
 // Foundation has the same API: strings must resolve through the tool's table on every host, and the engine
-// reads members Apple's types do not have (`resolved`, `defaultValue` as a String). These declarations
-// shadow Foundation's for every module that imports this one (macOS support is in progress, issue #19).
+// reads members Apple's types do not have (`resolved`, `defaultValue` as a String).
+//
+// On Darwin the types are Apple's: two `String.LocalizationValue` member types are ambiguous rather than one
+// shadowing the other, and so are two identical initializers. DarwinLocalizationOverloads.swift declares
+// `String(localized:)` and `AttributedString(localized:)` once per combination of optional arguments, which
+// overload resolution prefers to Apple's defaulted ones, so calls resolve through the tool's table there too.
 
 public enum ScreenshotStrings {
     public static let table: [String: String] = {
@@ -103,6 +107,7 @@ public enum ScreenshotStrings {
     }
 }
 
+#if !canImport(Darwin)
 extension String {
     /// A localizable string with its interpolations, keyed as Xcode keys it ("Hello %@").
     public struct LocalizationValue: ExpressibleByStringInterpolation, Equatable, Hashable, Sendable {
@@ -203,3 +208,11 @@ public struct LocalizedStringResource: Hashable, Sendable, Codable, CustomString
         case atURL(URL)
     }
 }
+
+extension LocalizedStringResource {
+    /// The resolved text (the engine's name for it on every host).
+    package var _resolvedText: String { value.resolved }
+    /// A resource whose key is already-interpolated text.
+    package init(_verbatimKey text: String) { self.init(stringLiteral: text) }
+}
+#endif
