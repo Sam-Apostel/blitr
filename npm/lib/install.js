@@ -158,7 +158,9 @@ async function ensureToolchain(swiftVersion) {
   candidates.push(path.join(destination, 'usr', 'bin'));
   for (const bin of candidates) {
     const swiftc = path.join(bin, 'swiftc');
-    if (fs.existsSync(swiftc) && compilerVersion(swiftc) === swiftVersion) return bin;
+    if (!fs.existsSync(swiftc) || compilerVersion(swiftc) !== swiftVersion) continue;
+    // swiftc on PATH is often a symlink (/usr/local/bin/swiftc); the runtime libraries are next to the real one.
+    return path.dirname(fs.realpathSync(swiftc));
   }
 
   const platform = swiftPlatform();

@@ -244,9 +244,19 @@ jobs:
           npm init -y >/dev/null
           export BLITR_HOME="$RUNNER_TEMP/blitr-home"
           npm install --foreground-scripts "$GITHUB_WORKSPACE"/npm/blitr-*.tgz
-          npx blitr version
-          npx blitr render "$GITHUB_WORKSPACE/Examples/Hello.swift" -o hello.png
-          head -c 8 hello.png | od -An -c | grep -q 'P *N *G'
+          # With the runner's own Swift (on PATH through a symlink), then with no Swift at all, so the launcher
+          # downloads the toolchain from swift.org.
+          for pass in installed downloaded; do
+            if [ "$pass" = downloaded ] && command -v swiftc >/dev/null; then
+              swiftc_real="$(readlink -f "$(command -v swiftc)")"
+              sudo mv "${swiftc_real%/usr/bin/swiftc}" "$RUNNER_TEMP/hidden-swift"
+              if command -v swiftc >/dev/null; then echo "swiftc is still on PATH" >&2; exit 1; fi
+            fi
+            npx blitr version
+            npx blitr render "$GITHUB_WORKSPACE/Examples/Hello.swift" -o "hello-$pass.png"
+            head -c 8 "hello-$pass.png" | od -An -c | grep -q 'P *N *G'
+          done
+          test -x "$BLITR_HOME"/toolchains/swift-*/usr/bin/swiftc
 
       - name: Publish
         if: startsWith(github.ref, 'refs/tags/')
