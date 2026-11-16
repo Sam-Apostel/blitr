@@ -1,7 +1,7 @@
 #!/usr/bin/env swift
 // Generates sf-symbols-map.json: SF Symbol names to SF Pro private-use code points.
 //
-//   swift scripts/mac/generate-symbol-map.swift [--font Vendor/apple-fonts/SF-Pro.ttf] [--out <dir>]
+//   scripts/mac/generate-symbol-map.sh [--font Vendor/apple-fonts/SF-Pro.ttf] [--out <dir>]   (compiled; minutes faster)
 //
 // Apple ships the symbol name table only in obfuscated form, so the names are recovered by drawing:
 // every name the system knows (CoreGlyphs.bundle) is rendered with NSImage(systemSymbolName:), every
