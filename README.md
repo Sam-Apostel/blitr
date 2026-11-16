@@ -89,6 +89,7 @@ swiftui-screenshot version
 | `--task-timeout <s>` | Real seconds `.task` closures may run before the frame is taken (default 0.5; `--task-budget` is the old name). |
 | `--settle-time <s>` | Virtual seconds that pass before the frame is taken (default 2): `Task.sleep` runs on a virtual clock, so a sleep that ends within them returns at once and one that ends later waits past the frame. |
 | `--time-zone <tz>` | The device's time zone, an IANA name such as `Europe/Brussels` (default `UTC`, whatever the host's): `TimeZone.current`, `Date.formatted`, `Text(date, style:)` and the date pickers use it. |
+| `--date <ISO 8601>` | "Now" for `TimelineView` and interaction captures, such as `2026-06-01T09:41:00Z` (default: the real time; `Date()` in your own code always is). |
 | `--allow-network` | Let the code reach the network. By default a render is offline: requests fail at once with `URLError(.notConnectedToInternet)`. |
 | `--accessibility-tree f.json`, `--tap-targets f.png`, `--accessibility-outline` | Accessibility outputs, below. |
 | `--json` | One JSON object per image with path, size and warnings. |
@@ -114,8 +115,8 @@ The PNG is byte-identical with or without these flags. Schema and details: [docs
 
 ### Comparing against references
 
-`compare` is the Linux half of a calibration loop: screenshots captured from the iOS Simulator are compared with
-this tool's renders.
+`compare` closes a calibration loop: screenshots captured from the iOS Simulator are compared with this tool's
+renders. On a Mac, capture and comparison run on the same machine.
 
 ```
 swiftui-screenshot compare reference.png candidate.png --out-dir cmp
