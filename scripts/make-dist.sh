@@ -11,8 +11,9 @@
 # Usage: scripts/make-dist.sh [VERSION]     (default: git describe --tags --always)
 # Needs Vendor/ (scripts/bootstrap.sh), the Swift toolchain on PATH, and patchelf
 # (apt-get install -y patchelf). Apple's fonts (Vendor/apple-fonts) are never packaged.
-# On macOS it needs Xcode's install_name_tool, otool and codesign instead of patchelf, and the tarball
-# expects Homebrew's harfbuzz at run time.
+# On macOS it needs Xcode's install_name_tool, otool and codesign instead of patchelf.
+# The engine is built against the system's HarfBuzz; the tarball carries Vendor/harfbuzz's self-contained
+# build in its place, so it needs no HarfBuzz package on the machine it is installed on.
 # shellcheck disable=SC2015,SC2016  # `[ a ] && [ b ] || die` is intended; '$ORIGIN' must stay literal
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
@@ -28,7 +29,7 @@ engine=libBlitrEngine.$ext
 for tool in $tools; do
   command -v "$tool" >/dev/null || { echo "make-dist: '$tool' not found on PATH" >&2; exit 1; }
 done
-[ -f "Vendor/skia/lib/libSkiaSharp.$ext" ] && [ -d Vendor/fonts ] \
+[ -f "Vendor/skia/lib/libSkiaSharp.$ext" ] && [ -f "Vendor/harfbuzz/lib/libHarfBuzzSharp.$ext" ] && [ -d Vendor/fonts ] \
   || { echo "make-dist: Vendor/ is missing; run scripts/bootstrap.sh first" >&2; exit 1; }
 
 version="${1:-${VERSION:-$(git describe --tags --always 2>/dev/null || echo dev)}}"
@@ -63,9 +64,18 @@ cp "$bin/blitr" "$stage/bin/"
 # Package.swift's `shimModules`, so a new shim is one entry there.
 shims="$(sed -n 's/^let shimModules = \[\(.*\)\]/\1/p' Package.swift | tr -d '",')"
 # On macOS, Combine, ObjectiveC, Security, os and OSLog are Apple's (Package.swift's `appleProvided`).
+# On macOS each module also gets its textual interface (Package.swift's interfaceFlags), so a newer Xcode
+# than the one that built the release rebuilds the module from it instead of refusing the binary module.
 for m in SwiftUI BlitrFoundation $shims; do
   if [ -d "$bin/$m.swiftmodule" ]; then cp -r "$bin/$m.swiftmodule" "$lib/"
-  elif [ "$os" = linux ]; then echo "make-dist: $m.swiftmodule was not built" >&2; exit 1; fi
+  elif [ "$os" = linux ]; then echo "make-dist: $m.swiftmodule was not built" >&2; exit 1
+  else continue; fi
+  if [ "$os" = macos ]; then
+    triple="$(basename "$(ls "$lib/$m.swiftmodule"/*.swiftmodule | head -1)" .swiftmodule)"
+    interface="$(find "$root/.build" \( -path "*/Release/$m-t.build/*" -o -path "*/release/$m.build/*" \) -name "$m.swiftinterface" -print -quit)"
+    [ -n "$interface" ] || { echo "make-dist: no $m.swiftinterface was emitted" >&2; exit 1; }
+    cp "$interface" "$lib/$m.swiftmodule/$triple.swiftinterface"
+  fi
 done
 cp "$bin/$engine" "$lib/"
 
@@ -75,6 +85,18 @@ cp -L "Vendor/skia/lib/libSkiaSharp.$ext" "$lib/"
 if [ "$os" = linux ]; then
   soname="$(objdump -p "$lib/libSkiaSharp.so" | awk '$1 == "SONAME" { print $2 }')"
   if [ -n "$soname" ] && [ "$soname" != libSkiaSharp.so ]; then ln -s libSkiaSharp.so "$lib/$soname"; fi
+fi
+
+# HarfBuzz, in place of the system library the engine was linked with.
+cp -L "Vendor/harfbuzz/lib/libHarfBuzzSharp.$ext" "$lib/"
+if [ "$os" = linux ]; then
+  system_hb="$(objdump -p "$lib/$engine" | awk '$1 == "NEEDED" && $2 ~ /^libharfbuzz\.so/ { print $2 }')"
+  [ -n "$system_hb" ] || { echo "make-dist: the engine does not link libharfbuzz" >&2; exit 1; }
+  patchelf --replace-needed "$system_hb" libHarfBuzzSharp.so "$lib/$engine"
+else
+  system_hb="$(otool -L "$lib/$engine" | awk 'NR > 1 && $1 ~ /libharfbuzz[.0-9]*\.dylib$/ { print $1 }')"
+  [ -n "$system_hb" ] || { echo "make-dist: the engine does not link libharfbuzz" >&2; exit 1; }
+  install_name_tool -change "$system_hb" "@rpath/libHarfBuzzSharp.dylib" "$lib/$engine"
 fi
 
 # Open fonts and their licences.
@@ -117,7 +139,7 @@ else
 
   # Check: no rpath or load command may point into the build tree or Vendor/.
   for f in "$stage/bin/blitr" "$lib"/*.dylib; do
-    if otool -l "$f" | grep -E '^ +(path|name) ' | grep -qE "$root|Vendor|\.build"; then
+    if otool -l "$f" | grep -E '^ +(path|name) ' | grep -qE "$root|Vendor|\.build|/opt/homebrew|/usr/local/opt"; then
       echo "make-dist: $f refers to the build tree:" >&2; otool -l "$f" | grep -E '^ +(path|name) ' >&2; exit 1
     fi
   done
@@ -136,11 +158,7 @@ fi
   cat Vendor/skia/THIRD-PARTY-NOTICES.txt
   echo
   echo "================================================================================"
-  if [ "$os" = linux ]; then
-    echo "HarfBuzz (libharfbuzz0b, installed from the distribution package, not bundled)"
-  else
-    echo "HarfBuzz (Homebrew's harfbuzz, installed separately, not bundled)"
-  fi
+  echo "HarfBuzz (libHarfBuzzSharp.$ext, built by the SkiaSharp project)"
   echo "================================================================================"
   echo "Licensed under the 'Old MIT' licence; the full text is in the Skia/HarfBuzz section above."
   echo
