@@ -200,6 +200,8 @@ final class FocusEngine {
     /// The focused element when code last scrolled (`ScrollViewProxy.scrollTo`): while it keeps focus the
     /// engine does not scroll it back into its margins, as tvOS only scrolls to an element when focus moves.
     var scrolledByCodeAt: IdentityPath?
+    /// True while a remote press runs its handlers, so `@Environment(\.dismiss)` acts as it does on a device.
+    var handlingPress = false
     /// TabViews without a selection binding: the tab chosen by `select`.
     var tabSelections: [IdentityPath: Int] = [:]
     /// Screens pushed onto a navigation stack by `select` on a NavigationLink.

@@ -4,10 +4,19 @@
 
 public struct DismissAction {
     public init() {}
-    /// Inert in a still render; during an interaction capture it dismisses the topmost presentation,
-    /// or pops the top pushed screen.
+    /// Inert in a still render; during an interaction capture or a remote press (`--press`: a button's action,
+    /// `onExitCommand`) it dismisses the topmost presentation, or pops the top pushed screen.
     public func callAsFunction() {
-        MainActor.assumeIsolated { InteractionSession.current?.dismissFromEnvironment() }
+        MainActor.assumeIsolated {
+            if let session = InteractionSession.current { session.dismissFromEnvironment(); return }
+            guard let runtime = Runtime.current, runtime.focus.handlingPress else { return }
+            if let dismiss = runtime.focus.snapshot.dismissTop {
+                dismiss()
+            } else if let stack = runtime.focus.popTarget() {
+                runtime.focus.pushes[stack]?.removeLast()
+            }
+            runtime.needsAnotherPass = true
+        }
     }
 }
 

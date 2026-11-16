@@ -82,6 +82,8 @@ extension FocusEngine {
             return log
         }
 
+        handlingPress = true
+        defer { handlingPress = false }
         switch press {
         case .select:
             guard let f else {
@@ -99,7 +101,10 @@ extension FocusEngine {
             }
         case .menu:
             if let handler = innermost({ k -> (() -> Void)? in if case .onExit(let h) = k { return h }; return nil }) {
+                // `@Environment(\.dismiss)` called by the handler acts (Compat/EnvironmentKeys.swift).
+                handlingPress = true
                 handler()
+                handlingPress = false
                 log.note = "onExitCommand called"
             } else if let dismiss = snapshot.dismissTop {
                 dismiss()
@@ -114,7 +119,10 @@ extension FocusEngine {
                 pushes[stack]?.removeLast()
                 log.note = "popped a screen pushed by select"
             } else {
-                log.note = "nothing to go back to"
+                // Nothing in the app handles it: tvOS goes back to the Home Screen (measured: tvOS 26.5).
+                log.to = nil
+                log.toLabel = nil
+                log.note = "nothing to go back to: tvOS would leave the app"
                 runtime.warn("--press menu: no onExitCommand, presentation or pushed screen to go back from (tvOS would leave the app); screens pushed through a NavigationStack path binding cannot be popped")
             }
         case .playpause:
