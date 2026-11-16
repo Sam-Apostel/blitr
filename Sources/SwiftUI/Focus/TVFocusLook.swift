@@ -100,6 +100,9 @@ enum TVMetrics {
 
     // MARK: Lists (measured: tvOS 26.5 Form, rows 66 pt on an 80 pt pitch, labels 20 pt in)
     static let rowMinHeight: CGFloat = 66
+    /// A `Toggle` row in a plain `List` (not a `Form`) is 79 pt high, still 14 pt apart (measured: tvOS 26.5
+    /// simulator, the focus recording of a List in a TabView: rows at 302 and 395, 79 pt high).
+    static let listToggleRowHeight: CGFloat = 79
     static let rowHorizontalInset: CGFloat = 20
     static let rowVerticalInset: CGFloat = 15.5
     static let rowSpacing: CGFloat = 14

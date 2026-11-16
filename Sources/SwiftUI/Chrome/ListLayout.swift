@@ -194,8 +194,11 @@ final class ListNode: Node {
         badgeEnv.foregroundStyleLevels = nil
         badgeEnv.textCase = nil
 
+        // tvOS 26: a toggle row of a plain `List` is taller than one of a `Form` (measured: tvOS 26.5 simulator).
+        let tallToggleRows = tv && env.designLanguage.isGlass && !env[TVInFormKey.self] && env.explicitMinListRowHeight == nil
         func makeRow(_ node: Node, inherited: Traits?) -> ListRowNode {
             func trait<K: TraitKey>(_ key: K.Type) -> K.Value? { node.traits[key] ?? inherited?[key] }
+            let minHeight = tallToggleRows && ListNode.containsSwitch(node) ? TVMetrics.listToggleRowHeight : minHeight
             let row = ListRowNode(content: node, background: trait(ListRowBackgroundTraitKey.self),
                                badge: trait(BadgeTraitKey.self).map { $0.makeNode(badgeEnv) },
                                hasChevron: ListNode.hasDisclosure(node),
