@@ -1,8 +1,9 @@
 name: Release
 
 # Pushing a tag such as v0.1.0 releases blitr everywhere:
-#   1. Relocatable tarballs for Linux (x86_64, aarch64) and macOS (arm64, and x86_64 where the runner's Xcode
-#      allows), each smoke-tested from a clean directory with no HarfBuzz package installed.
+#   1. Relocatable tarballs for Linux (x86_64, aarch64) and macOS (arm64, on a self-hosted Mac runner), each
+#      smoke-tested from a clean directory; Linux with no HarfBuzz package installed, macOS loading nothing from
+#      Homebrew.
 #   2. A GitHub release with the tarballs, their .sha256 files and install.sh.
 #   3. The npm package `blitr`, after a smoke test of it on Linux against the new release.
 #   4. The image ghcr.io/<owner>/blitr for linux/amd64 and linux/arm64.
@@ -95,19 +96,12 @@ jobs:
           if-no-files-found: error
 
   macos:
-    name: macOS ${{ matrix.arch }} tarball
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - arch: arm64
-            runner: macos-latest
-            optional: false
-          # Intel Macs: only if an Intel runner has an Xcode with this Swift version.
-          - arch: x86_64
-            runner: macos-15-intel
-            optional: true
-    runs-on: ${{ matrix.runner }}
+    name: macOS arm64 tarball
+    # A self-hosted runner on a Mac (GitHub's macOS images lag behind the Xcode this needs). It runs nothing
+    # from forks, and changes nothing on the machine: Xcode is picked with DEVELOPER_DIR, caches go to the
+    # job's temporary directory, and Homebrew is only touched if harfbuzz or pkg-config is missing.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, macOS, ARM64, xcode]
     env:
       # The oldest Xcode whose Swift starts with this is used: the tarball works with that Swift and newer.
       SWIFT_SERIES: "6.4"
@@ -117,7 +111,6 @@ jobs:
           fetch-depth: 0
 
       - name: Select Xcode
-        id: xcode
         run: |
           set -euo pipefail
           chosen=""
@@ -126,57 +119,55 @@ jobs:
             echo "$app: Swift ${v:-?}"
             case "$v" in "$SWIFT_SERIES"|"$SWIFT_SERIES".*) [ -n "$chosen" ] || chosen="$app" ;; esac
           done
-          if [ -z "$chosen" ]; then
-            [ "${{ matrix.optional }}" = true ] || { echo "no Xcode with Swift $SWIFT_SERIES on this runner" >&2; exit 1; }
-            echo "::warning::no Xcode with Swift $SWIFT_SERIES on ${{ matrix.runner }}; no ${{ matrix.arch }} tarball"
-            echo "found=false" >> "$GITHUB_OUTPUT"; exit 0
-          fi
-          echo "found=true" >> "$GITHUB_OUTPUT"
-          sudo xcode-select -s "$chosen/Contents/Developer"
-          swiftc --version
+          [ -n "$chosen" ] || { echo "no Xcode with Swift $SWIFT_SERIES on this machine" >&2; exit 1; }
+          echo "DEVELOPER_DIR=$chosen/Contents/Developer" >> "$GITHUB_ENV"
+          echo "BLITR_CACHE=$RUNNER_TEMP/blitr-cache" >> "$GITHUB_ENV"
+          DEVELOPER_DIR="$chosen/Contents/Developer" xcrun swiftc --version
 
-      - if: steps.xcode.outputs.found == 'true'
-        name: Install HarfBuzz and pkg-config (build only)
-        run: brew install harfbuzz pkg-config
+      - name: HarfBuzz and pkg-config (build only)
+        run: |
+          eval "$(/opt/homebrew/bin/brew shellenv)"
+          echo "/opt/homebrew/bin" >> "$GITHUB_PATH"
+          pkg-config --exists harfbuzz 2>/dev/null || brew install harfbuzz pkg-config
 
-      - if: steps.xcode.outputs.found == 'true'
-        name: Fetch pinned Skia, HarfBuzz and fonts
+      - name: Fetch pinned Skia, HarfBuzz and fonts
         run: scripts/bootstrap.sh
 
-      - if: steps.xcode.outputs.found == 'true'
-        name: Build the tarball
+      - name: Build the tarball
         run: scripts/make-dist.sh "$DIST_VERSION"
 
-      - if: steps.xcode.outputs.found == 'true'
-        name: Smoke test from the unpacked tarball, without Homebrew's HarfBuzz
+      - name: Smoke test from the unpacked tarball
         run: |
           set -euo pipefail
-          tarball="$(ls "$PWD"/dist/blitr-*-macos-${{ matrix.arch }}.tar.gz)"
+          tarball="$(ls "$PWD"/dist/blitr-*-macos-arm64.tar.gz)"
           cp Examples/Hello.swift "$RUNNER_TEMP/Hello.swift"
-          brew uninstall --ignore-dependencies harfbuzz
           smoke="$RUNNER_TEMP/smoke"
+          rm -rf "$smoke" "$BLITR_CACHE"
           mkdir -p "$smoke/unpacked" "$smoke/work"
           tar -xzf "$tarball" -C "$smoke/unpacked"
           mv "$smoke/unpacked/blitr" "$smoke/moved"
+          # Nothing in the tree may load from Homebrew (it carries its own HarfBuzz).
+          if find "$smoke/moved" -type f \( -name '*.dylib' -o -path '*/bin/*' \) -exec otool -L {} + | grep -E '/opt/homebrew|/usr/local/(opt|Cellar)'; then
+            echo "the tarball loads a library from Homebrew" >&2; exit 1
+          fi
           mv .build .build.hidden
           cd "$smoke/work"
           "$smoke/moved/bin/blitr" version
           "$smoke/moved/bin/blitr" doctor
           "$smoke/moved/bin/blitr" render "$RUNNER_TEMP/Hello.swift" -o hello.png
           head -c 8 hello.png | od -An -c | grep -q 'P *N *G'
-          if otool -L "$(find "$HOME/.cache/blitr" -name runner -type f | head -1)" | grep -qE 'SwiftUI|UIKit|AppKit'; then
-            echo "a compiled preview links an Apple UI framework" >&2; exit 1
+          runner="$(find "$BLITR_CACHE" -name runner -type f | head -1)"
+          if otool -L "$runner" | grep -qE 'SwiftUI|UIKit|AppKit|/opt/homebrew'; then
+            echo "a compiled preview links an Apple UI framework or Homebrew" >&2; exit 1
           fi
           cd "$GITHUB_WORKSPACE" && mv .build.hidden .build
 
-      - if: steps.xcode.outputs.found == 'true'
-        name: Checksum
+      - name: Checksum
         run: cd dist && for f in blitr-*.tar.gz; do shasum -a 256 "$f" > "$f.sha256"; done
 
-      - if: steps.xcode.outputs.found == 'true'
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: dist-macos-${{ matrix.arch }}
+          name: dist-macos-arm64
           path: dist/*.tar.gz*
           if-no-files-found: error
 
