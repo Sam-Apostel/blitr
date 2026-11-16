@@ -1,5 +1,6 @@
-// AsyncImage. Rendering is offline and single-frame, so a remote image is never loaded:
-// the view shows what an app shows while loading (its placeholder / `.empty` phase).
+// AsyncImage. A `file:` URL is shown at once. A remote image is loaded while the frame settles when the
+// render may use the network (`--allow-network`), like a `.task`; offline, the view shows what an app shows
+// while loading (its placeholder / `.empty` phase).
 
 public enum AsyncImagePhase: Sendable {
     case empty
@@ -17,15 +18,21 @@ public enum AsyncImagePhase: Sendable {
 
 public struct AsyncImage<Content: View>: View {
     let url: URL?
+    var scale: CGFloat = 1
     let content: (AsyncImagePhase) -> Content
+    @State private var loaded: _AsyncImageLoad?
 
-    public init(url: URL?, scale: CGFloat = 1) where Content == _AsyncImagePlaceholder {
+    public init(url: URL?, scale: CGFloat = 1) where Content == _ConditionalContent<Image, _AsyncImagePlaceholder> {
         self.url = url
-        self.content = { _ in _AsyncImagePlaceholder() }
+        self.scale = scale
+        self.content = { phase in
+            if let image = phase.image { ViewBuilder.buildEither(first: image) } else { ViewBuilder.buildEither(second: _AsyncImagePlaceholder()) }
+        }
     }
     public init<I: View, P: View>(url: URL?, scale: CGFloat = 1, @ViewBuilder content: @escaping (Image) -> I,
                                   @ViewBuilder placeholder: @escaping () -> P) where Content == _ConditionalContent<I, P> {
         self.url = url
+        self.scale = scale
         self.content = { phase in
             if let image = phase.image { ViewBuilder.buildEither(first: content(image)) } else { ViewBuilder.buildEither(second: placeholder()) }
         }
@@ -33,16 +40,71 @@ public struct AsyncImage<Content: View>: View {
     public init(url: URL?, scale: CGFloat = 1, transaction: Transaction = Transaction(),
                 @ViewBuilder content: @escaping (AsyncImagePhase) -> Content) {
         self.url = url
+        self.scale = scale
         self.content = content
     }
 
     public var body: some View {
-        // A local file URL can be shown for real; anything remote stays in the loading phase.
-        if let url, url.isFileURL, FileManager.default.fileExists(atPath: url.path) {
-            content(.success(Image(_file: url.path)))
+        if let url, url.isFileURL {
+            content(_AsyncImageLoad.local(url, scale: scale).phase)
         } else {
-            content(.empty)
+            // Read on the main actor: the render's configuration is not visible from the task.
+            let online = _currentConfiguration().allowsNetwork
+            content(loaded?.url == url ? loaded!.phase : .empty)
+                .task(id: url) {
+                    guard let url, online else { return }
+                    let result = await _AsyncImageLoad.fetch(url, scale: scale)
+                    await MainActor.run { loaded = result }
+                }
         }
+    }
+}
+
+/// What an `AsyncImage` loaded: an image file in the cache directory, or the error.
+struct _AsyncImageLoad: @unchecked Sendable {
+    var url: URL?
+    var phase: AsyncImagePhase
+
+    /// A file the decoder reads at `scale` pixels per point (`name@2x.ext`, see `Image.resolve`).
+    static func local(_ url: URL, scale: CGFloat) -> _AsyncImageLoad {
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            return _AsyncImageLoad(url: url, phase: .failure(URLError(.fileDoesNotExist)))
+        }
+        guard scale == 2 || scale == 3 else { return _AsyncImageLoad(url: url, phase: .success(Image(_file: url.path))) }
+        let link = cacheDirectory + "/\(key(url))@\(Int(scale))x.\(url.pathExtension.isEmpty ? "img" : url.pathExtension)"
+        if !FileManager.default.fileExists(atPath: link) { try? FileManager.default.createSymbolicLink(atPath: link, withDestinationPath: url.path) }
+        return _AsyncImageLoad(url: url, phase: .success(Image(_file: link)))
+    }
+
+    static func fetch(_ url: URL, scale: CGFloat) async -> _AsyncImageLoad {
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+                return _AsyncImageLoad(url: url, phase: .failure(URLError(.badServerResponse)))
+            }
+            let suffix = scale == 2 || scale == 3 ? "@\(Int(scale))x" : ""
+            let path = cacheDirectory + "/\(key(url))\(suffix).img"
+            try data.write(to: URL(fileURLWithPath: path))
+            guard Bitmap(path: path, scale: 1) != nil else {
+                return _AsyncImageLoad(url: url, phase: .failure(URLError(.cannotDecodeContentData)))
+            }
+            return _AsyncImageLoad(url: url, phase: .success(Image(_file: path)))
+        } catch {
+            return _AsyncImageLoad(url: url, phase: .failure(error))
+        }
+    }
+
+    static let cacheDirectory: String = {
+        let path = NSTemporaryDirectory() + "swiftui-screenshot-images-\(getpid())"
+        try? FileManager.default.createDirectory(atPath: path, withIntermediateDirectories: true)
+        return path
+    }()
+
+    /// A file name for a URL (FNV-1a of its text).
+    static func key(_ url: URL) -> String {
+        var hash: UInt64 = 0xcbf29ce484222325
+        for byte in url.absoluteString.utf8 { hash = (hash ^ UInt64(byte)) &* 0x100000001b3 }
+        return String(hash, radix: 16)
     }
 }
 

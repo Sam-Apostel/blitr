@@ -48,6 +48,21 @@ grep -q '1.234,50' "$out/state/be.json" && grep -q '51.0543, 3.7174' "$out/state
 grep -q "crop-rect.png  1179x600" "$out/state/crop.log" && echo "ok    --crop by rectangle" || fail "--crop by rectangle: $(cat "$out/state/crop.log")"
 "$bin" render Tests/Corpus/01_Settings.swift --open-fonts -o "$out/state/crop-label.png" --crop "Airplane Mode" --crop-padding 4 >"$out/state/crop2.log" 2>&1 && echo "ok    --crop by label" || fail "--crop by label: $(cat "$out/state/crop2.log")"
 
+# AsyncImage of a file URL draws the image, at its scale (the network is not needed).
+cat > "$out/state/async.swift" <<SWIFT
+import SwiftUI
+struct AsyncFile: View {
+    var body: some View {
+        AsyncImage(url: URL(fileURLWithPath: "$PWD/docs/images/screens-1.png"), scale: 2)
+            .accessibilityIdentifier("photo")
+    }
+}
+#Preview { AsyncFile() }
+SWIFT
+"$bin" render "$out/state/async.swift" --open-fonts --layout fit --scale 1 -o "$out/state/async.png" >"$out/state/async.log" 2>&1 || fail "AsyncImage render: $(cat "$out/state/async.log")"
+half=$(python3 -c "import struct;d=open('docs/images/screens-1.png','rb').read(24);w,h=struct.unpack('>II',d[16:24]);print(f'{w//2}x')")
+grep -q "async.png  $half" "$out/state/async.log" && echo "ok    AsyncImage draws a file URL at its scale" || fail "AsyncImage file URL: expected $half, got $(cat "$out/state/async.log")"
+
 # Task.sleep on the virtual clock: delays within the settle time pass at once, no task is reported as
 # unfinished, and a `wait` step wakes the 5 s slideshow timer (a different frame).
 mkdir -p "$out/tasks"

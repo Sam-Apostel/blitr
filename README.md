@@ -95,7 +95,7 @@ swiftui-screenshot version
 | `--locale <id>` | The device's language and region, such as `nl_BE` (default `en_US`): number, currency and date formats, and in project mode the string catalogs' language. `Text` follows it on every host; `Locale.current` in your own code follows it on macOS. |
 | `--location <lat>,<lon>` | The device's position: location access is granted and `CLLocationManager` and `CLLocationUpdate.liveUpdates()` report it (default: access not determined, no position, as on a fresh install). |
 | `--date <ISO 8601>` | "Now" for `TimelineView` and interaction captures, such as `2026-06-01T09:41:00Z` (default: the real time; `Date()` in your own code always is). |
-| `--allow-network` | Let the code reach the network. By default a render is offline: requests fail at once with `URLError(.notConnectedToInternet)`. |
+| `--allow-network` | Let the code reach the network, so remote images (`AsyncImage` and an app's own loaders) and API calls load while the frame settles; raise `--task-timeout` for slow servers. By default a render is offline: requests fail at once with `URLError(.notConnectedToInternet)`. |
 | `--map-tiles <dir>` | Draw `Map`s on your own offline raster tiles, `<dir>/<z>/<x>/<y>.png` in the usual web map layout, instead of a plain surface. No tiles are bundled; their licence and attribution are yours to follow. See [docs/MAPS.md](docs/MAPS.md#offline-tiles). |
 | `--accessibility-tree f.json`, `--tap-targets f.png`, `--accessibility-outline` | Accessibility outputs, below. |
 | `--json` | One JSON object per image with path, size and warnings. |
@@ -294,7 +294,7 @@ HarfBuzz at run time.
   recognisable but not Apple's artwork. Multicolor and hierarchical rendering fall back to a single colour.
 - **tvOS focus** follows tvOS 26.5 recordings for all but 18 of 465 moves (docs/FOCUS.md).
 - **Interaction is scripted, not live.** Taps, typing and scrolling come from `--steps` (docs/INTERACTION.md).
-  Renders are offline by default and remote images (`AsyncImage`) show their placeholder.
+  Renders are offline by default, so remote images (`AsyncImage`) show their placeholder; `--allow-network` loads them.
 - **About 40 Apple frameworks beyond SwiftUI are shimmed** (docs/FRAMEWORKS.md). Others, such as Charts,
   SwiftData and WebKit, are reported as missing; a `UIViewRepresentable` draws a labelled placeholder.
 - **API coverage is broad but not complete.** An API this module lacks is a compile error naming it, never a
