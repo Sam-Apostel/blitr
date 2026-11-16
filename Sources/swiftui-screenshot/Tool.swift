@@ -202,16 +202,14 @@ func run(_ executable: String, _ arguments: [String], captureOutput: Bool = true
     let process = Process()
     process.executableURL = URL(fileURLWithPath: executable)
     process.arguments = arguments
-    if let launch, !launch.isEmpty {
+    if let launch {
+        // The program's own argv is its launch arguments (none unless --arg), as an app's is; the runner's options
+        // travel in the environment and are removed from it before the program's code runs.
         var environment = ProcessInfo.processInfo.environment
         for (key, value) in launch.environment { environment[key] = value }
-        if !launch.arguments.isEmpty {
-            // The program's own argv is its launch arguments, as an app's is; the runner's options travel
-            // in the environment and are removed from it before the program's code runs.
-            let data = (try? JSONSerialization.data(withJSONObject: arguments)) ?? Data()
-            environment[ProgramLaunch.runnerArgumentsVariable] = String(decoding: data, as: UTF8.self)
-            process.arguments = launch.arguments
-        }
+        let data = (try? JSONSerialization.data(withJSONObject: arguments)) ?? Data()
+        environment[ProgramLaunch.runnerArgumentsVariable] = String(decoding: data, as: UTF8.self)
+        process.arguments = launch.arguments
         process.environment = environment
     }
     let out = Pipe(), err = Pipe()
@@ -238,7 +236,6 @@ struct ProgramLaunch {
     static let runnerArgumentsVariable = "SWIFTUI_SCREENSHOT_RUNNER_ARGUMENTS"
     var environment: [(String, String)] = []
     var arguments: [String] = []
-    var isEmpty: Bool { environment.isEmpty && arguments.isEmpty }
 
     mutating func addEnvironment(_ assignment: String) {
         guard let equals = assignment.firstIndex(of: "="), equals != assignment.startIndex else {

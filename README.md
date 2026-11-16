@@ -101,6 +101,7 @@ swiftui-screenshot doctor | version
 | `--location 51.05,3.72` | Location access granted, and this position reported. Without it, access is not determined. |
 | `--allow-network` | Let the code load data and remote images. Renders are offline by default. |
 | `--image-cache <dir>` | Keep the images the code downloads, and show them in later offline renders: record once with `--allow-network`, then render anywhere. |
+| `--env KEY=VALUE`, `--arg <value>` | Environment variables and launch arguments for the app, read through `ProcessInfo`: reach debug routes and states without writing a preview. |
 | `--map-tiles <dir>` | Draw maps on map tiles you supply (`z/x/y.png`). |
 | `--assets <dir>`, `--fonts <dir>` | Extra images, asset catalogs and fonts. |
 
