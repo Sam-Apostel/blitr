@@ -22,6 +22,8 @@ Every image above was rendered from the unmodified SwiftUI files in [`Tests/Corp
   while you iterate on it.
 - **Every state of a screen.** Light and dark, every Dynamic Type size, another language and region, a fixed
   date, time zone and location, landscape, the open and folded iPhone Duo, tvOS focus states.
+- **Real photos without the network.** Record an app's remote images once with `--image-cache`, and every
+  later render, in CI or a cloud session, shows them offline.
 - **Store and marketing images.** Device frames drawn around the screen, or your own frame artwork.
 - **Accessibility review.** The accessibility tree as JSON, tap targets outlined, and the problems found in it
   (small targets, missing labels, truncated text).
@@ -98,6 +100,7 @@ swiftui-screenshot doctor | version
 | `--time-zone Europe/Brussels`, `--date 2026-06-01T09:41:00Z` | Time zone (default UTC) and the moment timelines show. |
 | `--location 51.05,3.72` | Location access granted, and this position reported. Without it, access is not determined. |
 | `--allow-network` | Let the code load data and remote images. Renders are offline by default. |
+| `--image-cache <dir>` | Keep the images the code downloads, and show them in later offline renders: record once with `--allow-network`, then render anywhere. |
 | `--map-tiles <dir>` | Draw maps on map tiles you supply (`z/x/y.png`). |
 | `--assets <dir>`, `--fonts <dir>` | Extra images, asset catalogs and fonts. |
 

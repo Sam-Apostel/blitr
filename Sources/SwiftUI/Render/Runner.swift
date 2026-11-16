@@ -149,6 +149,7 @@ public enum _ScreenshotRunner {
                     fail("unknown time zone \"\(timeZone)\"; --time-zone takes an IANA name such as Europe/Brussels or UTC")
                 }
             case "--allow-network": config.allowsNetwork = true
+            case "--image-cache": config.imageCacheDirectory = value(flag)
             case "--crop": config.crop = value(flag)
             case "--crop-padding": config.cropPadding = CGFloat(Double(value(flag)) ?? 0)
             case "--locale":
@@ -198,6 +199,9 @@ public enum _ScreenshotRunner {
 
         // Renders run offline: a request fails at once instead of waiting on the network.
         if !config.allowsNetwork { _RenderNetwork.goOffline() }
+        // Registered last, so it is asked first (URLProtocol consults the latest registration first): offline,
+        // the cache answers what it has before the offline protocol refuses.
+        if let cache = config.imageCacheDirectory { _ImageCache.configure(directory: cache, online: config.allowsNetwork) }
         // The time zone of the rendered device (`--time-zone`, UTC by default whatever the host's), set before
         // any user code reads TimeZone.current.
         Self.applyTimeZone(timeZone)

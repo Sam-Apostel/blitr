@@ -215,11 +215,18 @@ final class OfflineURLProtocol: URLProtocol {
 import ObjectiveC
 
 enum OfflineConfigurations {
-    nonisolated(unsafe) private static var installed = false
+    nonisolated(unsafe) private static var swizzled = false
+    /// Protocols put first in every `.default` and `.ephemeral` configuration, in order.
+    nonisolated(unsafe) private static var classes: [AnyClass] = []
 
-    static func install() {
-        guard !installed else { return }
-        installed = true
+    /// Puts `protocolClass` ahead of the others in every new default and ephemeral configuration.
+    static func install(first protocolClass: AnyClass = OfflineURLProtocol.self) {
+        if !classes.contains(where: { $0 == protocolClass }) {
+            // The image cache answers before the offline protocol refuses.
+            if protocolClass == OfflineURLProtocol.self { classes.append(protocolClass) } else { classes.insert(protocolClass, at: 0) }
+        }
+        guard !swizzled else { return }
+        swizzled = true
         for name in ["defaultSessionConfiguration", "ephemeralSessionConfiguration"] {
             let selector = NSSelectorFromString(name)
             guard let method = class_getClassMethod(URLSessionConfiguration.self, selector) else { continue }
@@ -227,7 +234,7 @@ enum OfflineConfigurations {
             let original = unsafeBitCast(method_getImplementation(method), to: Getter.self)
             let replacement: @convention(block) (AnyClass) -> URLSessionConfiguration = { cls in
                 let configuration = original(cls, selector)
-                configuration.protocolClasses = [OfflineURLProtocol.self] + (configuration.protocolClasses ?? [])
+                configuration.protocolClasses = OfflineConfigurations.classes + (configuration.protocolClasses ?? [])
                 return configuration
             }
             method_setImplementation(method, imp_implementationWithBlock(replacement))

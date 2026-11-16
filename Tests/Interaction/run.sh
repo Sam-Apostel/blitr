@@ -63,6 +63,25 @@ SWIFT
 half=$(python3 -c "import struct;d=open('docs/images/screens-1.png','rb').read(24);w,h=struct.unpack('>II',d[16:24]);print(f'{w//2}x')")
 grep -q "async.png  $half" "$out/state/async.log" && echo "ok    AsyncImage draws a file URL at its scale" || fail "AsyncImage file URL: expected $half, got $(cat "$out/state/async.log")"
 
+# --image-cache answers offline renders from images recorded earlier (here written by hand, as an online
+# render with --allow-network would write them), for AsyncImage and an app's own URLSession alike.
+mkdir -p "$out/state/cache"
+url="https://images.example.com/photos/harbour.png"
+key=$(python3 -c "import sys;h=0xcbf29ce484222325
+for b in sys.argv[1].encode(): h=((h^b)*0x100000001b3)&0xFFFFFFFFFFFFFFFF
+print(format(h,'x'))" "$url")
+cp docs/images/screens-1.png "$out/state/cache/$key.data"
+printf '{"url":"%s","mimeType":"image/png"}' "$url" > "$out/state/cache/$key.json"
+cat > "$out/state/cached.swift" <<SWIFT
+import SwiftUI
+struct Cached: View {
+    var body: some View { AsyncImage(url: URL(string: "$url"), scale: 2) }
+}
+#Preview { Cached() }
+SWIFT
+"$bin" render "$out/state/cached.swift" --open-fonts --layout fit --scale 1 --image-cache "$out/state/cache" -o "$out/state/cached.png" >"$out/state/cached.log" 2>&1 || fail "image cache render: $(cat "$out/state/cached.log")"
+grep -q "cached.png  $half" "$out/state/cached.log" && echo "ok    --image-cache serves a recorded image offline" || fail "--image-cache: $(cat "$out/state/cached.log")"
+
 # Task.sleep on the virtual clock: delays within the settle time pass at once, no task is reported as
 # unfinished, and a `wait` step wakes the 5 s slideshow timer (a different frame).
 mkdir -p "$out/tasks"
