@@ -63,7 +63,8 @@ element); with several controls inside it warns.
   focus (`onChange(of: focusState)`, a top bar that switches pages as focus moves) updates after each
   move. Other platforms keep the one-shot `initial:` behaviour.
 - `ScrollViewReader`'s `scrollTo(_:anchor:)`, called from an action (typically `onChange` of a
-  `@FocusState` that names a section), scrolls the scroll views around the view with that id: with an anchor
+  `@FocusState` that names a section), scrolls the scroll views around the view with that id, inside that
+  reader's content only (a page around a carousel's reader stays where it is): with an anchor
   that point of the view goes to the same point of the scroll view, without one by the least amount. While the
   element focused at that moment keeps focus, the engine does not scroll it back into its margins (tvOS 26.5
   leaves a section scrolled to the top where code put it). Not animated.
