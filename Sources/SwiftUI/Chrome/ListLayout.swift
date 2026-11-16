@@ -269,7 +269,7 @@ final class ListNode: Node {
         // On the iPhone Duo the bar sits in the band at the top of the screen whatever the top inset (see
         // NavigationStack), so the depth counts from the screen's top.
         let device = _currentConfiguration().device
-        if ctx.container.minY < 1, device.ringStatusBar == nil || !device.showsStatusBar { depth -= device.safeArea.top }
+        if ctx.container.minY < 1, device.ringStatusBar == nil { depth -= device.safeArea.top }
         return depth > ListMetrics.largeTitleDepthThreshold
     }
 

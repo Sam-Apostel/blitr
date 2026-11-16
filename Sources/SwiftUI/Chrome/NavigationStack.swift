@@ -576,7 +576,7 @@ final class NavigationStackNode: Node {
                 // iPhone Duo beside its status column: the large title sits in the bar, smaller (measured: iOS 27.2
                 // simulator, "Settings" ink 108.33 x 26pt, as 28pt bold draws it; 34pt draws 131 x 31.67).
                 let device = _currentConfiguration().device
-                let inBar = glass != nil && device.ringStatusBar != nil && !device.orientation.isLandscape
+                let inBar = glass != nil && device.ringTitleAtLeadingEdge
                 largeTitle = title.make {
                     titleAdjust(&$0)
                     $0.font = inBar ? NavigationGlass.ringDeviceLargeTitleFont : NavigationBarMetrics.largeTitleFont
@@ -924,16 +924,17 @@ extension NavigationStackNode {
         barTop = max(0, ctx.safeRect.minY - ctx.origin.y)
         // At the top edge of a sheet (no status bar above it) the bar's items sit lower.
         if inSheet && ctx.safeRect.minY - ctx.container.minY < 0.5 { barTop += g.sheetBarTopInset }
-        // iPhone Duo: a stack at the top of the screen puts its bar in the band beside the status bar (in its
-        // row on the open display turned), whatever the top inset. measured: iOS 27.2 simulator, all three
-        // layouts: titles centred on y 48, an inset-grouped list's first header at y 82; with the status column a
-        // large title takes the inline title's place and adds no region of its own.
+        // iPhone Duo: a stack at the top of the screen puts its bar in a band at the top of the screen (in the
+        // status bar's row on the open display turned), whatever the top inset. measured: iOS 27.2 simulator,
+        // every posture and orientation: titles centred on y 48, an inset-grouped list's first header at y 82.
+        // Unless the status bar is a row above, the title sits at the leading margin (or the safe-area edge,
+        // whichever is further in) and a large title takes its place in the bar, adding no region of its own.
         let device = _currentConfiguration().device
         ringBand = (false, false, 0)
-        if !inSheet, device.ringStatusBar != nil, device.showsStatusBar, ctx.container.minY < 0.5, ctx.origin.y < device.safeArea.top + 0.5 {
+        if !inSheet, device.ringStatusBar != nil, ctx.container.minY < 0.5, ctx.origin.y < device.safeArea.top + 0.5 {
             // Local coordinates: the stack itself may start at the top inset.
             barTop = NavigationGlass.ringDeviceBarTop - ctx.origin.y
-            ringBand = (true, !device.orientation.isLandscape, NavigationGlass.ringDeviceTitleCenterY - ctx.origin.y)
+            ringBand = (true, device.ringTitleAtLeadingEdge, NavigationGlass.ringDeviceTitleCenterY - ctx.origin.y)
         }
         backgroundTop = ctx.container.minY - ctx.origin.y
         backgroundX = ctx.container.minX - ctx.origin.x
@@ -1055,7 +1056,7 @@ extension NavigationStackNode {
             principal.place(at: CGPoint(x: cx, y: barTop + (h - s.height) / 2), size: s, ctx)
         } else if let inlineTitle {
             var t = centred(inlineTitle)
-            if ringBand.column, subtitle == nil, leading.isEmpty { t.x = margin }
+            if ringBand.column, subtitle == nil, leading.isEmpty { t.x = max(0, margin - (ctx.origin.x - ctx.container.minX)) }
             if let subtitle {
                 let st = centred(subtitle)
                 let stack = t.size.height + g.inlineSubtitleSpacing + st.size.height
@@ -1071,7 +1072,7 @@ extension NavigationStackNode {
         if let largeTitle, ringBand.column, subtitle == nil {
             let width = size.width - margin * 2
             let s = largeTitle.sizeThatFits(ProposedViewSize(width: width, height: nil))
-            largeTitle.place(at: CGPoint(x: margin, y: ringBand.titleCenterY - s.height / 2),
+            largeTitle.place(at: CGPoint(x: max(0, margin - (ctx.origin.x - ctx.container.minX)), y: ringBand.titleCenterY - s.height / 2),
                              size: CGSize(width: min(s.width, width), height: s.height), ctx)
         } else if let largeTitle {
             let width = size.width - margin * 2

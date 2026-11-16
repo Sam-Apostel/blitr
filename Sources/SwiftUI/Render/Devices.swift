@@ -93,6 +93,13 @@ package struct DeviceProfile {
         return idiom == .watch || (idiom == .phone && orientation.isLandscape) ? .compact : .regular
     }
 
+    /// iPhone Duo: navigation titles sit at the leading edge of the bar (not centred) everywhere except under the
+    /// status bar's row.
+    var ringTitleAtLeadingEdge: Bool {
+        guard let ring = ringStatusBar else { return false }
+        return !(orientation.isLandscape && ring.rowInLandscape)
+    }
+
     /// The portrait display's corner radii (leading corners first).
     var portraitCornerRadii: RectangleCornerRadii {
         let r = cornerRadius, l = leadingCornerRadius ?? cornerRadius
