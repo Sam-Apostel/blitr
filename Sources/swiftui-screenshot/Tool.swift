@@ -65,6 +65,8 @@ Render options:
                          The device's location: location access is granted and this position is
                          reported (default: access not determined, no position)
       --allow-network    Let the code reach the network; by default requests fail at once (offline)
+      --image-cache <dir>  Keep the images the code downloads (with --allow-network) in <dir>, and answer
+                         offline renders from it, so remote photos show without the network
       --map-tiles <dir>  Draw maps with offline raster tiles from <dir>/<z>/<x>/<y>.png (the usual web map
                          scheme, also .jpg or .webp); without it maps are a placeholder surface. See docs/MAPS.md
       --widget-family <f>          Widgets: render this family (systemSmall, systemMedium, systemLarge,
@@ -310,6 +312,9 @@ func parse(_ arguments: [String]) -> Options {
         case "--device", "--layout", "--width", "--height", "--scale", "--padding", "--background", "--dynamic-type", "--task-budget", "--task-timeout",
              "--settle-time", "--ios", "--time-zone", "--locale", "--location", "--crop", "--crop-padding":
             options.runnerArguments += [arg, value(arg)]
+        case "--image-cache":
+            // Absolute, as the runner does not run in the caller's directory.
+            options.runnerArguments += [arg, ProjectFiles.absolute(value(arg), relativeTo: FileManager.default.currentDirectoryPath)]
         case "--os": options.runnerArguments += ["--ios", value(arg)]
         case "--no-chrome", "--show-tips", "--allow-network": options.runnerArguments.append(arg)
         case "--orientation": options.runnerArguments += [arg, value(arg)]

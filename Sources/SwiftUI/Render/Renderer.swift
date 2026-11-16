@@ -37,6 +37,8 @@ package struct RenderConfiguration {
     var settleTime: TimeInterval = 2
     /// Let code reach the network. Off by default: requests fail at once, as offline.
     var allowsNetwork = false
+    /// Images downloaded with the network allowed are kept here and served offline (`--image-cache`).
+    package var imageCacheDirectory: String?
     /// A directory of `<z>/<x>/<y>.png` map tiles drawn under maps (`--map-tiles`); nil: a placeholder surface.
     package var mapTileDirectory: String?
     /// Major OS version whose look is rendered (iOS numbering; tvOS and the others share it).

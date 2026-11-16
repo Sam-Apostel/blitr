@@ -16,8 +16,7 @@
 #   --bin-dir       Where the `swiftui-screenshot` symlink goes (default /usr/local/bin).
 #   --swift-dir     Where a missing Swift toolchain is installed (default /opt/swift).
 #
-# Releases are fetched from https://github.com/Sam-Apostel/swift-ui-screenshot. While that repository is
-# private, anonymous downloads fail: download the assets yourself and pass --from.
+# Releases are fetched from https://github.com/Sam-Apostel/swift-ui-screenshot.
 # shellcheck disable=SC2015  # `[ a ] && [ b ] || die` is intended
 set -Eeuo pipefail
 
@@ -227,12 +226,14 @@ if [ "$claude_instructions" = 1 ]; then
   cat > "$tmp/block" <<EOF
 $begin
 ## swiftui-screenshot
-\`swiftui-screenshot\` is installed. It renders SwiftUI source to PNG on Linux, without Xcode, by compiling
+\`swiftui-screenshot\` is installed. It renders SwiftUI source to PNG without Xcode or a simulator, by compiling
 your sources against its own SwiftUI implementation. Use it after changing SwiftUI code to see the result.
 - \`swiftui-screenshot render File.swift --all --out-dir out/\` writes one PNG per #Preview / PreviewProvider
   (\`--preview <n|name>\` for one, \`--view "MyView()"\` for an expression).
 - \`--scheme both\` renders light and dark, \`--device iphone-16|ipad|...\` picks a device (\`swiftui-screenshot devices\`),
-  \`--layout fit\` crops to the view instead of the full screen.
+  \`--layout fit\` renders just the view, \`--crop <identifier>\` one part of the screen.
+- \`--locale\`, \`--time-zone\`, \`--date\` and \`--location\` set the device's state; renders are offline unless
+  \`--allow-network\`.
 - \`swiftui-screenshot list File.swift\` shows the previews; \`--json\` prints one JSON object per image.
 - Anything not rendered faithfully (unmapped SF Symbol, missing asset, UIKit view) is reported as a
   \`warning:\` line on stderr, or in the \`warnings\` field with \`--json\`. Read them.

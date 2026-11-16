@@ -49,7 +49,7 @@ public struct AsyncImage<Content: View>: View {
             content(_AsyncImageLoad.local(url, scale: scale).phase)
         } else {
             // Read on the main actor: the render's configuration is not visible from the task.
-            let online = _currentConfiguration().allowsNetwork
+            let online = _currentConfiguration().allowsNetwork || _currentConfiguration().imageCacheDirectory != nil
             content(loaded?.url == url ? loaded!.phase : .empty)
                 .task(id: url) {
                     guard let url, online else { return }

@@ -46,7 +46,9 @@ warning if a task is still busy. Two things keep that from depending on the mach
   `URLError(.notConnectedToInternet)` (`URLSession.shared` through a registered `URLProtocol`; other
   sessions through a proxy that refuses connections on Linux, and on macOS through the same protocol, put
   into every `.default` and `.ephemeral` configuration), so a screen that loads from a server draws its
-  offline or error state instead of waiting out the timeout. `--allow-network` turns this off. Remote
+  offline or error state instead of waiting out the timeout. `--allow-network` turns this off. `--image-cache <dir>` (`_ImageCache`) keeps every image response a networked render receives and
+  answers later offline renders from it, through a `URLProtocol` asked before the offline one (and put first in
+  `.default` and `.ephemeral` configurations on macOS; on Linux, sessions with their own configuration bypass it). Remote
   With it, `AsyncImage` loads remote images while the frame settles; without it they stay in their loading phase. `file:` URLs always load.
 
 ## Source tree

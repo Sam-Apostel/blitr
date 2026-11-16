@@ -199,7 +199,10 @@ public enum _RenderNetwork {
 
 final class OfflineURLProtocol: URLProtocol {
     override class func canInit(with request: URLRequest) -> Bool {
-        guard let scheme = request.url?.scheme?.lowercased() else { return false }
+        guard let url = request.url, let scheme = url.scheme?.lowercased() else { return false }
+        // What the image cache holds is answered by it, whichever protocol Foundation asks first (the order of
+        // registered protocols differs between Darwin and Linux).
+        if _ImageCache.directory != nil, _ImageCache.lookup(url) != nil { return false }
         return ["http", "https", "ws", "wss"].contains(scheme)
     }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
@@ -215,11 +218,18 @@ final class OfflineURLProtocol: URLProtocol {
 import ObjectiveC
 
 enum OfflineConfigurations {
-    nonisolated(unsafe) private static var installed = false
+    nonisolated(unsafe) private static var swizzled = false
+    /// Protocols put first in every `.default` and `.ephemeral` configuration, in order.
+    nonisolated(unsafe) private static var classes: [AnyClass] = []
 
-    static func install() {
-        guard !installed else { return }
-        installed = true
+    /// Puts `protocolClass` ahead of the others in every new default and ephemeral configuration.
+    static func install(first protocolClass: AnyClass = OfflineURLProtocol.self) {
+        if !classes.contains(where: { $0 == protocolClass }) {
+            // The image cache answers before the offline protocol refuses.
+            if protocolClass == OfflineURLProtocol.self { classes.append(protocolClass) } else { classes.insert(protocolClass, at: 0) }
+        }
+        guard !swizzled else { return }
+        swizzled = true
         for name in ["defaultSessionConfiguration", "ephemeralSessionConfiguration"] {
             let selector = NSSelectorFromString(name)
             guard let method = class_getClassMethod(URLSessionConfiguration.self, selector) else { continue }
@@ -227,7 +237,7 @@ enum OfflineConfigurations {
             let original = unsafeBitCast(method_getImplementation(method), to: Getter.self)
             let replacement: @convention(block) (AnyClass) -> URLSessionConfiguration = { cls in
                 let configuration = original(cls, selector)
-                configuration.protocolClasses = [OfflineURLProtocol.self] + (configuration.protocolClasses ?? [])
+                configuration.protocolClasses = OfflineConfigurations.classes + (configuration.protocolClasses ?? [])
                 return configuration
             }
             method_setImplementation(method, imp_implementationWithBlock(replacement))
