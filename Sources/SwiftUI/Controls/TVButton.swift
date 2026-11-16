@@ -49,6 +49,7 @@ struct _TVButtonVisual: View {
             return AnyView(platterBody(prominent: true))
         case .borderless:
             if inRow { return AnyView(rowBody) }
+            if design.isGlass { return AnyView(glassBorderlessBody) }
             return AnyView(liftBody(specular: true))
         case .plain:
             if design.isGlass { return AnyView(glassPlainBody) }
@@ -141,6 +142,20 @@ struct _TVButtonVisual: View {
         style.followsArtwork = true
         style.specular = specular
         style.lifted = focused
+        let tinted = destructive ? AnyView(label.foregroundStyle(Color(SystemColor.red))) : label
+        return tinted
+            .opacity(isEnabled ? 1 : 0.4)
+            .modifier(TVLiftModifier(style: style))
+    }
+
+    /// tvOS 26: a borderless button shows no focus effect, except on an `Image` in its label, which lifts on a
+    /// platter (TVMetrics.glassArtwork*); the rest of the label stays as it is.
+    private var glassBorderlessBody: some View {
+        var style = TVLiftStyle()
+        style.lifted = focused
+        style.artworkLift = true
+        style.platter = .color(TVColors.glassArtworkPlatter(scheme))
+        style.useGlassFocus()
         let tinted = destructive ? AnyView(label.foregroundStyle(Color(SystemColor.red))) : label
         return tinted
             .opacity(isEnabled ? 1 : 0.4)

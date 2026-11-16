@@ -59,6 +59,12 @@ enum TVMetrics {
     static let glassPlainVerticalOutset: CGFloat = 15
     static let glassPlainCornerRadius: CGFloat = 36.5
     static let glassPlainRim: CGFloat = 1.5
+    /// tvOS 26 `.borderless` buttons: no focus effect on text or shapes; an `Image` in the label lifts so that its
+    /// longer side grows by 40 pt, clipped to a rounded platter (25 pt corners once lifted) with a white rim and
+    /// the focus shadow; the title stays put (measured: tvOS 26.5 simulator, a 120 pt star image -> a 160 pt
+    /// platter, 1415.5 to 1575.5; "Borderless text" and a gradient label: no change at all).
+    static let glassArtworkLiftGrowth: CGFloat = 40
+    static let glassArtworkCornerRadius: CGFloat = 25
     /// tvOS 18 bordered buttons are rounded rectangles (est. radius); tvOS 26 buttons are capsules (HIG images).
     static let buttonCornerRadius: CGFloat = 12
     static let cardCornerRadius: CGFloat = 12             // est.
@@ -216,6 +222,11 @@ enum TVColors {
     static func glassPlainPlatter(_ scheme: ColorScheme) -> RGBA {
         scheme == .dark ? RGBA(1, 1, 1, 0.88) : RGBA(1, 1, 1, 0.82)
     }
+    /// The platter behind a lifted `.borderless` image (measured: tvOS 26.5 simulator; light 215 over 185, white at
+    /// about 43%; dark 75 over 38, white at about 17%).
+    static func glassArtworkPlatter(_ scheme: ColorScheme) -> RGBA {
+        scheme == .dark ? RGBA(1, 1, 1, 0.17) : RGBA(1, 1, 1, 0.43)
+    }
     /// Unfocused tvOS 26 list row: a light film (measured: white at 15% in light, 10% in dark).
     static func glassRow(_ scheme: ColorScheme) -> RGBA {
         scheme == .dark ? RGBA(1, 1, 1, 0.10) : RGBA(1, 1, 1, 0.15)
@@ -369,6 +380,8 @@ struct TVLiftStyle {
     var specular = false
     /// Width of a white rim drawn inside the platter's edge while lifted (tvOS 26 `.plain`).
     var rim: CGFloat = 0
+    /// tvOS 26 `.borderless`: only the largest image inside lifts, on the platter; nothing else changes.
+    var artworkLift = false
     /// The shadow and highlight follow the largest image or shape inside (a poster), not the bounds.
     var followsArtwork = false
     /// Scale and shadow are drawn (focused); when false only the platter is drawn (unfocused).
@@ -414,7 +427,62 @@ final class TVLiftNode: WrapperNode {
         return best
     }
 
+    /// The largest image below this node and its rect in this node's coordinates.
+    private func artworkImage() -> (node: Node, rect: CGRect)? {
+        var best: (node: Node, rect: CGRect)?
+        func visit(_ node: Node, _ origin: CGPoint) {
+            for child in node.children {
+                let o = CGPoint(x: origin.x + child.frame.minX, y: origin.y + child.frame.minY)
+                if child is ImageNode {
+                    let r = CGRect(origin: o, size: child.frame.size)
+                    if r.width * r.height > (best.map { $0.rect.width * $0.rect.height } ?? 0) { best = (child, r) }
+                }
+                visit(child, o)
+            }
+        }
+        visit(self, .zero)
+        return best
+    }
+
+    /// tvOS 26 `.borderless`: everything but the image as it is; the image scaled on its platter, with the shadow.
+    private func drawArtworkLift(_ p: Painter) {
+        guard style.lifted, let (node, rect) = artworkImage(), rect.width > 0, rect.height > 0 else {
+            drawChildren(p)
+            return
+        }
+        let saved = node.frame
+        node.frame.size = .zero
+        drawChildren(p)
+        node.frame = saved
+        let s = 1 + TVMetrics.glassArtworkLiftGrowth / max(rect.width, rect.height)
+        p.save()
+        p.translate(rect.midX, rect.midY)
+        p.scale(s, s)
+        p.translate(-rect.midX, -rect.midY)
+        let path = Path(roundedRect: rect, cornerRadius: TVMetrics.glassArtworkCornerRadius / s, style: .continuous)
+        let shadow = rect.insetBy(dx: style.shadowInset / s, dy: 0).offsetBy(dx: 0, dy: style.shadowY / s)
+        p.saveLayer(.init(imageFilter: Painter.blurFilter(radius: style.shadowRadius / s, scale: p.scale * s)))
+        p.fill(Path(roundedRect: shadow, cornerRadius: TVMetrics.glassArtworkCornerRadius / s, style: .continuous),
+               with: .color(RGBA(0, 0, 0, style.shadowOpacity)), in: shadow)
+        p.restore()
+        if case .color(let c) = style.platter { p.fill(path, with: .color(c), in: rect) }
+        p.save()
+        p.clip(path)
+        p.translate(rect.minX - saved.minX, rect.minY - saved.minY)
+        node.draw(p)
+        p.restore()
+        let rim = TVMetrics.glassPlainRim / s
+        let r = rect.insetBy(dx: rim / 2, dy: rim / 2)
+        p.stroke(Path(roundedRect: r, cornerRadius: TVMetrics.glassArtworkCornerRadius / s, style: .continuous),
+                 with: .color(RGBA(1, 1, 1, 1)), style: StrokeStyle(lineWidth: rim), in: r)
+        p.restore()
+    }
+
     override func drawContent(_ p: Painter) {
+        if style.artworkLift {
+            drawArtworkLift(p)
+            return
+        }
         let bounds = CGRect(origin: .zero, size: frame.size)
         let plate = platterRect(bounds)
         let body = style.followsArtwork ? (artworkRect() ?? bounds) : plate
