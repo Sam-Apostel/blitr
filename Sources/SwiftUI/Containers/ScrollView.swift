@@ -59,6 +59,11 @@ final class ScrollNode: Node {
         // The scroll view is greedy; without a finite proposal the content decides.
         let w = proposal.width.flatMap { $0.isFinite ? $0 : nil }, h = proposal.height.flatMap { $0.isFinite ? $0 : nil }
         let c = content.sizeThatFits(contentProposal(for: ProposedViewSize(width: w, height: h)))
+        // A horizontal-only scroll view is as tall as its content (measured: tvOS 26.5 simulator, a row of
+        // pills in a horizontal ScrollView beside a Spacer in a full-height VStack is 53 pt tall, not half the screen).
+        if scrollsH && !scrollsV, let h {
+            return CGSize(width: w ?? (c.width + margins.horizontal), height: min(h, c.height + margins.vertical))
+        }
         return CGSize(width: w ?? (c.width + margins.horizontal), height: h ?? (c.height + margins.vertical))
     }
 
