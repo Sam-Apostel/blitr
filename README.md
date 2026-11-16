@@ -147,7 +147,14 @@ know) is drawn as a placeholder and reported on a `warning:` line, never silentl
 
 ## Using it from a coding agent
 
-Add this to the project's `CLAUDE.md` (or `AGENTS.md`) so the agent checks its SwiftUI work:
+Paste this into your coding agent, and it installs blitr in its own environment (local or cloud), adds the skill
+to the project and renders a screen to check:
+
+```
+Set up blitr for this project, following https://github.com/Sam-Apostel/blitr/blob/main/docs/agent-setup.md
+```
+
+Or add this to the project's `CLAUDE.md` (or `AGENTS.md`) so the agent checks its SwiftUI work:
 
 ```markdown
 ## Seeing SwiftUI changes

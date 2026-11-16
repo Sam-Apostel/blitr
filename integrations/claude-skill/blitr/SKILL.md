@@ -10,7 +10,8 @@ API and draws the result with Skia. It is an approximation of Apple's renderer: 
 spacing, colours, text and structure; not pixel-identical to a device.
 
 Check it is there with `blitr doctor`. If the command is missing, tell the user; do not
-try to install it yourself unless asked.
+try to install it yourself unless asked. When asked, follow
+https://github.com/Sam-Apostel/blitr/blob/main/docs/agent-setup.md.
 
 ## Render
 
