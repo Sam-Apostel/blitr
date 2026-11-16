@@ -77,6 +77,15 @@ The nearest one along the axis wins; ties go to the larger overlap with the beam
 (or top) edge nearest the origin's (down from a full-width row onto equal segments lands on the first),
 then to the nearest centre. An element outside the beam cannot be reached by that press.
 
+A run of presses on one axis keeps to a line (measured: tvOS 26.5). When focus moves onto an element
+narrower than the one it left (down from a 520 pt poster onto a 250 pt one), the centre of the wider one is
+remembered while the elements focus goes on to span it, and a tie on distance goes to the candidate across
+that line before overlap: down, down from "Movie 1" (centre 400) through "Movie 21" (160 to 410) lands on
+"Movie 42" (400 to 600), while "Movie 21" reached sideways goes down to "Movie 41" (160 to 360) under it. A
+move onto an element as wide or wider (from a tab onto a full-width row, row to row) or on the other axis
+keeps no line, so down from a full-width row still lands on the first of three equal segments. Only
+`--press` paths carry the line; the static map's moves of the element focus ended on use it too.
+
 Focus sections are targets in their own right. If the beam reaches a section's frame before (strictly
 nearer than) any element, focus enters the section at its element nearest to the origin element. The
 static map uses this history-free rule for presses too. Sections:
@@ -98,13 +107,17 @@ scroll view within the safe-area inset of an edge counts as reaching it, as tvOS
 less than 100 pt (or the margin) of content would be left, the scroll view goes to its end (the last shelf
 item ends where the content ends). Offsets are clamped to the content and kept per scroll view across
 passes. Other platforms keep the minimal 40 pt margin. The map is computed for the current offsets.
+When focus reaches the topmost focusable element of a vertical scroll view, it scrolls back to the start, so
+what is above the element (a photo, a title) shows again, even if the element was in view (measured: up from a
+paragraph to the button under a post's photo scrolls 276 pt back to the top).
 
 ### History
 
 Moves depend on history only through state: scroll offsets left by earlier presses, a tab selected by
 focus, a page an `onChange` switched. The static map computes every element's moves on the current
 layout, without re-rendering per element; `--press <path>` replays a path, and the map written after it
-has the moves of the element focus ended on, with that history. Focus memory (a section returning to
+has the moves of the element focus ended on, with that history, and the line a run of moves keeps to
+(above). Focus memory (a section returning to
 the element it last had focus on) is not modelled: once scrolling uses the measured margins, every
 recorded move of the tvOS 26.5 reference set that looked like memory (Shelves: right x3, down, right x3,
 up lands on Movie 4) is plain geometry, and a memory model made 21 recorded moves disagree (down from a
@@ -120,30 +133,35 @@ the recorded one, or a move disagrees, it replays the recorded path with `--pres
 from the same history; it also replays the probes (longer press sequences). Mismatches (of initial focus,
 moves and probe steps):
 
-| Recording | before | after |
-|---|---|---|
-| Poster Grid | 0 / 81 | 0 / 81 |
-| Top Bar | 117 / 133 | 9 / 133 |
-| Viewer | 0 / 5 | 0 / 5 |
-| Shelves | 18 / 121 | 9 / 121 |
-| Unreachable | 0 / 13 | 0 / 13 |
-| Focus Section | 0 / 17 | 0 / 17 |
-| Settings Tabs | 16 / 41 | 0 / 41 |
-| Default Focus | 0 / 13 | 0 / 13 |
-| Focus On Appear | 0 / 17 | 0 / 17 |
-| probe Shelves right x3, down, right x3, up | 4 / 9 | 0 / 9 |
-| probe Settings Tabs down x4, select, menu | 2 / 7 | 0 / 7 |
-| probe Settings Tabs down x4, select, up, select | 1 / 8 | 0 / 8 |
-| total | 158 / 465 | 18 / 465 |
+| Recording | first | margins | remembered line |
+|---|---|---|---|
+| Poster Grid | 0 / 81 | 0 / 81 | 0 / 81 |
+| Top Bar | 117 / 133 | 9 / 133 | 1 / 133 |
+| Viewer | 0 / 5 | 0 / 5 | 0 / 5 |
+| Shelves | 18 / 121 | 9 / 121 | 0 / 121 |
+| Unreachable | 0 / 13 | 0 / 13 | 0 / 13 |
+| Focus Section | 0 / 17 | 0 / 17 | 0 / 17 |
+| Settings Tabs | 16 / 41 | 0 / 41 | 0 / 41 |
+| Default Focus | 0 / 13 | 0 / 13 | 0 / 13 |
+| Focus On Appear | 0 / 17 | 0 / 17 | 0 / 17 |
+| probe Shelves right x3, down, right x3, up | 4 / 9 | 0 / 9 | 0 / 9 |
+| probe Shelves right, down, left x2, down | | 1 / 6 | 0 / 6 |
+| probe Settings Tabs down x4, select, menu | 2 / 7 | 0 / 7 | 0 / 7 |
+| probe Settings Tabs down x4, select, up, select | 1 / 8 | 0 / 8 | 0 / 8 |
+| total | 158 / 465 | 18 / 465 (19 / 471) | 1 / 471 |
 
-What still differs: one move, in both Shelves and Top Bar. Down from "Movie 21" (250 pt wide, 160 to
-410) lands on "Movie 42" (400 to 600) on tvOS, though "Movie 41" (160 to 360) lies under it and overlaps
-the beam far more; no geometric rule found explains it. One candidate: a remembered column. Focus came down to
-"Movie 21" from "Movie 1" (160 to 640, centre 400), and down again lands on the poster under that centre,
-"Movie 42" (400 to 600); down from "Movie 23", reached from "Movie 2" (centre 920), lands on "Movie 44" (880
-to 1080), which plain geometry also picks. The 21 -> 42 case rests on 400 being exactly the left edge of
-"Movie 42", so it is not modelled. The other 16 mismatches follow from it: "Movie 42"
-and "Movie 43" are reached by recorded paths through that move, so our replay ends one item to the left.
+What still differs: up from "Movie 42" (reached down, down from "Movie 1") goes to "Movie 21" in the Shelves
+recording, as the remembered line (400) says, but to "Movie 22" (450 to 700, the larger overlap) in the Top Bar
+recording, whose posters sit at the same places 140 pt lower. Both cannot hold; reversing direction keeps the
+line here. The line itself was found from "Movie 21": down from it lands on "Movie 42" when focus came from
+"Movie 1" and on "Movie 41" when it came sideways from "Movie 22" (the probe right, down, left x2, down).
+
+An app's own paths are compared with `scripts/compare-app-paths.py` against press sequences recorded by
+`scripts/mac/tvos/record-app.sh` (screenshots, focused element and frames after every press): a tvOS app with
+a hand-built top bar of `focusSection`s, `@FocusState` sections scrolled with `ScrollViewReader`, full-screen
+covers closed with Menu, and leg pickers in horizontal scroll views matched all 172 recorded steps of 19
+sequences after the changes above (none could be rendered before `--env`; with it, the first comparison had
+3 of 114 steps wrong, then 1 of 58 more in new sequences).
 
 ## Presses
 
@@ -214,7 +232,7 @@ read `@Environment(\.isFocused)`, or add `.hoverEffect(.highlight)` / `.hoverEff
 
 ## Known differences from tvOS
 
-- The one recorded move above that geometry does not explain. UIKit focus guides with their own
+- The one recorded move above that the remembered line does not explain. UIKit focus guides with their own
   preferred environments, and animated scrolling, are not modelled.
 - An automatic `Picker` in a `List` is a segmented control with one element per option (tvOS 26), in a
   `Form` a row showing the value; tvOS 18 draws both as rows (est.).

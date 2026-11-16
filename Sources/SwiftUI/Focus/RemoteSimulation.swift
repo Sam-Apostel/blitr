@@ -70,6 +70,21 @@ extension FocusEngine {
                 notes.append("onMoveCommand(\(press.rawValue)) called")
             }
             if let t = snapshot.move(f, direction) {
+                let vertical = direction == .up || direction == .down
+                let from = snapshot.elements[f].frame, to = snapshot.elements[t].frame
+                // The line: the one this run already keeps to, else the centre of an element focus narrows from.
+                var line: CGFloat?
+                if let a = moveAnchor, a.path == snapshot.elements[f].path, a.vertical == vertical { line = a.value }
+                let (lo, hi) = vertical ? (to.minX, to.maxX) : (to.minY, to.maxY)
+                let spans = { (v: CGFloat) in v >= lo - 0.5 && v <= hi + 0.5 }
+                if let l = line, !spans(l) { line = nil }
+                if line == nil, (vertical ? to.width < from.width - 0.5 : to.height < from.height - 0.5) {
+                    let centre = vertical ? from.midX : from.midY
+                    if spans(centre) { line = centre }
+                }
+                moveAnchor = automaticInitialFocus ? line.map {
+                    MoveAnchor(path: snapshot.elements[t].path, vertical: vertical, value: $0)
+                } : nil
                 requestedPath = snapshot.elements[t].path
                 userMoved = true
                 log.to = snapshot.elements[t].id

@@ -63,6 +63,8 @@ final class FocusSnapshot {
     var byPath: [IdentityPath: Int] = [:]
     /// Element index the initial-focus rule picks for this screen.
     var initial: Int?
+    /// The remembered line of the focused element's moves (FocusEngine.moveAnchor), set for this pass.
+    var anchor: MoveAnchor?
     private var moveCache: [Int: [MoveCommandDirection: Int?]] = [:]
 
     func index(of path: IdentityPath?) -> Int? { path.flatMap { byPath[$0] } }
@@ -70,7 +72,11 @@ final class FocusSnapshot {
     func moves(_ i: Int) -> [MoveCommandDirection: Int?] {
         if let cached = moveCache[i] { return cached }
         var result: [MoveCommandDirection: Int?] = [:]
-        for d in [MoveCommandDirection.up, .down, .left, .right] { result[d] = FocusMovement.target(from: i, d, in: self) }
+        let anchored = anchor.flatMap { a in elements[i].path == a.path ? a : nil }
+        for d in [MoveCommandDirection.up, .down, .left, .right] {
+            let along = anchored.flatMap { a in a.vertical == (d == .up || d == .down) ? a.value : nil }
+            result[d] = FocusMovement.target(from: i, d, in: self, anchor: along)
+        }
         moveCache[i] = result
         return result
     }
@@ -83,10 +89,13 @@ final class FocusSnapshot {
 enum FocusMovement {
     struct Score: Comparable {
         var distance: CGFloat, overlap: CGFloat, leading: CGFloat, centre: CGFloat
+        /// The candidate lies across the remembered line of a run of moves on this axis (FocusEngine.moveAnchor).
+        var onAnchor = false
         /// Ties on distance and overlap go to the candidate whose leading (top) edge is nearest the origin's
         /// (measured: tvOS 26.5, down from a full-width row onto three equal segments lands on the first).
         static func < (a: Score, b: Score) -> Bool {
             if abs(a.distance - b.distance) > 0.5 { return a.distance < b.distance }
+            if a.onAnchor != b.onAnchor { return a.onAnchor }
             if abs(a.overlap - b.overlap) > 0.5 { return a.overlap > b.overlap }
             if abs(a.leading - b.leading) > 0.5 { return a.leading < b.leading }
             return a.centre < b.centre
@@ -117,11 +126,16 @@ enum FocusMovement {
         return Score(distance: distance, overlap: overlap, leading: leading, centre: hypot(r.midX - o.midX, r.midY - o.midY))
     }
 
-    static func target(from i: Int, _ d: MoveCommandDirection, in snap: FocusSnapshot) -> Int? {
+    static func target(from i: Int, _ d: MoveCommandDirection, in snap: FocusSnapshot, anchor: CGFloat? = nil) -> Int? {
         let origin = snap.elements[i].frame
         var best: (Score, Int)?
         for (j, e) in snap.elements.enumerated() where j != i {
-            guard let s = score(from: origin, to: e.frame, d) else { continue }
+            guard var s = score(from: origin, to: e.frame, d) else { continue }
+            if let anchor {
+                let vertical = d == .up || d == .down
+                let (lo, hi) = vertical ? (e.frame.minX, e.frame.maxX) : (e.frame.minY, e.frame.maxY)
+                s.onAnchor = anchor >= lo - 0.5 && anchor <= hi + 0.5
+            }
             if best == nil || s < best!.0 { best = (s, j) }
         }
         var bestSection: (Score, Int)?
@@ -176,6 +190,13 @@ enum FocusMovement {
     }
 }
 
+struct MoveAnchor {
+    var path: IdentityPath
+    /// Vertical moves remember an x, horizontal ones a y.
+    var vertical: Bool
+    var value: CGFloat
+}
+
 // MARK: - Navigation pushes made by `select`
 
 enum NavigationPush {
@@ -202,6 +223,14 @@ final class FocusEngine {
     var scrolledByCodeAt: IdentityPath?
     /// True while a remote press runs its handlers, so `@Environment(\.dismiss)` acts as it does on a device.
     var handlingPress = false
+    /// The line a run of moves on one axis keeps to: down, down from a wide poster lands under the poster's
+    /// centre, not under the narrower one focus passed through (measured: tvOS 26.5 simulator, "Movie 1" (centre
+    /// 400) down to "Movie 21" (160 to 410) down lands on "Movie 42" (400 to 600), while "Movie 21" reached
+    /// sideways goes down to "Movie 41" (160 to 360) below it). Set by each press that moves focus: kept while
+    /// the new element still spans it; else, when focus moves onto a narrower element (shorter, moving sideways)
+    /// that spans the old one's centre, that centre; else none (from a full-width row down onto equal segments
+    /// focus still lands on the first). Ties on distance go to the candidate across the line, before overlap.
+    var moveAnchor: MoveAnchor?
     /// TabViews without a selection binding: the tab chosen by `select`.
     var tabSelections: [IdentityPath: Int] = [:]
     /// Screens pushed onto a navigation stack by `select` on a NavigationLink.
@@ -236,6 +265,7 @@ final class FocusEngine {
     func afterLayout(_ root: Node, screen: CGRect, runtime: Runtime) -> Bool {
         let snap = FocusExtractor(screen: screen, engine: self).extract(root)
         for e in snap.elements where e.synthesized { runtime.activations.register(e.path, e.activate) }
+        snap.anchor = moveAnchor
         snapshot = snap
         var changed = false
         var next = focusedPath
@@ -435,6 +465,17 @@ final class FocusEngine {
             if scroll.axes.contains(.vertical) {
                 offset.y = adjust(rect.minY, rect.maxY, viewport.minY, viewport.maxY, old.y, scroll.maxOffset.y,
                                   margins.top, margins.bottom)
+                // tvOS scrolls back to the top when focus reaches the topmost focusable element of a scroll view, so
+                // what is above it (a photo, a title) shows again (measured: tvOS 26.5 simulator, up from a paragraph
+                // to the button under a post's photo and title scrolls 276 pt back to the start, though the button
+                // was in view).
+                if automaticInitialFocus, offset.y > 0,
+                   !snapshot.elements.contains(where: { other in
+                       other.path != e.path && other.frame.minY < e.frame.minY - 1
+                           && other.scrolls.contains(where: { $0.path == scroll.path })
+                   }) {
+                    offset.y = 0
+                }
             }
             if scroll.axes.contains(.horizontal) {
                 offset.x = adjust(rect.minX, rect.maxX, viewport.minX, viewport.maxX, old.x, scroll.maxOffset.x,
