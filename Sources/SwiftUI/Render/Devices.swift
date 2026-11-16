@@ -62,6 +62,8 @@ package struct DeviceProfile {
     /// What `UIScreen.main.bounds` reports when it is not the rendered screen (the open iPhone Duo still
     /// reports its cover display).
     package var mainScreenSize: CGSize? = nil
+    /// A foldable's hinge in this posture (`onHingeChange`); nil for devices without one.
+    package var hinge: DeviceHinge? = nil
 
     /// Size in the current orientation.
     package var size: CGSize {
@@ -92,6 +94,13 @@ package struct DeviceProfile {
         if let classes = sizeClasses { return orientation.isLandscape ? classes.landscape.1 : classes.portrait.1 }
         return idiom == .watch || (idiom == .phone && orientation.isLandscape) ? .compact : .regular
     }
+
+    /// iPhone Duo, with the status bar a column at the trailing edge (portrait, in every posture): a navigation
+    /// bar's buttons and the tab bar move into that column. measured: iOS 27.2 simulator (Examples/FoldChrome,
+    /// closed, partially open and open): the bar's button groups as vertical glass capsules under the clock, the
+    /// tabs as a vertical rail at the bottom of the column, icons only. Landscape is not modelled (the status
+    /// bar is a row there, or hidden).
+    var statusColumnChrome: Bool { ringStatusBar != nil && orientation == .portrait }
 
     /// iPhone Duo: navigation titles sit at the leading edge of the bar (not centred) everywhere except under the
     /// status bar's row.
@@ -128,6 +137,8 @@ package struct DeviceProfile {
     struct RingStatusBar {
         var columnTop: CGFloat
         var rowInLandscape: Bool
+        /// Top of the first toolbar capsule when the bar's buttons sit in the status column (`statusColumnChrome`).
+        var toolbarTop: CGFloat
     }
 
     // MARK: Lookup
@@ -182,13 +193,13 @@ package struct DeviceProfile {
     }
 
     /// The iPhone Duo's inner display (open or half open; see the table).
-    private static func duoInner(_ id: String, _ name: String, aliases: [String]) -> DeviceProfile {
+    private static func duoInner(_ id: String, _ name: String, aliases: [String], hinge: DeviceHinge) -> DeviceProfile {
         DeviceProfile(id: id, name: name, idiom: .phone, portraitSize: CGSize(width: 951, height: 669), scale: 3,
                       portraitSafeArea: edges(0, 0, 34, 84), landscapeSafeArea: edges(82, 0, 34, 0), cornerRadius: 55,
                       housing: .none, aliases: aliases,
-                      ringStatusBar: .init(columnTop: 34, rowInLandscape: true),
+                      ringStatusBar: .init(columnTop: 34, rowInLandscape: true, toolbarTop: 124),
                       sizeClasses: (portrait: (.regular, .regular), landscape: (.regular, .regular)),
-                      mainScreenSize: CGSize(width: 466, height: 678))
+                      mainScreenSize: CGSize(width: 466, height: 678), hinge: hinge)
     }
 
     // Notch sizes. 209x30 is the iPhone X/11/12 notch, 162x34 the narrower one of the 13 and 14.
@@ -265,17 +276,21 @@ package struct DeviceProfile {
                       housing: .punchHole(diameter: 37, fromTopTrailing: CGPoint(x: 48, y: 50)),
                       aliases: ["iphone-duo-folded", "iphone-duo-closed", "iphone-duo-cover", "iPhone Duo (folded)", "iPhone Duo (closed)"],
                       landscapeRightSafeArea: edges(0, 0, 34, 84), leadingCornerRadius: 8,
-                      ringStatusBar: .init(columnTop: 86.67, rowInLandscape: false),
-                      sizeClasses: (portrait: (.compact, .regular), landscape: (.compact, .compact))),
+                      ringStatusBar: .init(columnTop: 86.67, rowInLandscape: false, toolbarTop: 174),
+                      sizeClasses: (portrait: (.compact, .regular), landscape: (.compact, .compact)),
+                      hinge: DeviceHinge(status: .closed, angle: .degrees(0))),
         // measured: iOS 27.2 simulator. Open, apps run on the inner display. Held upright it is landscape-shaped,
         // 951x669 @3x, with the same trailing status column (84pt) and 34pt at the bottom; turned either way it
         // is 669x951 with the status bar a row in an 82pt top inset. Regular/regular in every orientation.
         // UIScreen.main.bounds still reports the cover display, 466x678.
-        duoInner("iphone-duo-open", "iPhone Duo (open)", aliases: ["iphone-duo-unfolded", "iphone-duo-inner", "iPhone Duo (unfolded)"]),
+        duoInner("iphone-duo-open", "iPhone Duo (open)", aliases: ["iphone-duo-unfolded", "iphone-duo-inner", "iPhone Duo (unfolded)"],
+                 hinge: DeviceHinge(status: .fullyOpen, angle: .degrees(180))),
         // measured: iOS 27.2 simulator. Partially Open (half folded) also runs apps on the inner display, with the
         // same sizes, insets, status bar and size classes as Open in all three orientations.
+        // Hinge (onHingeChange, Examples/DeviceHinge): closed 0 degrees, partially open 129, open 180.
         duoInner("iphone-duo-half-open", "iPhone Duo (half open)",
-                 aliases: ["iphone-duo-partially-open", "iphone-duo-half-folded", "iphone-duo-tent", "iPhone Duo (partially open)"]),
+                 aliases: ["iphone-duo-partially-open", "iphone-duo-half-folded", "iphone-duo-tent", "iPhone Duo (partially open)"],
+                 hinge: DeviceHinge(status: .partiallyOpen, angle: .degrees(129))),
 
         // Apple Watch. Screen sizes are Apple's (416x496, 374x446 and 410x502 pixels at 2x). The display
         // corner radii are estimates scaled from the 41/45mm generation.
