@@ -5,10 +5,10 @@ A WidgetKit extension's source compiles unchanged (`import WidgetKit`, `Activity
 size, and Live Activities as the Lock Screen banner and the three Dynamic Island presentations.
 
 ```
-swiftui-screenshot list   Examples/Widgets/WeatherWidget.swift
-swiftui-screenshot render Examples/Widgets/WeatherWidget.swift --all --out-dir out
-swiftui-screenshot render Examples/Widgets/HabitWidget.swift --widget-rendering-mode accented
-swiftui-screenshot render Examples/Widgets/LockScreenWidgets.swift --all --out-dir out   # no #Preview: one image per family
+blitr list   Examples/Widgets/WeatherWidget.swift
+blitr render Examples/Widgets/WeatherWidget.swift --all --out-dir out
+blitr render Examples/Widgets/HabitWidget.swift --widget-rendering-mode accented
+blitr render Examples/Widgets/LockScreenWidgets.swift --all --out-dir out   # no #Preview: one image per family
 ```
 
 ## What is rendered
@@ -83,7 +83,7 @@ iPad only.
 
 - The API is in its own modules, `Sources/WidgetKit`, `Sources/ActivityKit` and `Sources/AppIntents`,
   so `Activity`, `Timeline` and the rest are only visible where those frameworks are imported. Their
-  code is linked into libSwiftUIScreenshotEngine (see ARCHITECTURE.md, "Shim modules"). `Button(intent:)` and
+  code is linked into libBlitrEngine (see ARCHITECTURE.md, "Shim modules"). `Button(intent:)` and
   `Toggle(isOn:intent:)` are in AppIntents (Apple's SwiftUI/AppIntents cross-import overlay).
 - The engine side is in `Sources/SwiftUI/Widgets`: `_WidgetCanvas`, `_LiveActivityCanvas`, metrics,
   and the accented / vibrant color filters. `widgetAccentable` relies on `Painter.suppressesDrawing`.

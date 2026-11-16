@@ -6,7 +6,7 @@
 #     Tests/Maps/tiles.sh [output-directory]
 set -u
 cd "$(dirname "$0")/../.."
-bin="$(swift build --show-bin-path)/swiftui-screenshot"
+bin="$(swift build --show-bin-path)/blitr"
 out="${1:-out/MapTiles}"
 rm -rf "$out"; mkdir -p "$out"
 python3 Tests/Maps/tiles.py make "$out/tiles" || { echo "FAIL could not make the tiles"; exit 1; }

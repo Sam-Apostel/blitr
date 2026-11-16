@@ -1,7 +1,7 @@
 // An Apple Watch app: render with `--device apple-watch` (Series 10 46mm), `apple-watch-series-10-42mm`
 // or `apple-watch-ultra-2`, or `--platform watchos`. watchOS is drawn dark, with the time in the corner.
 //
-//   swiftui-screenshot render Examples/Watch.swift --device apple-watch --all --out-dir out/watch
+//   blitr render Examples/Watch.swift --device apple-watch --all --out-dir out/watch
 import SwiftUI
 
 struct WatchTimerPage: View {

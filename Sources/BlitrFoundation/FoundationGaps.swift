@@ -19,7 +19,7 @@ extension URLCache {
 extension FileManager {
     /// A writable directory per app group, under the temporary directory, shared by everything in this process.
     public func containerURL(forSecurityApplicationGroupIdentifier groupIdentifier: String) -> URL? {
-        let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("swiftui-screenshot-app-groups")
+        let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("blitr-app-groups")
             .appendingPathComponent(groupIdentifier, isDirectory: true)
         try? createDirectory(at: url, withIntermediateDirectories: true)
         return url

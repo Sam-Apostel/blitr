@@ -7,7 +7,7 @@
 # Exits non-zero at the first failed check.
 set -u
 cd "$(dirname "$0")/../.."
-bin="$(swift build --show-bin-path)/swiftui-screenshot"
+bin="$(swift build --show-bin-path)/blitr"
 out="${1:-out/Projects}"
 fixture=Tests/Projects/Orchard
 mkdir -p "$out"
@@ -23,7 +23,7 @@ run() {  # run <expected exit status> <args...>: runs the tool, output to $log
   timeout 900 "$bin" "$@" >"$log" 2>&1
   local status=$?
   if [ "$status" != "$expected" ]; then
-    echo "FAIL  exit $status (expected $expected): swiftui-screenshot $*"; sed 's/^/      /' "$log" | tail -25; failures=$((failures + 1)); return 1
+    echo "FAIL  exit $status (expected $expected): blitr $*"; sed 's/^/      /' "$log" | tail -25; failures=$((failures + 1)); return 1
   fi
 }
 has() { grep -q -- "$1" "$log"; }

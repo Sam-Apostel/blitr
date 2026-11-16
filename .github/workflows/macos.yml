@@ -19,7 +19,7 @@ jobs:
     name: Build, render and test on macOS
     runs-on: macos-latest
     env:
-      SWIFTUI_SCREENSHOT_CACHE: ${{ github.workspace }}/.cache/swiftui-screenshot
+      BLITR_CACHE: ${{ github.workspace }}/.cache/blitr
     steps:
       - uses: actions/checkout@v4
 
@@ -50,7 +50,7 @@ jobs:
       - name: Apple's SwiftUI must not be linked
         run: |
           bin="$(swift build --show-bin-path)"
-          otool -L "$bin/libSwiftUIScreenshotEngine.dylib" | tee otool-engine.txt
+          otool -L "$bin/libBlitrEngine.dylib" | tee otool-engine.txt
           if grep -q 'SwiftUI.framework' otool-engine.txt; then echo "the engine links Apple's SwiftUI" >&2; exit 1; fi
 
       - name: Render the regression set
@@ -58,7 +58,7 @@ jobs:
 
       - name: Compiled previews must not link Apple's SwiftUI
         run: |
-          runner="$(find "$SWIFTUI_SCREENSHOT_CACHE" -name runner -type f | head -1)"
+          runner="$(find "$BLITR_CACHE" -name runner -type f | head -1)"
           otool -L "$runner" | tee otool-runner.txt
           if grep -qE 'SwiftUI|UIKit|AppKit' otool-runner.txt; then echo "a compiled preview links an Apple UI framework" >&2; exit 1; fi
 

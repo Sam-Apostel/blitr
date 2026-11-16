@@ -12,7 +12,7 @@ import Foundation
 // Foundation-only packages that call `String(localized:)` build too.
 //
 // Strings resolve through one table (key -> localized value) that the tool flattens from the project's
-// string catalogs and `.strings` files for the chosen locale and names in SWIFTUI_SCREENSHOT_STRINGS.
+// string catalogs and `.strings` files for the chosen locale and names in BLITR_STRINGS.
 // Without a table, a key is its own value, as on a device without a translation.
 //
 // Unlike the gap-fillers in FoundationGaps.swift, this file is not compiled out on Darwin, although Apple's
@@ -26,7 +26,7 @@ import Foundation
 
 public enum ScreenshotStrings {
     public static let table: [String: String] = {
-        guard let path = ProcessInfo.processInfo.environment["SWIFTUI_SCREENSHOT_STRINGS"],
+        guard let path = ProcessInfo.processInfo.environment["BLITR_STRINGS"],
               let data = FileManager.default.contents(atPath: path),
               let object = try? JSONSerialization.jsonObject(with: data) as? [String: String] else { return [:] }
         return object

@@ -1,6 +1,6 @@
 import Foundation
 
-// Shift detection for `swiftui-screenshot compare`.
+// Shift detection for `blitr compare`.
 //
 // Layout errors usually show up as "everything below here is N points lower". The detector works on
 // luma images of the overlapping region:

@@ -1,7 +1,7 @@
 # Apple frameworks beyond SwiftUI
 
 App code imports more than SwiftUI. Each framework below is a module of its own under `Sources/<Name>`
-(see "Shim modules" in ARCHITECTURE.md), linked into libSwiftUIScreenshotEngine. Source compatibility with Apple's public
+(see "Shim modules" in ARCHITECTURE.md), linked into libBlitrEngine. Source compatibility with Apple's public
 signatures is the contract; behaviour is what a screenshot needs: what affects pixels is real, the rest
 answers like a fresh install with no permissions granted (not determined, empty, nil) and never blocks.
 Anything that would be visible but cannot be drawn shows a placeholder and one warning naming it.
@@ -94,7 +94,7 @@ and `!` right after them are removed.
 | AVFoundation / AVKit | CMTime | players never play; capture not determined | VideoPlayer: black surface, play glyph, playback bar |
 | SafariServices, MessageUI, CoreMotion, CoreHaptics | | no account / no hardware | controllers: placeholders |
 
-Foundation gaps used by app code live in `SwiftUIScreenshotFoundation`: `URLCache(memoryCapacity:diskCapacity:directory:)`,
+Foundation gaps used by app code live in `BlitrFoundation`: `URLCache(memoryCapacity:diskCapacity:directory:)`,
 `FileManager.containerURL(forSecurityApplicationGroupIdentifier:)` (a temporary directory per group),
 `RelativeDateTimeFormatter` and `ListFormatter` (English), `AttributedString(markdown:options:baseURL:)` (Linux Foundation
 has no Markdown parser: inline markers become `inlinePresentationIntent` runs, links `link`, and with `.full` lines get a

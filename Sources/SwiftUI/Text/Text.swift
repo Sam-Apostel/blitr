@@ -213,8 +213,8 @@ extension Text {
         }
     }
 
-    /// The inline presentation intent, read by name: libSwiftUIScreenshotEngine links its own copy of
-    /// SwiftUIScreenshotFoundation, so a value app code stored (through the autolinked library) is another `InlinePresentationIntent` type
+    /// The inline presentation intent, read by name: libBlitrEngine links its own copy of
+    /// BlitrFoundation, so a value app code stored (through the autolinked library) is another `InlinePresentationIntent` type
     /// than the one here, and a typed read would fail its cast.
     private enum InlineIntentKey: AttributedStringKey {
         typealias Value = AnyHashable

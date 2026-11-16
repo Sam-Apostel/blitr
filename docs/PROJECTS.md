@@ -3,10 +3,10 @@
 Point the tool at one view file inside a real project and it works out the rest:
 
 ```
-swiftui-screenshot render App/Sources/HarvestListView.swift
-swiftui-screenshot list   App/Sources/HarvestListView.swift      # every preview of the target
-swiftui-screenshot check  App/Sources/ToolsView.swift            # compile only; summarize what is unsupported
-swiftui-screenshot check  --target Orchard --json
+blitr render App/Sources/HarvestListView.swift
+blitr list   App/Sources/HarvestListView.swift      # every preview of the target
+blitr check  App/Sources/ToolsView.swift            # compile only; summarize what is unsupported
+blitr check  --target Orchard --json
 ```
 
 `Tests/Projects/Orchard` is a complete example (an iPhone app, a TV app, a Foundation-only model package,
@@ -64,11 +64,11 @@ dependency order, then the target itself into the runner:
   the SwiftUI module. Its own previews are blanked out: only the entry file's previews are registered.
 - Package targets get `-D DEBUG`, `-package-name`, their declared language mode and defines; app targets
   their Debug compilation conditions.
-- Every module implicitly imports `SwiftUIScreenshotFoundation`, which supplies what Linux Foundation
+- Every module implicitly imports `BlitrFoundation`, which supplies what Linux Foundation
   lacks and Apple code expects from `import Foundation`: `String(localized:)`, `String.LocalizationValue`,
   `LocalizedStringResource`, and `FoundationNetworking` (URLSession) re-exported.
 
-Each module is cached under `~/.cache/swiftui-screenshot/modules/<Name>-<hash>`, the hash covering its
+Each module is cached under `~/.cache/blitr/modules/<Name>-<hash>`, the hash covering its
 (rewritten) sources, flags, generated files, its dependencies' hashes, the SwiftUI module, the shim
 modules and this tool's binary. Rendering another view of the same project recompiles only the target's
 closure; a second render of the same view reuses the runner as well.
@@ -145,9 +145,9 @@ diagnostic. A failed `render` prints the same summary after the compiler's outpu
 ## Scouting aids
 
 To see past a blocking gap without changing this repository, three environment variables add code to a
-project build: `SWIFTUI_SCREENSHOT_MODULES` (colon-separated directories of extra `Name.swiftmodule` +
-`libName.so`, `libName.dylib` on macOS, e.g. stand-ins for frameworks), `SWIFTUI_SCREENSHOT_IMPORTS`
-(modules imported into every file compiled against the SDK, to add members to existing types) and `SWIFTUI_SCREENSHOT_EXTRA_SOURCES`
+project build: `BLITR_MODULES` (colon-separated directories of extra `Name.swiftmodule` +
+`libName.so`, `libName.dylib` on macOS, e.g. stand-ins for frameworks), `BLITR_IMPORTS`
+(modules imported into every file compiled against the SDK, to add members to existing types) and `BLITR_EXTRA_SOURCES`
 (Swift files compiled into the entry target). They are part of the cache key.
 
 ## Not supported

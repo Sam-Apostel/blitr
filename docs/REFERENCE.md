@@ -1,14 +1,14 @@
 # Reference: accessibility outputs and compare
 
 Details for `--accessibility-tree`, `--tap-targets`, `--accessibility-outline` and
-`swiftui-screenshot compare`. The README has the short version.
+`blitr compare`. The README has the short version.
 
 ## Accessibility tree and tap targets
 
 For agents and CI that want structure rather than pixels:
 
 ```
-swiftui-screenshot render Screen.swift --accessibility-tree a11y.json --tap-targets taps.png --accessibility-outline
+blitr render Screen.swift --accessibility-tree a11y.json --tap-targets taps.png --accessibility-outline
 ```
 
 | Flag | Output |
@@ -66,7 +66,7 @@ expanded 44pt hit region; a lone control in a list row is hit across the whole r
 the render is off.
 
 References are captured with the scripts in `scripts/mac/` and kept on the Mac in `<references>`, which is
-`~/Library/Application Support/swiftui-screenshot/references` unless `SWIFTUI_SCREENSHOT_REFERENCES` names another folder. They are never committed:
+`~/Library/Application Support/blitr/references` unless `BLITR_REFERENCES` names another folder. They are never committed:
 anything can be re-captured from the same runtime, and the measured constants carry their numbers in the code.
 
 For an app of your own on tvOS, `scripts/mac/tvos/record-app.sh --app <App.app> --out <references>/<set>
@@ -76,7 +76,7 @@ press sequence (a screenshot, the focused element and the buttons' frames after 
 environment) and reports every step where focus differs, keeping our last frame of each sequence.
 
 ```
-swiftui-screenshot compare <reference> <candidate> [options]
+blitr compare <reference> <candidate> [options]
 ```
 
 `<reference>` and `<candidate>` are two PNG files, or two directories compared by relative file name

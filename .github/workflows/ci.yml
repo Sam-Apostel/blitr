@@ -26,7 +26,7 @@ jobs:
 
       - name: Render every example and the acceptance corpus
         run: |
-          "$(swift build --show-bin-path)/swiftui-screenshot" doctor
+          "$(swift build --show-bin-path)/blitr" doctor
           # Every file must compile against the module and render; a failure here is a regression.
           # The same script and options as on a Mac, so the two hosts' images can be compared.
           REGRESSION_STRICT=1 scripts/regression.sh out/render --jobs 4

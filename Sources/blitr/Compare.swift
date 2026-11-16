@@ -1,10 +1,10 @@
 import Foundation
 
-// `swiftui-screenshot compare <reference> <candidate>`: orchestration, geometry, baselines, report.
+// `blitr compare <reference> <candidate>`: orchestration, geometry, baselines, report.
 // The pixel work happens in a runner built against the SwiftUI module (Render/ImageComparison.swift).
 
 let compareUsage = """
-Usage: swiftui-screenshot compare <reference> <candidate> [options]
+Usage: blitr compare <reference> <candidate> [options]
 
   <reference> and <candidate> are two PNG files, or two directories compared by relative file name.
 
@@ -185,7 +185,7 @@ func compareCommand(_ arguments: [String], _ installation: Installation) -> Neve
     var results: [String: [String: Any]] = [:]
     if !jobs.isEmpty {
         let runner = utilityRunner(installation)
-        let jobsPath = NSTemporaryDirectory() + "/swiftui-screenshot-compare-\(getpid()).json"
+        let jobsPath = NSTemporaryDirectory() + "/blitr-compare-\(getpid()).json"
         guard let data = try? JSONSerialization.data(withJSONObject: ["jobs": jobs]), fm.createFile(atPath: jobsPath, contents: data) else {
             fail("cannot write the comparison job file")
         }

@@ -8,7 +8,7 @@ import XCTest
 // Elements are told apart by label: frames move while an element is focused (the lift) and as scroll
 // views follow focus, so they cannot identify one.
 //
-// The output follows the shape of `swiftui-screenshot render --focus-map`: elements with id, index,
+// The output follows the shape of `blitr render --focus-map`: elements with id, index,
 // label, role, frame [x, y, w, h], moves {up, down, left, right} (an id, or null when focus stays) and
 // the press path from launch.
 

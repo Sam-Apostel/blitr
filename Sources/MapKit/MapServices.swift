@@ -33,7 +33,7 @@ public struct MKError: Error, CustomNSError, Hashable, @unchecked Sendable {
     public static var decodingFailed: Code { .decodingFailed }
 
     static func unavailable(_ service: String) -> MKError {
-        MKError(.serverFailure, message: "\(service) is not available when rendering with swiftui-screenshot (no map services on Linux).")
+        MKError(.serverFailure, message: "\(service) is not available when rendering with blitr (no map services on Linux).")
     }
 }
 

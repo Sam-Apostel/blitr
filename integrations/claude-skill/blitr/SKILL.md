@@ -1,25 +1,25 @@
 ---
-name: swiftui-screenshot
+name: blitr
 description: Render SwiftUI views to PNG without Xcode or a simulator, on Linux or a Mac. Use after changing SwiftUI code, or when asked to see, check or verify how a screen or a component looks: light and dark, another device or orientation, a larger text size, another language.
 ---
 
-# Seeing SwiftUI with swiftui-screenshot
+# Seeing SwiftUI with blitr
 
-`swiftui-screenshot` compiles your SwiftUI sources against its own implementation of the SwiftUI
+`blitr` compiles your SwiftUI sources against its own implementation of the SwiftUI
 API and draws the result with Skia. It is an approximation of Apple's renderer: good for layout,
 spacing, colours, text and structure; not pixel-identical to a device.
 
-Check it is there with `swiftui-screenshot doctor`. If the command is missing, tell the user; do not
+Check it is there with `blitr doctor`. If the command is missing, tell the user; do not
 try to install it yourself unless asked.
 
 ## Render
 
 ```
-swiftui-screenshot list Sources/Feature/ProfileView.swift          # which previews exist
-swiftui-screenshot render Sources/Feature/ProfileView.swift -o /tmp/profile.png
-swiftui-screenshot render Sources/Feature --all --out-dir /tmp/shots --scheme both
-swiftui-screenshot render Sources/Feature/Row.swift --view "Row(item: .sample)" --layout fit
-swiftui-screenshot render Sources/Feature/HomeView.swift --crop summary-card --crop-padding 12
+blitr list Sources/Feature/ProfileView.swift          # which previews exist
+blitr render Sources/Feature/ProfileView.swift -o /tmp/profile.png
+blitr render Sources/Feature --all --out-dir /tmp/shots --scheme both
+blitr render Sources/Feature/Row.swift --view "Row(item: .sample)" --layout fit
+blitr render Sources/Feature/HomeView.swift --crop summary-card --crop-padding 12
 ```
 
 Then open the PNG files and look at them. Write them outside the source tree (for example `/tmp`)
@@ -33,7 +33,7 @@ a whole module; pass the directory (or all files) that the view depends on, not 
 
 - Device: `--device iphone-16` (default), `iphone-se` for small screens, `iphone-17-pro-max`, `ipad`, `iphone-duo` and
   `iphone-duo-open` (the foldable), `apple-tv-4k` (tvOS) and `apple-watch` (watchOS); Apple TV and Watch devices compile
-  the `#if os(tvOS)` / `#if os(watchOS)` code. `--orientation landscape` turns any of them. `swiftui-screenshot devices`
+  the `#if os(tvOS)` / `#if os(watchOS)` code. `--orientation landscape` turns any of them. `blitr devices`
   lists them all.
 - Design: the default look is the latest iOS (`--ios 27`, Liquid Glass). `--ios 26` and `--ios 18` (flat) draw the older
   looks; use one of them when the app targets that release. Glass geometry is estimated, not measured.
@@ -72,7 +72,7 @@ against this renderer's SwiftUI module.
 - Errors in the user's own code (typos, missing files from the module) are ordinary bugs: fix them.
   If a type comes from another file, include that file or directory in the command.
 - An error that says the modules were built with a different Swift version means the toolchain on
-  PATH does not match; `swiftui-screenshot version` and `doctor` show both. Report it, do not fight it.
+  PATH does not match; `blitr version` and `doctor` show both. Report it, do not fight it.
 - About 40 Apple frameworks are provided (UIKit, MapKit, WidgetKit, CoreLocation, ...). Others, such as
   SwiftData, Charts and WebKit, are reported as missing; render a view that takes plain values instead.
 

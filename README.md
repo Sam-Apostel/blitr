@@ -1,13 +1,13 @@
-# swiftui-screenshot
+# blitr
 
 See what your SwiftUI code looks like without Xcode or a simulator. Point it at a Swift file or an Xcode
 project and it writes PNGs of your previews, on Linux or on a Mac.
 
 ```
-swiftui-screenshot render ProfileView.swift --scheme both --out-dir shots
+blitr render ProfileView.swift --scheme both --out-dir shots
 ```
 
-![Screens from the test corpus, rendered by swiftui-screenshot](docs/images/screens-1.png)
+![Screens from the test corpus, rendered by blitr](docs/images/screens-1.png)
 ![More screens from the test corpus](docs/images/screens-2.png)
 
 Every image above was rendered from the unmodified SwiftUI files in [`Tests/Corpus`](Tests/Corpus).
@@ -37,11 +37,11 @@ pixel for pixel: see [Accuracy](#accuracy).
 From source, on a Mac (macOS 15 or later, Xcode with Swift 6.4.2) or on Linux (Swift 6.4.2):
 
 ```
-git clone https://github.com/Sam-Apostel/swift-ui-screenshot && cd swift-ui-screenshot
+git clone https://github.com/Sam-Apostel/blitr && cd blitr
 brew install harfbuzz pkg-config        # on Linux: apt-get install libharfbuzz-dev
 scripts/bootstrap.sh                    # pinned Skia and open fonts into Vendor/, checksummed
 swift build -c release
-"$(swift build -c release --show-bin-path)/swiftui-screenshot" doctor
+"$(swift build -c release --show-bin-path)/blitr" doctor
 ```
 
 The tool compiles your code at render time, so it needs the exact Swift version it was built with; `doctor`
@@ -51,11 +51,11 @@ with the toolchain inside.
 ## Everyday use
 
 ```
-swiftui-screenshot list Sources/Profile/ProfileView.swift                  # the previews in a file
-swiftui-screenshot render Sources/Profile/ProfileView.swift --all --scheme both --out-dir shots
-swiftui-screenshot render Sources/Profile/Avatar.swift --view 'Avatar(user: .sample)' --layout fit
-swiftui-screenshot render App/HomeView.swift --device iphone-17-pro-max --dynamic-type accessibility2
-swiftui-screenshot render App/HomeView.swift --crop trip-card --crop-padding 12
+blitr list Sources/Profile/ProfileView.swift                  # the previews in a file
+blitr render Sources/Profile/ProfileView.swift --all --scheme both --out-dir shots
+blitr render Sources/Profile/Avatar.swift --view 'Avatar(user: .sample)' --layout fit
+blitr render App/HomeView.swift --device iphone-17-pro-max --dynamic-type accessibility2
+blitr render App/HomeView.swift --crop trip-card --crop-padding 12
 ```
 
 What gets rendered, first match wins: `--view "<expression>"`, a `#Preview` (`--preview <index|name>`, or
@@ -66,15 +66,15 @@ local packages, asset catalogs, fonts and string catalogs ([docs/PROJECTS.md](do
 ## Command line
 
 ```
-swiftui-screenshot render <file-or-dir>... [options]    render previews to PNG
-swiftui-screenshot list <file-or-dir>...                the previews found
-swiftui-screenshot check <file | --target Name>         compile only, and summarise what is unsupported
-swiftui-screenshot devices                              device profiles
-swiftui-screenshot compare <reference> <candidate>      diff screenshots: heatmaps, element frame deltas
-swiftui-screenshot doctor | version
+blitr render <file-or-dir>... [options]    render previews to PNG
+blitr list <file-or-dir>...                the previews found
+blitr check <file | --target Name>         compile only, and summarise what is unsupported
+blitr devices                              device profiles
+blitr compare <reference> <candidate>      diff screenshots: heatmaps, element frame deltas
+blitr doctor | version
 ```
 
-`swiftui-screenshot render --help` lists every option. The ones you will use most:
+`blitr render --help` lists every option. The ones you will use most:
 
 **What and where**
 
@@ -82,7 +82,7 @@ swiftui-screenshot doctor | version
 |---|---|
 | `-o file.png`, `--out-dir dir` | Output; `--out-dir` when several images are written. |
 | `--preview <n\|name>`, `--all`, `--view "<expr>"` | Which preview, every one, or a view expression. |
-| `--device <id>` | `iphone-16` by default; `swiftui-screenshot devices` lists them all, and names are forgiving. |
+| `--device <id>` | `iphone-16` by default; `blitr devices` lists them all, and names are forgiving. |
 | `--orientation portrait\|landscape\|landscape-right` | Also set by `#Preview(traits: .landscapeLeft)`. |
 | `--ios 18\|26\|27` | Which design to draw (default 27). Apple TV and Watch devices imply `--platform tvos\|watchos`. |
 | `--layout fit`, `--width`, `--height` | Just the view at its own size, or at a size you propose. |
@@ -125,15 +125,15 @@ Add this to the project's `CLAUDE.md` (or `AGENTS.md`) so the agent checks its S
 
 ```markdown
 ## Seeing SwiftUI changes
-After changing SwiftUI code, render it with `swiftui-screenshot` and look at the PNGs before you finish:
-- `swiftui-screenshot render <file> --all --scheme both --out-dir /tmp/shots` renders every preview, light and dark.
+After changing SwiftUI code, render it with `blitr` and look at the PNGs before you finish:
+- `blitr render <file> --all --scheme both --out-dir /tmp/shots` renders every preview, light and dark.
 - `--view "MyView(model: .sample)" --layout fit` renders one component; `--crop <identifier>` one part of a screen.
 - Check `--device iphone-se` and `--dynamic-type accessibility3` for truncation, and `--locale` for other languages.
 - Every `warning:` line names something that was not drawn faithfully.
 Keep the images out of the repository.
 ```
 
-[`integrations/claude-skill/swiftui-screenshot`](integrations/claude-skill/swiftui-screenshot) is a Claude Code
+[`integrations/claude-skill/blitr`](integrations/claude-skill/blitr) is a Claude Code
 skill with the same instructions in more depth: copy it into the project's `.claude/skills/`. In a cloud
 environment, build the tool in the setup script with the commands under [Install](#install).
 

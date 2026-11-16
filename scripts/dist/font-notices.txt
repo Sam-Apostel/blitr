@@ -1,4 +1,4 @@
-Fonts bundled in lib/swiftui-screenshot/fonts (all under the SIL Open Font License 1.1,
+Fonts bundled in lib/blitr/fonts (all under the SIL Open Font License 1.1,
 whose text follows this list). They stand in for Apple's system fonts. Each font's own
 licence file, as published upstream, is in that directory as <Font>-LICENSE.txt.
 

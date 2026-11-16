@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Builds a relocatable release tarball:
 #
-#   dist/swiftui-screenshot-<version>-linux-<arch>.tar.gz     (dist/...-macos-<arch>.tar.gz on a Mac)
+#   dist/blitr-<version>-linux-<arch>.tar.gz     (dist/...-macos-<arch>.tar.gz on a Mac)
 #
-#   swiftui-screenshot/
-#     bin/swiftui-screenshot
-#     lib/swiftui-screenshot/   SwiftUI and shim modules, the engine library, libSkiaSharp, fonts/
-#     share/swiftui-screenshot/ fetch-apple-fonts.sh, THIRD-PARTY-NOTICES, VERSION
+#   blitr/
+#     bin/blitr
+#     lib/blitr/   SwiftUI and shim modules, the engine library, libSkiaSharp, fonts/
+#     share/blitr/ fetch-apple-fonts.sh, THIRD-PARTY-NOTICES, VERSION
 #
 # Usage: scripts/make-dist.sh [VERSION]     (default: git describe --tags --always)
 # Needs Vendor/ (scripts/bootstrap.sh), the Swift toolchain on PATH, and patchelf
@@ -23,7 +23,7 @@ if [ "$(uname -s)" = Darwin ]; then
 else
   os=linux; ext=so; tools="swift patchelf readelf objdump tar"
 fi
-engine=libSwiftUIScreenshotEngine.$ext
+engine=libBlitrEngine.$ext
 
 for tool in $tools; do
   command -v "$tool" >/dev/null || { echo "make-dist: '$tool' not found on PATH" >&2; exit 1; }
@@ -42,20 +42,20 @@ case "$os-$(uname -m)" in
 esac
 swift_banner="$(swiftc --version 2>&1 | grep -m1 'Swift version')"
 swift_version="$(sed -E 's/^.*Swift version ([^ ]+).*$/\1/' <<<"$swift_banner")"
-name="swiftui-screenshot-$version-$os-$arch"
+name="blitr-$version-$os-$arch"
 
 echo "Building $name ($swift_banner)"
 swift build -c release >&2
 bin="$(swift build -c release --show-bin-path)"
 
-stage="$root/dist/stage/swiftui-screenshot"
+stage="$root/dist/stage/blitr"
 rm -rf "$root/dist/stage"
-lib="$stage/lib/swiftui-screenshot"
-share="$stage/share/swiftui-screenshot"
+lib="$stage/lib/blitr"
+share="$stage/share/blitr"
 mkdir -p "$stage/bin" "$lib/fonts" "$share"
 
 # Tool.
-cp "$bin/swiftui-screenshot" "$stage/bin/"
+cp "$bin/blitr" "$stage/bin/"
 
 # Modules (the .swiftmodule directories carry the .swiftdoc next to the binary module) and libraries.
 # The shim frameworks (UIKit, MapKit, WidgetKit, ...) and Combine are modules whose code is in the engine
@@ -63,7 +63,7 @@ cp "$bin/swiftui-screenshot" "$stage/bin/"
 # Package.swift's `shimModules`, so a new shim is one entry there.
 shims="$(sed -n 's/^let shimModules = \[\(.*\)\]/\1/p' Package.swift | tr -d '",')"
 # On macOS, Combine, ObjectiveC, Security, os and OSLog are Apple's (Package.swift's `appleProvided`).
-for m in SwiftUI SwiftUIScreenshotFoundation $shims; do
+for m in SwiftUI BlitrFoundation $shims; do
   if [ -d "$bin/$m.swiftmodule" ]; then cp -r "$bin/$m.swiftmodule" "$lib/"
   elif [ "$os" = linux ]; then echo "make-dist: $m.swiftmodule was not built" >&2; exit 1; fi
 done
@@ -81,7 +81,7 @@ fi
 find Vendor/fonts -maxdepth 1 -type f \( -name '*.ttf' -o -name '*.otf' -o -name '*LICENSE*' \) -exec cp {} "$lib/fonts/" \;
 
 if [ "$os" = linux ]; then
-  # Relocatability. The build links libSwiftUIScreenshotEngine.so with absolute rpaths (toolchain and
+  # Relocatability. The build links libBlitrEngine.so with absolute rpaths (toolchain and
   # Vendor/skia/lib) next to $ORIGIN; keep only $ORIGIN so libSkiaSharp is found beside it, wherever the
   # tree lives.
   for so in "$lib"/*.so; do
@@ -89,10 +89,10 @@ if [ "$os" = linux ]; then
   done
   # The tool itself only needs the Swift runtime of the toolchain it is used with (it also needs one to
   # compile anything). Look in the usual toolchain locations; LD_LIBRARY_PATH still overrides.
-  patchelf --set-rpath '/opt/swift/usr/lib/swift/linux:/usr/lib/swift/linux:/usr/local/swift/usr/lib/swift/linux' "$stage/bin/swiftui-screenshot"
+  patchelf --set-rpath '/opt/swift/usr/lib/swift/linux:/usr/lib/swift/linux:/usr/local/swift/usr/lib/swift/linux' "$stage/bin/blitr"
 
   # Check: no runpath may point into the build tree or Vendor/.
-  for f in "$stage/bin/swiftui-screenshot" "$lib"/*.so; do
+  for f in "$stage/bin/blitr" "$lib"/*.so; do
     rp="$(readelf -d "$f" | sed -n 's/.*\(RUNPATH\|RPATH\).*\[\(.*\)\]/\2/p')"
     case "$rp" in
       *"$root"*|*Vendor*|*.build*) echo "make-dist: $f has a build-tree runpath: $rp" >&2; exit 1 ;;
@@ -100,14 +100,14 @@ if [ "$os" = linux ]; then
     case "$f" in "$lib"/*) [ -z "$rp" ] || [ "$rp" = '$ORIGIN' ] || { echo "make-dist: $f runpath is '$rp'" >&2; exit 1; } ;; esac
   done
 else
-  # Relocatability on macOS: the engine names itself @rpath/libSwiftUIScreenshotEngine.dylib (dependents find
+  # Relocatability on macOS: the engine names itself @rpath/libBlitrEngine.dylib (dependents find
   # it through their rpaths) and keeps only @loader_path, so libSkiaSharp is found beside it. The Swift
   # runtime is the system's (/usr/lib/swift), so the tool keeps only rpaths there. Rewriting load commands
   # breaks the signature, so each file is signed again (ad hoc), as arm64 requires.
   rpaths() { otool -l "$1" | awk '$1 == "cmd" && $2 == "LC_RPATH" { getline; getline; print $2 }'; }
   install_name_tool -id "@rpath/$engine" "$lib/$engine"
-  for f in "$lib/$engine" "$stage/bin/swiftui-screenshot"; do
-    keep='@loader_path'; [ "$f" = "$stage/bin/swiftui-screenshot" ] && keep='/usr/lib/swift'
+  for f in "$lib/$engine" "$stage/bin/blitr"; do
+    keep='@loader_path'; [ "$f" = "$stage/bin/blitr" ] && keep='/usr/lib/swift'
     while read -r rp; do
       if [ -n "$rp" ] && [ "$rp" != "$keep" ]; then install_name_tool -delete_rpath "$rp" "$f"; fi
     done <<<"$(rpaths "$f")"
@@ -116,7 +116,7 @@ else
   done
 
   # Check: no rpath or load command may point into the build tree or Vendor/.
-  for f in "$stage/bin/swiftui-screenshot" "$lib"/*.dylib; do
+  for f in "$stage/bin/blitr" "$lib"/*.dylib; do
     if otool -l "$f" | grep -E '^ +(path|name) ' | grep -qE "$root|Vendor|\.build"; then
       echo "make-dist: $f refers to the build tree:" >&2; otool -l "$f" | grep -E '^ +(path|name) ' >&2; exit 1
     fi
@@ -125,7 +125,7 @@ fi
 
 # Notices.
 {
-  echo "swiftui-screenshot bundles or links the third-party components below."
+  echo "blitr bundles or links the third-party components below."
   echo "SwiftUI, SF Pro and SF Symbols are trademarks of Apple Inc.; this project contains no Apple code, fonts or artwork."
   echo
   echo "================================================================================"
@@ -176,10 +176,10 @@ fi
 mkdir -p "$root/dist"
 tarball="$root/dist/$name.tar.gz"
 if [ "$os" = linux ]; then
-  tar --sort=name --owner=0 --group=0 --numeric-owner -C "$root/dist/stage" -cf - swiftui-screenshot | gzip -9n > "$tarball"
+  tar --sort=name --owner=0 --group=0 --numeric-owner -C "$root/dist/stage" -cf - blitr | gzip -9n > "$tarball"
 else
   # bsdtar: no --sort; owner and group by number.
-  tar --uid 0 --gid 0 --numeric-owner -C "$root/dist/stage" -cf - swiftui-screenshot | gzip -9n > "$tarball"
+  tar --uid 0 --gid 0 --numeric-owner -C "$root/dist/stage" -cf - blitr | gzip -9n > "$tarball"
 fi
 rm -rf "$root/dist/stage"
 echo "$tarball ($(du -h "$tarball" | cut -f1))"

@@ -15,7 +15,7 @@ import Foundation
 
 /// The virtual clock a render drives. Engine-facing; `@MainActor`-free so any task may sleep on it.
 public final class _RenderClock: @unchecked Sendable {
-    /// This module's code is in two libraries (its own, and libSwiftUIScreenshotEngine, which SwiftPM links it
+    /// This module's code is in two libraries (its own, and libBlitrEngine, which SwiftPM links it
     /// into), so each would have its own `static let`. The one instance is found by symbol instead: every copy
     /// asks the dynamic linker, which answers with the first library's.
     public static let shared: _RenderClock = {
@@ -26,7 +26,7 @@ public final class _RenderClock: @unchecked Sendable {
         #else
         let everywhere: UnsafeMutableRawPointer? = nil
         #endif
-        if let symbol = dlsym(everywhere, "swiftui_screenshot_render_clock") {
+        if let symbol = dlsym(everywhere, "blitr_render_clock") {
             return Unmanaged<_RenderClock>.fromOpaque(unsafeBitCast(symbol, to: Getter.self)()).takeUnretainedValue()
         }
         return localInstance
@@ -114,7 +114,7 @@ public final class _RenderClock: @unchecked Sendable {
     }
 }
 
-@_cdecl("swiftui_screenshot_render_clock")
+@_cdecl("blitr_render_clock")
 public func _renderClockInstance() -> UnsafeMutableRawPointer {
     Unmanaged.passUnretained(_RenderClock.localInstance).toOpaque()
 }

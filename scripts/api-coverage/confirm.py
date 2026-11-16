@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Confirms candidate gaps by compiling one tiny snippet per API with swiftui-screenshot.
+"""Confirms candidate gaps by compiling one tiny snippet per API with blitr.
 
-Usage: confirm.py <compare.json> <swiftui-screenshot binary> <out.json> [--top N] [--workdir DIR]
+Usage: confirm.py <compare.json> <blitr binary> <out.json> [--top N] [--workdir DIR]
 
 All snippets go into ONE source file, each in its own function/struct on its own line, so the
 compiler reports every failing line and each error is attributable to exactly one API. An API is

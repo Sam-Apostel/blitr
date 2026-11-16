@@ -11,7 +11,7 @@ import XCTest
 final class CaptureTests: XCTestCase {
     func testCapture() throws {
         let env = ProcessInfo.processInfo.environment
-        let bundle = env["CAPTURE_BUNDLE"] ?? "dev.swiftui-screenshot.reference-host"
+        let bundle = env["CAPTURE_BUNDLE"] ?? "dev.blitr.reference-host"
         let out = URL(fileURLWithPath: try XCTUnwrap(env["CAPTURE_OUT"]))
         let settle = Double(env["CAPTURE_SETTLE"] ?? "1.0") ?? 1.0
         for job in (env["CAPTURE_JOBS"] ?? "").split(separator: " ") {

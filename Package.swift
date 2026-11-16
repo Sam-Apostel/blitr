@@ -12,8 +12,8 @@ let loaderPath = "$ORIGIN"
 #endif
 
 // The engine library: the SwiftUI module and every shim module, in one dynamic library whose file name cannot
-// be mistaken for Apple's SwiftUI (libSwiftUIScreenshotEngine.so / .dylib). The module stays `SwiftUI`.
-let engineLibrary = "SwiftUIScreenshotEngine"
+// be mistaken for Apple's SwiftUI (libBlitrEngine.so / .dylib). The module stays `SwiftUI`.
+let engineLibrary = "BlitrEngine"
 
 // Modules that user code imports are built with library evolution so their private
 // C dependencies do not leak into the user's compile. Their code is all in the engine library, so none of
@@ -42,7 +42,7 @@ let appleProvided: Set<String> = []
 #endif
 
 let package = Package(
-    name: "swift-ui-screenshot",
+    name: "blitr",
     // Ignored on Linux. On macOS, the oldest system the engine is built for (HostPlatform.deploymentTarget).
     platforms: [.macOS(.v15)],
     products: [
@@ -51,13 +51,13 @@ let package = Package(
         // are separate modules, so their names are only visible where they are imported, but their code is
         // linked into this one library: a dynamic library of their own would carry a second copy of SwiftUI
         // (SwiftPM links a target's dependencies into every dynamic product), and two copies in a process
-        // break protocol conformance lookups at run time. Importers link `-lSwiftUIScreenshotEngine`
+        // break protocol conformance lookups at run time. Importers link `-lBlitrEngine`
         // (docs/ARCHITECTURE.md).
         .library(name: engineLibrary, type: .dynamic, targets: ["SwiftUI"] + shimModules.filter { !appleProvided.contains($0) }),
         // Foundation's localization API (String(localized:), LocalizedStringResource), which Linux Foundation
         // lacks; SwiftUI re-exports it and project mode imports it into Foundation-only packages.
         // The command-line tool: compiles user sources against the modules above and renders them.
-        .executable(name: "swiftui-screenshot", targets: ["swiftui-screenshot"]),
+        .executable(name: "blitr", targets: ["blitr"]),
     ],
     targets: [
         .target(
@@ -71,7 +71,7 @@ let package = Package(
         .systemLibrary(name: "CHarfBuzz", pkgConfig: "harfbuzz", providers: [.apt(["libharfbuzz-dev"]), .brew(["harfbuzz"])]),
         .target(name: "Combine", swiftSettings: moduleSettings),
         // No library of its own: its code is in the engine library, so a process has one copy of its types.
-        .target(name: "SwiftUIScreenshotFoundation", swiftSettings: moduleSettings + linkEngine),
+        .target(name: "BlitrFoundation", swiftSettings: moduleSettings + linkEngine),
         // Core Graphics sits below SwiftUI (Apple's SwiftUI re-exports it); ImageIO and CoreText build on it.
         .target(name: "CoreGraphics", dependencies: ["CSkia"], swiftSettings: moduleSettings),
         .target(name: "ImageIO", dependencies: ["CoreGraphics", "CSkia"], swiftSettings: moduleSettings),
@@ -80,13 +80,13 @@ let package = Package(
         .target(name: "ObjectiveC", swiftSettings: moduleSettings),
         .target(name: "UniformTypeIdentifiers", swiftSettings: moduleSettings),
         .target(name: "QuartzCore", dependencies: ["CoreGraphics", "ObjectiveC"], swiftSettings: moduleSettings),
-        .target(name: "SwiftUI", dependencies: ["CSkia", "CHarfBuzz", "Combine", "CoreGraphics", "UniformTypeIdentifiers", "SwiftUIScreenshotFoundation"], swiftSettings: moduleSettings + linkEngine),
+        .target(name: "SwiftUI", dependencies: ["CSkia", "CHarfBuzz", "Combine", "CoreGraphics", "UniformTypeIdentifiers", "BlitrFoundation"], swiftSettings: moduleSettings + linkEngine),
         // The shim frameworks: each its own module, linked into the engine library (see the products).
         .target(name: "UIKit", dependencies: ["SwiftUI", "QuartzCore", "ImageIO", "CoreImage", "Security", "CSkia"], swiftSettings: moduleSettings),
         .target(name: "AppIntents", dependencies: ["SwiftUI", "UIKit"], swiftSettings: moduleSettings),
-        .target(name: "ActivityKit", dependencies: ["SwiftUIScreenshotFoundation"], swiftSettings: moduleSettings),
+        .target(name: "ActivityKit", dependencies: ["BlitrFoundation"], swiftSettings: moduleSettings),
         .target(name: "WidgetKit", dependencies: ["SwiftUI", "AppIntents", "ActivityKit"], swiftSettings: moduleSettings),
-        .target(name: "CoreLocation", dependencies: ["SwiftUIScreenshotFoundation"], swiftSettings: moduleSettings),
+        .target(name: "CoreLocation", dependencies: ["BlitrFoundation"], swiftSettings: moduleSettings),
         .target(name: "MapKit", dependencies: ["SwiftUI", "UIKit", "CoreLocation"], swiftSettings: moduleSettings),
         .target(name: "CryptoKit", swiftSettings: moduleSettings),
         .target(name: "Security", dependencies: ["CoreGraphics"], swiftSettings: moduleSettings),
@@ -118,7 +118,7 @@ let package = Package(
         .target(name: "MessageUI", dependencies: ["UIKit"], swiftSettings: moduleSettings),
         .target(name: "CoreMotion", swiftSettings: moduleSettings),
         .target(name: "CoreHaptics", swiftSettings: moduleSettings),
-        .executableTarget(name: "swiftui-screenshot", swiftSettings: [.swiftLanguageMode(.v5)]),
+        .executableTarget(name: "blitr", swiftSettings: [.swiftLanguageMode(.v5)]),
     ]
 )
 

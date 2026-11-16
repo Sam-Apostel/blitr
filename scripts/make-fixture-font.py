@@ -94,7 +94,7 @@ def main(path):
     builder.setupHorizontalMetrics({name: (600, 0) for name in order})
     builder.setupHorizontalHeader(ascent=800, descent=-200)
     builder.setupNameTable({"familyName": "Orchard Pixel", "styleName": "Regular", "psName": "OrchardPixel-Regular",
-                            "licenseDescription": "Part of the swift-ui-screenshot test fixtures; same licence as the repository."})
+                            "licenseDescription": "Part of the blitr test fixtures; same licence as the repository."})
     builder.setupOS2(sTypoAscender=800, sTypoDescender=-200, usWinAscent=800, usWinDescent=200)
     builder.setupPost()
     builder.save(path)

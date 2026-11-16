@@ -5,8 +5,8 @@
 #   scripts/fetch-apple-fonts.sh --accept-apple-font-license [--dest DIR]
 #
 # --dest defaults to Vendor/apple-fonts in a source checkout, and to
-# <prefix>/lib/swiftui-screenshot/apple-fonts when run from an installed tree
-# (<prefix>/share/swiftui-screenshot/fetch-apple-fonts.sh), where the tool looks for them.
+# <prefix>/lib/blitr/apple-fonts when run from an installed tree
+# (<prefix>/share/blitr/fetch-apple-fonts.sh), where the tool looks for them.
 #
 # Nothing here is redistributed: the files are downloaded from Apple to this machine and
 # unpacked locally. Apple licenses these fonts solely for creating mock-ups of user
@@ -17,9 +17,9 @@
 # Requires: curl and, except on a Mac, 7z (apt-get install 7zip).
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -d "$here/../../lib/swiftui-screenshot/SwiftUI.swiftmodule" ]; then
+if [ -d "$here/../../lib/blitr/SwiftUI.swiftmodule" ]; then
   # Installed layout: write next to the modules, and leave the caller's directory alone.
-  dest="$(cd "$here/../../lib/swiftui-screenshot" && pwd)/apple-fonts"
+  dest="$(cd "$here/../../lib/blitr" && pwd)/apple-fonts"
 else
   cd "$here/.."
   dest="Vendor/apple-fonts"
@@ -98,4 +98,4 @@ keep NY 'NewYork*.ttf'
 
 count="$(find "$dest" -type f \( -name '*.ttf' -o -name '*.otf' \) | wc -l)"
 echo "Installed $count Apple font files into $dest (source checksums in $dest/SOURCES.txt)."
-echo "swiftui-screenshot picks this directory up automatically; check with: swiftui-screenshot doctor"
+echo "blitr picks this directory up automatically; check with: blitr doctor"

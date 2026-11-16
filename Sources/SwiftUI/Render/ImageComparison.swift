@@ -1,7 +1,7 @@
 internal import CSkia
 import Foundation
 
-// Pixel comparison for `swiftui-screenshot compare`. The command-line tool does not link Skia, so it
+// Pixel comparison for `blitr compare`. The command-line tool does not link Skia, so it
 // hands a job list to a runner (`--compare <jobs.json>`) that decodes the PNGs, compares them, writes the
 // heatmap and composite images and prints one JSON result per job.
 //

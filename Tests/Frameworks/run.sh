@@ -5,7 +5,7 @@
 # root after `swift build`.
 set -u
 cd "$(dirname "$0")/../.."
-bin="$(swift build --show-bin-path)/swiftui-screenshot"
+bin="$(swift build --show-bin-path)/blitr"
 out="${1:-out/Frameworks}"
 mkdir -p "$out"
 results="$(cd "$out" && pwd)/checks.txt"

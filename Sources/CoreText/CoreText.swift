@@ -219,7 +219,7 @@ public final class CGFont: @unchecked Sendable {
     /// Font data is written to a temporary file the renderer can load by path.
     public convenience init?(_ provider: CGDataProvider) {
         guard let data = provider.data as Data? else { return nil }
-        let path = NSTemporaryDirectory() + "/swiftui-screenshot-font-\(UUID().uuidString).ttf"
+        let path = NSTemporaryDirectory() + "/blitr-font-\(UUID().uuidString).ttf"
         guard FileManager.default.createFile(atPath: path, contents: data) else { return nil }
         self.init(path: path)
     }

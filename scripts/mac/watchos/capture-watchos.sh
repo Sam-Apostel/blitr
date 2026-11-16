@@ -39,9 +39,9 @@ rts = [r for r in json.load(sys.stdin)["runtimes"] if r["platform"] == "watchOS"
 if not rts: sys.exit("no watchOS simulator runtime installed")
 r = sorted(rts, key=lambda r: [int(x) for x in r["version"].split(".")])[-1]
 print(r["identifier"], r["version"], r["buildversion"])')
-OUT="${OUT:-${SWIFTUI_SCREENSHOT_REFERENCES:-$HOME/Library/Application Support/swiftui-screenshot/references}/watchos-$RUNTIME_VERSION}"
-BUILD="${TMPDIR:-/tmp}/swiftui-screenshot-watchos-capture"
-BUNDLE_ID="dev.swiftui-screenshot.reference-host"
+OUT="${OUT:-${BLITR_REFERENCES:-$HOME/Library/Application Support/blitr/references}/watchos-$RUNTIME_VERSION}"
+BUILD="${TMPDIR:-/tmp}/blitr-watchos-capture"
+BUNDLE_ID="dev.blitr.reference-host"
 
 # A simulator of that device type on the runtime: its name may differ (e.g. one created for this run).
 udid_for() {
@@ -96,7 +96,7 @@ cp "$HERE/CaptureTests.swift" "$BUILD/tests/"
 cat > "$BUILD/project.yml" <<YML
 name: WatchCapture
 options:
-  bundleIdPrefix: dev.swiftui-screenshot
+  bundleIdPrefix: dev.blitr
   deploymentTarget:
     watchOS: "$RUNTIME_VERSION"
 settings:
@@ -177,7 +177,7 @@ tree_path, meta_path, dst, key, index, screens = sys.argv[1:]
 tree = json.load(open(tree_path))
 doc = json.load(open(meta_path)) if os.path.exists(meta_path) else {}
 # Element frames as XCUITest reports them (points, screen coordinates); roles are XCUIElementType names,
-# which `swiftui-screenshot compare` matches against the renderer's roles. The application node is dropped.
+# which `blitr compare` matches against the renderer's roles. The application node is dropped.
 doc.update({"version": 1, "source": "xcuitest", "elements": tree.get("children", []),
             "screen": key, "preview": int(index)})
 for s in json.load(open(screens)):

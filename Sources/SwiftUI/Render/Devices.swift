@@ -1,4 +1,4 @@
-// The device table: single source of truth for screen geometry. `swiftui-screenshot devices`
+// The device table: single source of truth for screen geometry. `blitr devices`
 // lists it (through the runner's --list-devices), `--device` resolves names through `lookup`.
 //
 // Values are in points. Where a number is an estimate rather than a measured value, the comment

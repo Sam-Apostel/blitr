@@ -3,7 +3,7 @@
 // `ActivityConfiguration` through `#Preview(_:as:using:)` (see docs/WIDGETS.md).
 
 @_exported import Foundation
-import SwiftUIScreenshotFoundation
+import BlitrFoundation
 
 public protocol ActivityAttributes: Decodable, Encodable {
     associatedtype ContentState: Decodable, Encodable, Hashable

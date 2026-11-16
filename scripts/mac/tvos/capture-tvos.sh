@@ -62,9 +62,9 @@ ds = [d for d in json.load(sys.stdin)["devices"].get(sys.argv[1], []) if d["name
 print(ds[0]["udid"] if ds else "")' "$RUNTIME_ID" "$DEVICE")"
 [[ -n "$UDID" ]] || { echo "No \"$DEVICE\" simulator on tvOS $RUNTIME_VERSION" >&2; exit 1; }
 SLUG="$(echo "$DEVICE" | sed -E 's/ \(3rd generation\)//; s/ \(at 1080p\)/ hd/' | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-|-$//g')"
-OUT="${OUT:-${SWIFTUI_SCREENSHOT_REFERENCES:-$HOME/Library/Application Support/swiftui-screenshot/references}/tvos-$RUNTIME_VERSION/$SLUG}"
-BUILD="${TMPDIR:-/tmp}/swiftui-screenshot-tvos-capture"
-BUNDLE_ID="dev.swiftui-screenshot.reference-host"
+OUT="${OUT:-${BLITR_REFERENCES:-$HOME/Library/Application Support/blitr/references}/tvos-$RUNTIME_VERSION/$SLUG}"
+BUILD="${TMPDIR:-/tmp}/blitr-tvos-capture"
+BUNDLE_ID="dev.blitr.reference-host"
 echo "Simulator: $DEVICE, tvOS $RUNTIME_VERSION ($UDID)"
 
 WAS_BOOTED=0
@@ -106,7 +106,7 @@ cp "$HERE/CaptureTests.swift" "$HERE/AppearanceTests.swift" "$BUILD/tests/"
 cat > "$BUILD/project.yml" <<YML
 name: TVCapture
 options:
-  bundleIdPrefix: dev.swiftui-screenshot
+  bundleIdPrefix: dev.blitr
   deploymentTarget:
     tvOS: "26.0"
 settings:
