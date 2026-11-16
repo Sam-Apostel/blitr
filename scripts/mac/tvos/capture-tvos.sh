@@ -5,7 +5,8 @@
 #   scripts/mac/tvos/capture-tvos.sh [--device "Apple TV 4K (3rd generation)"] [--schemes "light dark"]
 #                                    [--only <regex>] [--out <dir>] [file.swift...]
 #
-# Default files: Examples/TVControls.swift, Tests/Corpus/13_TVHome.swift, Tests/Corpus/14_TVSettings.swift.
+# Default files: Examples/TVControls.swift, Examples/TVControlsMore.swift, Tests/Corpus/13_TVHome.swift,
+# Tests/Corpus/14_TVSettings.swift.
 # Writes <out>/<scheme>/<screen>-<preview>.png and .json (default out:
 # Tests/Reference/tvos-<runtime>/apple-tv-4k), plus <screen>-<preview>-<presses>.png/.json for the press
 # variants below, and <out>/../manifest.json. Uses XcodeGen for the UI test that drives the remote.
@@ -24,19 +25,29 @@ while (($#)); do
         --schemes) SCHEMES="$2"; shift 2 ;;
         --only) ONLY="$2"; shift 2 ;;
         --out) OUT="$2"; shift 2 ;;
-        -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
+        -h|--help) sed -n '2,14p' "$0"; exit 0 ;;
         *) FILES+=("$1"); shift ;;
     esac
 done
-((${#FILES[@]})) || FILES=("$ROOT/Examples/TVControls.swift" "$ROOT/Tests/Corpus/13_TVHome.swift" "$ROOT/Tests/Corpus/14_TVSettings.swift")
+((${#FILES[@]})) || FILES=("$ROOT/Examples/TVControls.swift" "$ROOT/Examples/TVControlsMore.swift" "$ROOT/Tests/Corpus/13_TVHome.swift" "$ROOT/Tests/Corpus/14_TVSettings.swift")
 
-# Press variants, from the header comment of Examples/TVControls.swift: "<screen>|<preview name>|<presses>".
+# Press variants, from the header comments of Examples/TVControls.swift and TVControlsMore.swift: "<screen>|<preview name>|<presses>".
 # The Buttons variant reaches "Prominent" (the renderer's --focus "Prominent") with two presses right.
 VARIANTS=(
     "TVControls|Buttons|right,right"
     "TVControls|Tab Bar|down"
     "TVControls|Alert|down"
     "TVControls|Settings List|down,down"
+    "TVControlsMore|Plain Buttons|right"
+    "TVControlsMore|Plain Buttons|right,right"
+    "TVControlsMore|Plain Buttons|right,right,right"
+    "TVControlsMore|Plain Buttons|right,right,right,right"
+    "TVControlsMore|Label Buttons|right"
+    "TVControlsMore|Collapsed Sidebar|right"
+    "TVControlsMore|Toolbar Item|up"
+    "TVControlsMore|Segments|right"
+    "TVControlsMore|List Picker|down"
+    "TVControlsMore|List Picker|down,down"
 )
 
 read -r RUNTIME_ID RUNTIME_VERSION RUNTIME_BUILD < <(xcrun simctl list runtimes -j | python3 -c '
