@@ -421,6 +421,8 @@ final class NavigationStackNode: Node {
     let glass: NavigationGlassMetrics?
     /// tvOS: a centred title at the top and toolbar items as tvOS buttons, no bar chrome (Chrome/TV/TVNavigation.swift).
     let tv: Bool
+    /// watchOS: a grey title at the top leading edge, in the clock's row, and no bar chrome (`WatchMetrics`).
+    let watch: Bool
     /// Glass: the search field may go to the bottom bar (iPhone, automatic/toolbar placement).
     private let searchPrefersBottom: Bool
     private let tabBarHostsContent: Bool
@@ -460,7 +462,9 @@ final class NavigationStackNode: Node {
         if tv, chrome.titleDisplayMode != nil {
             Runtime.current?.warn("navigationBarTitleDisplayMode is not available on tvOS: a real tvOS build fails to compile")
         }
-        let glass: NavigationGlassMetrics? = !tv && env.designLanguage.isGlass ? .forDesign(env.designLanguage) : nil
+        let watch = env.renderPlatform == .watchOS
+        self.watch = watch
+        let glass: NavigationGlassMetrics? = !tv && !watch && env.designLanguage.isGlass ? .forDesign(env.designLanguage) : nil
         self.glass = glass
         inSheet = env.isElevatedPresentation
 
@@ -530,9 +534,13 @@ final class NavigationStackNode: Node {
             case .hidden: break
             }
         }
-        if hasSecondary && !tv { trailing.append(EllipsisCircleNode(color: accent)) }
+        if hasSecondary && !tv && !watch { trailing.append(EllipsisCircleNode(color: accent)) }
+        if watch, !leading.isEmpty || !trailing.isEmpty || principal != nil || !bottom.isEmpty || status != nil || previousTitle != nil {
+            Runtime.current?.warn("watchOS toolbar items and the back button are not drawn")
+            leading = []; trailing = []; principal = nil; bottom = []; status = nil
+        }
         // tvOS has no back button: the remote's Menu button goes back.
-        if glass == nil, !tv, let previousTitle, chrome.backButtonHidden != true {
+        if glass == nil, !tv, !watch, let previousTitle, chrome.backButtonHidden != true {
             var titleEnv = barEnv
             titleEnv.foregroundStyle = AnyShapeStyle(_FixedPaintStyle(accent))
             let backTitle = previousTitle.isEmpty ? nil : Text(verbatim: previousTitle).makeNode(titleEnv)
@@ -544,7 +552,7 @@ final class NavigationStackNode: Node {
         statusItem = status
 
         // Titles.
-        showsLargeTitle = !tv && displayMode == .large && chrome.title.map { !$0.plain.isEmpty } ?? false
+        showsLargeTitle = !tv && !watch && displayMode == .large && chrome.title.map { !$0.plain.isEmpty } ?? false
         let titleAdjust: (inout EnvironmentValues) -> Void = { e in
             barAdjust(&e)
             e.foregroundStyle = nil
@@ -554,7 +562,7 @@ final class NavigationStackNode: Node {
         }
         let subtitleSource = glass == nil ? nil : chrome.subtitle.flatMap { $0.plain.isEmpty ? nil : $0 }
         let tvGlassTitle = tv && env.designLanguage.isGlass
-        let inlineFont = tv ? TVMetrics.navigationTitleFont(glass: tvGlassTitle) : glass.map { subtitleSource == nil ? $0.inlineTitleFont : $0.inlineTitleWithSubtitleFont }
+        let inlineFont = tv ? TVMetrics.navigationTitleFont(glass: tvGlassTitle) : watch ? Font.system(size: WatchMetrics.current.titleFontSize) : glass.map { subtitleSource == nil ? $0.inlineTitleFont : $0.inlineTitleWithSubtitleFont }
             ?? NavigationBarMetrics.inlineTitleFont
         if let title = chrome.title, !title.plain.isEmpty || principal == nil {
             if showsLargeTitle {
@@ -565,6 +573,7 @@ final class NavigationStackNode: Node {
                 inlineTitle = principal == nil ? title.make {
                     titleAdjust(&$0); $0.font = inlineFont
                     if tvGlassTitle { $0.foregroundStyle = AnyShapeStyle(Color(TVColors.dimmedTitle($0.colorScheme))) }
+                    if watch { $0.foregroundStyle = AnyShapeStyle(Color(WatchMetrics.current.titleColor)) }
                 } : nil
                 largeTitle = nil
             }
@@ -584,7 +593,8 @@ final class NavigationStackNode: Node {
             subtitle = nil
         }
 
-        search = chrome.search.map { SearchFieldNode(configuration: $0, env: barEnv) }
+        if watch, chrome.search != nil { Runtime.current?.warn("searchable is not drawn on watchOS") }
+        search = watch ? nil : chrome.search.map { SearchFieldNode(configuration: $0, env: barEnv) }
         searchPrefersBottom = glass != nil && _currentConfiguration().device.idiom == .phone
             && [.automatic, .toolbar].contains(chrome.search?.placement ?? .navigationBarDrawer)
         tabBarHostsContent = env.hasEnclosingTabBar
@@ -653,6 +663,7 @@ final class NavigationStackNode: Node {
 
     override func layout(size: CGSize, _ ctx: PlaceContext) {
         if tv { layoutTV(size: size, ctx); return }
+        if watch { layoutWatch(size: size, ctx); return }
         if let glass {
             layoutGlass(glass, size: size, ctx)
             return
@@ -744,6 +755,34 @@ final class NavigationStackNode: Node {
             search.place(at: CGPoint(x: margin, y: top), size: CGSize(width: size.width - margin * 2, height: SearchFieldMetrics.height), ctx)
         }
         placeBottomBar(size: size, margin: margin, ctx)
+    }
+
+    /// watchOS: the title at the top leading edge of the screen, left of the clock; the content starts below it
+    /// (`WatchMetrics.barBottom`), or at the safe area's top without a title.
+    private func layoutWatch(size: CGSize, _ ctx: PlaceContext) {
+        let m = WatchMetrics.current
+        let screen = ctx.container.offsetBy(dx: -ctx.origin.x, dy: -ctx.origin.y)
+        let safeTop = max(0, ctx.safeRect.minY - ctx.origin.y)
+        barTop = safeTop
+        backgroundTop = screen.minY
+        backgroundX = screen.minX
+        backgroundWidth = screen.width
+        let title = barVisible ? inlineTitle : nil
+        barRegionBottom = title == nil ? safeTop : max(safeTop, screen.minY + m.barBottom)
+        let safeBottom = min(size.height, ctx.safeRect.maxY - ctx.origin.y)
+        bottomBarTop = nil
+        let contentRect = CGRect(x: 0, y: barRegionBottom, width: size.width, height: max(0, safeBottom - barRegionBottom))
+        var inner = ctx
+        inner.safeRect = CGRect(x: ctx.safeRect.minX, y: ctx.origin.y + contentRect.minY, width: ctx.safeRect.width, height: contentRect.height)
+        let c = content.sizeThatFits(ProposedViewSize(contentRect.size))
+        content.place(at: CGPoint(x: contentRect.midX - c.width / 2, y: contentRect.midY - c.height / 2), size: c, inner)
+        if let title {
+            // The clock takes the top trailing corner (estimate: about 64pt with its gap).
+            let maxWidth = max(0, screen.width - m.titleLeading - 64)
+            var s = title.sizeThatFits(ProposedViewSize(width: maxWidth, height: nil))
+            s.width = min(s.width, maxWidth)
+            title.place(at: CGPoint(x: screen.minX + m.titleLeading, y: screen.minY + m.titleTop), size: s, ctx)
+        }
     }
 
     private func placeBottomBar(size: CGSize, margin: CGFloat, _ ctx: PlaceContext) {

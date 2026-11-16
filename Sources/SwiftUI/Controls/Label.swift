@@ -56,9 +56,17 @@ struct _DefaultLabelLayout: View {
     /// the same for 10_Agenda's caption-sized mappin labels; icons 1.28x their size outside a list)
     static let listIconCenter: CGFloat = 12
     static let listTitleInset: CGFloat = 40
+    /// watchOS list rows: the icon centred 9pt and the title 26pt from the label's leading edge, on every watch.
+    /// measured: watchOS 26.5 simulator (WatchList "Rows": drop, leaf and sun icons centred at x 24 and titles at
+    /// x 41 in rows whose text starts at x 15 on the 46mm screen; 22 and 39 from 13 on the 42mm one).
+    static let watchListIconCenter: CGFloat = 9
+    static let watchListTitleInset: CGFloat = 26
     @Environment(\.isInListRow) private var inListRow
     var body: some View {
-        if design.isGlass && platform != .tvOS && inListRow {
+        if platform == .watchOS && inListRow {
+            title.padding(.leading, Self.watchListTitleInset)
+                .overlay(alignment: .leading) { icon.imageScale(.large).frame(width: Self.watchListIconCenter * 2) }
+        } else if design.isGlass && platform != .tvOS && inListRow {
             // The larger icon does not make the row taller: it is centred on the title's line.
             title.padding(.leading, Self.listTitleInset)
                 .overlay(alignment: .leading) { icon.imageScale(.large).frame(width: Self.listIconCenter * 2) }

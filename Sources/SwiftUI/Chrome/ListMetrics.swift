@@ -188,6 +188,14 @@ extension ListMetrics {
                           headerUppercased: false, headerBaselineToCard: TVMetrics.headerBottomGap)
     }
 
+    /// watchOS rows: separate cards without separators (`WatchMetrics`).
+    @MainActor static func forWatch() -> ListDesignMetrics {
+        let w = WatchMetrics.current
+        return ListDesignMetrics(minRowHeight: w.rowMinHeight, rowInsetVertical: w.rowPaddingVertical, rowInsetHorizontal: w.rowInset,
+                                 cardCornerRadius: w.cardCornerRadius, separatorTrailingInset: 0, headerFontSize: ListMetrics.headerFontSize,
+                                 headerWeight: nil, headerUppercased: false, headerBaselineToCard: 0)
+    }
+
     @MainActor static func colors(_ env: EnvironmentValues, style: ListStyleKind) -> (background: RGBA, card: RGBA) {
         let scheme = env.colorScheme
         let elevated = env.isElevatedPresentation && scheme == .dark
