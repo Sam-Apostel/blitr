@@ -199,7 +199,10 @@ public enum _RenderNetwork {
 
 final class OfflineURLProtocol: URLProtocol {
     override class func canInit(with request: URLRequest) -> Bool {
-        guard let scheme = request.url?.scheme?.lowercased() else { return false }
+        guard let url = request.url, let scheme = url.scheme?.lowercased() else { return false }
+        // What the image cache holds is answered by it, whichever protocol Foundation asks first (the order of
+        // registered protocols differs between Darwin and Linux).
+        if _ImageCache.directory != nil, _ImageCache.lookup(url) != nil { return false }
         return ["http", "https", "ws", "wss"].contains(scheme)
     }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
