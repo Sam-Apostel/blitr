@@ -18,6 +18,7 @@ class Blitr < Formula
   desc "Render SwiftUI previews to PNG without a simulator"
   homepage "https://github.com/Sam-Apostel/blitr"
   version "$version"
+  license "MIT"
 
   depends_on :macos
 

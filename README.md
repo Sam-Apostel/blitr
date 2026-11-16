@@ -216,7 +216,7 @@ and [docs/REFERENCE.md](docs/REFERENCE.md) how it is calibrated against the simu
 
 ## Licences
 
-The code in this repository is the project's own. It builds on, and `scripts/bootstrap.sh` downloads,
+blitr is released under the [MIT licence](LICENSE). It builds on, and `scripts/bootstrap.sh` downloads,
 third-party components under their own licences: Skia (BSD-3-Clause, prebuilt by the SkiaSharp project, MIT),
 HarfBuzz (MIT), Inter, Nunito, Source Serif 4, JetBrains Mono and Noto Color Emoji (SIL OFL 1.1), and Phosphor
 Icons (MIT, compiled into `Sources/SwiftUI/Symbols`). SwiftUI, SF Pro and SF Symbols are trademarks of Apple
