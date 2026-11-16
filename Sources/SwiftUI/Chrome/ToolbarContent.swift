@@ -391,19 +391,25 @@ extension View {
     public func toolbar<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         let content = content()
         return navigationChrome { chrome, ctx in
-            ViewToolbarContent(placement: .automatic, content: content).collect(ctx.child("toolbar"), into: &chrome.toolbarItems)
+            var outer: [ToolbarEntry] = []
+            ViewToolbarContent(placement: .automatic, content: content).collect(ctx.child("toolbar"), into: &outer)
+            chrome.addOuterToolbarItems(outer)
         }
     }
     public func toolbar<Content: ToolbarContent>(@ToolbarContentBuilder content: () -> Content) -> some View {
         let content = content()
         return navigationChrome { chrome, ctx in
-            collectToolbar(content, ctx.child("toolbar"), into: &chrome.toolbarItems)
+            var outer: [ToolbarEntry] = []
+            collectToolbar(content, ctx.child("toolbar"), into: &outer)
+            chrome.addOuterToolbarItems(outer)
         }
     }
     public func toolbar<Content: CustomizableToolbarContent>(id: String, @ToolbarContentBuilder content: () -> Content) -> some View {
         let content = content()
         return navigationChrome { chrome, ctx in
-            collectToolbar(content, ctx.child("toolbar"), into: &chrome.toolbarItems)
+            var outer: [ToolbarEntry] = []
+            collectToolbar(content, ctx.child("toolbar"), into: &outer)
+            chrome.addOuterToolbarItems(outer)
         }
     }
 

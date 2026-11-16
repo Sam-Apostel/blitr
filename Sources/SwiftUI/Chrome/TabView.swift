@@ -125,15 +125,15 @@ enum TabBarMetrics {
                 a.highlight = (0, 0)
                 a.edge = .clear
                 a.shadow = (.clear, 0, 0)
-                p.fillGlass(.roundedRect(rect, radius: rect.height / 2), appearance: a)
+                p.fillGlass(.roundedRect(rect, radius: min(rect.width, rect.height) / 2), appearance: a)
             } else if pillIsRaised {
                 var a = GlassAppearance.system(.regular, scheme: scheme, design: design)
                 a.tint = pill(scheme)
                 a.lensStrength = 4
                 a.shadow = (RGBA(0, 0, 0, scheme == .dark ? 0.3 : 0.12), 6, 1)
-                p.fillGlass(.roundedRect(rect, radius: rect.height / 2), appearance: a)
+                p.fillGlass(.roundedRect(rect, radius: min(rect.width, rect.height) / 2), appearance: a)
             } else {
-                p.fill(Path(roundedRect: rect, cornerRadius: rect.height / 2, style: .circular), with: .color(pill(scheme)), in: rect)
+                p.fill(Path(roundedRect: rect, cornerRadius: min(rect.width, rect.height) / 2, style: .circular), with: .color(pill(scheme)), in: rect)
             }
         }
     }
@@ -884,6 +884,9 @@ final class TabViewNode: Node {
         let safeBottom = min(size.height, ctx.safeRect.maxY - ctx.origin.y)
         if topBar { layoutTopBar(size: size, safeTop: safeTop, safeBottom: safeBottom, ctx); return }
         if let tv { layoutTV(tv, size: size, ctx); return }
+        if design.isGlass, barVisible, !items.isEmpty, _currentConfiguration().device.statusColumnChrome {
+            layoutColumnRail(size: size, safeTop: safeTop, safeBottom: safeBottom, ctx); return
+        }
         if design.isGlass, barVisible, !items.isEmpty { layoutGlassBar(size: size, safeTop: safeTop, ctx); return }
         let compact = m.isCompactHeight
         barTop = barVisible ? safeBottom - (compact ? m.compactHeight : m.height) : safeBottom
@@ -1095,10 +1098,57 @@ final class TabViewNode: Node {
         glassBarFrame = separate == nil ? capsule : capsule.union(separateRect)
     }
 
+    // MARK: iPhone Duo status column
+
+    /// The tabs as a vertical rail at the bottom of the iPhone Duo's status column (`StatusColumnChrome`): icons
+    /// only, the content keeping the whole height of the screen.
+    private var columnRail = false
+
+    private func layoutColumnRail(size: CGSize, safeTop: CGFloat, safeBottom: CGFloat, _ ctx: PlaceContext) {
+        let c = StatusColumnChrome.self
+        let device = _currentConfiguration().device
+        columnRail = true
+        let area = CGRect(x: 0, y: safeTop, width: size.width, height: max(0, safeBottom - safeTop))
+        var inner = ctx
+        inner.safeRect = CGRect(x: ctx.safeRect.minX, y: ctx.origin.y + area.minY, width: ctx.safeRect.width, height: area.height)
+        let cs = content.sizeThatFits(ProposedViewSize(area.size))
+        content.place(at: CGPoint(x: area.midX - cs.width / 2, y: area.midY - cs.height / 2), size: cs, inner)
+
+        let height = c.railHeight(items.count)
+        let bottom = device.size.height - c.railBottomInset - ctx.origin.y
+        let x = device.size.width - c.fromScreenTrailing - ctx.origin.x
+        capsule = CGRect(x: x, y: bottom - height, width: c.width, height: height)
+        barTop = capsule.minY
+        separateRect = .zero
+        var cells: [CGRect] = []
+        for (i, item) in items.enumerated() {
+            let cell = CGRect(x: capsule.midX - c.tabCell.width / 2, y: capsule.minY + c.tabEndInset + CGFloat(i) * c.tabStep,
+                              width: c.tabCell.width, height: c.tabCell.height)
+            cells.append(cell)
+            if let icon = item.icon {
+                let s = icon.sizeThatFits(.unspecified)
+                icon.place(at: CGPoint(x: cell.midX - s.width / 2, y: cell.midY - s.height / 2), size: s, ctx)
+            }
+            if let title = item.title {
+                // Not drawn; placed so it still labels the tab.
+                var s = title.sizeThatFits(.unspecified)
+                s.width = min(s.width, cell.width)
+                title.place(at: CGPoint(x: cell.midX - s.width / 2, y: cell.midY - s.height / 2), size: s, ctx)
+            }
+            if let badge = item.badge {
+                let s = badge.sizeThatFits(.unspecified)
+                badge.place(at: CGPoint(x: cell.maxX - s.width, y: cell.minY), size: s, ctx)
+            }
+        }
+        pillRect = cells.indices.contains(selectedIndex) ? cells[selectedIndex] : .zero
+        glassItemFrames = cells
+        glassBarFrame = capsule
+    }
+
     private func drawGlassBar(_ p: Painter) {
         let g = TabBarMetrics.forDesign(design)
         let appearance = GlassAppearance.system(.regular, scheme: scheme, design: design)
-        p.fillGlass(.roundedRect(capsule, radius: capsule.height / 2), appearance: appearance)
+        p.fillGlass(.roundedRect(capsule, radius: min(capsule.width, capsule.height) / 2), appearance: appearance)
         if separateIndex != nil {
             p.fillGlass(.roundedRect(separateRect, radius: separateRect.height / 2), appearance: appearance)
         }
@@ -1112,11 +1162,11 @@ final class TabViewNode: Node {
             if i == selectedIndex, let vibrant {
                 p.drawRecolored(TabBarMetrics.vibrantSelection(selectedColor, over: vibrant, scheme: scheme)) {
                     item.icon?.draw(p)
-                    if i != separateIndex { item.title?.draw(p) }
+                    if i != separateIndex && !columnRail { item.title?.draw(p) }
                 }
             } else {
                 item.icon?.draw(p)
-                if i != separateIndex { item.title?.draw(p) }
+                if i != separateIndex && !columnRail { item.title?.draw(p) }
             }
             item.badge?.draw(p)
         }

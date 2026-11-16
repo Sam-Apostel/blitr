@@ -68,6 +68,9 @@ open class NSItemProvider: NSObject {
     }
 }
 
+// Foundation's NSUserActivity is missing on Linux; on a Mac, Foundation's own is used (redeclaring it made
+// `NSUserActivityTypeBrowsingWeb` ambiguous in apps that continue web activities).
+#if !canImport(Darwin)
 public let NSUserActivityTypeBrowsingWeb = "NSUserActivityTypeBrowsingWeb"
 
 open class NSUserActivity: NSObject {
@@ -82,6 +85,7 @@ open class NSUserActivity: NSObject {
     public init(activityType: String) { self.activityType = activityType; super.init() }
     open func addUserInfoEntries(from other: [AnyHashable: Any]) {}
 }
+#endif
 
 // UTType is in the UniformTypeIdentifiers module, which SwiftUI re-exports.
 

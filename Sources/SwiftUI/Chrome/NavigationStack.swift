@@ -78,6 +78,13 @@ struct NavigationChrome {
     var topEdgeEffectHidden: Bool?
     var bottomEdgeEffectHidden: Bool?
 
+    /// A `.toolbar` around views that declare toolbar items of their own: its items come first, so a bar lists
+    /// an outer modifier's items before the inner ones (measured: iOS 27.2 simulator, Examples/FoldChrome "Two
+    /// pages": settings and account from the outer toolbar above map and more from the page's own).
+    mutating func addOuterToolbarItems(_ items: [ToolbarEntry]) {
+        toolbarItems = items + toolbarItems
+    }
+
     /// Siblings: the first one to say something wins; items and destinations accumulate.
     mutating func merge(_ next: NavigationChrome) {
         title = title ?? next.title
@@ -954,7 +961,9 @@ extension NavigationStackNode {
         }
 
         let largeTitleRegion = g.largeTitleHeight + (subtitle != nil && showsLargeTitle ? g.largeSubtitleHeight : 0)
-        var y = barTop
+        // iPhone Duo: the band is the bar's; with the bar hidden, content starts at the safe area's top
+        // (measured: iOS 27.2 simulator, a hidden bar's page with a top safe-area inset row at y 0 in every posture).
+        var y = !barVisible && ringBand.on ? max(0, ctx.safeRect.minY - ctx.origin.y) : barTop
         if barVisible {
             y += g.barHeight + g.barBottomPadding
             if showsLargeTitle && !ringBand.column { y += largeTitleRegion }
@@ -1017,6 +1026,28 @@ extension NavigationStackNode {
     private func placeGlassBar(_ g: NavigationGlassMetrics, size: CGSize, margin: CGFloat, itemMargin: CGFloat,
                                largeTitleRegion: CGFloat, _ ctx: PlaceContext) {
         let h = g.barHeight
+        // iPhone Duo with the status bar as a column: a stack that reaches the column puts its buttons there, under
+        // the clock (custom views stay in the bar). See `StatusColumnChrome`.
+        var leading = self.leading, trailing = self.trailing
+        let device = _currentConfiguration().device
+        if device.statusColumnChrome, !inSheet, let ring = device.ringStatusBar,
+           ctx.origin.x + size.width >= device.size.width - device.safeArea.trailing - 0.5 {
+            func movable(_ node: Node) -> ToolbarGlassGroupNode? {
+                guard let group = node as? ToolbarGlassGroupNode, group.appearance != nil, !group.kinds.contains(.custom) else { return nil }
+                return group
+            }
+            let column = (leading + trailing).compactMap(movable)
+            leading.removeAll { movable($0) != nil }
+            trailing.removeAll { movable($0) != nil }
+            var y = ring.toolbarTop - ctx.origin.y
+            let x = device.size.width - StatusColumnChrome.fromScreenTrailing - ctx.origin.x
+            for group in column {
+                group.vertical = true
+                let s = group.measure(.unspecified)
+                group.place(at: CGPoint(x: x, y: y), size: s, ctx)
+                y += s.height + StatusColumnChrome.groupGap
+            }
+        }
         // Leading groups from the leading edge, trailing groups from the trailing edge.
         var x = itemMargin
         var leadingEnd = itemMargin

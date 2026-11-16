@@ -183,6 +183,9 @@ final class ToolbarGlassGroupNode: Node {
     var drawsGlass = true
     /// Shares its capsule with the search field: a lone icon keeps the padding of a shared capsule.
     var besideSearch = false
+    /// In the iPhone Duo's status column (`StatusColumnChrome`): the items stacked top to bottom on a capsule
+    /// `StatusColumnChrome.width` wide.
+    var vertical = false
     var items: [Node] { children }
 
     init(items: [Node], kinds: [ToolbarGlassItemKind], appearance: GlassAppearance?, height: CGFloat, metrics: NavigationGlassMetrics,
@@ -219,6 +222,7 @@ final class ToolbarGlassGroupNode: Node {
     }
 
     override func measure(_ proposal: ProposedViewSize) -> CGSize {
+        if vertical { return CGSize(width: StatusColumnChrome.width, height: StatusColumnChrome.groupHeight(items.count)) }
         guard appearance != nil else {
             let sizes = items.indices.map(natural)
             return CGSize(width: sizes.reduce(0) { $0 + $1.width }, height: sizes.map(\.height).max() ?? 0)
@@ -230,6 +234,20 @@ final class ToolbarGlassGroupNode: Node {
     private(set) var cellRects: [CGRect] = []
 
     override func layout(size: CGSize, _ ctx: PlaceContext) {
+        if vertical {
+            let c = StatusColumnChrome.self
+            cellRects = []
+            var y = c.itemEndInset
+            let x = (size.width - c.itemCell) / 2
+            for item in items {
+                var s = item.sizeThatFits(ProposedViewSize(width: c.itemCell, height: c.itemCell))
+                s = CGSize(width: min(s.width, size.width), height: min(s.height, c.itemCell))
+                cellRects.append(CGRect(x: ctx.origin.x + x, y: ctx.origin.y + y, width: c.itemCell, height: c.itemCell))
+                item.place(at: CGPoint(x: (size.width - s.width) / 2, y: y + (c.itemCell - s.height) / 2), size: s, ctx)
+                y += c.itemCell + c.itemSpacing
+            }
+            return
+        }
         let spacing = appearance == nil ? 0 : self.spacing
         var x = (size.width - (appearance == nil ? items.indices.reduce(0) { $0 + natural($1).width } : contentWidth)) / 2
         cellRects = []
@@ -247,7 +265,7 @@ final class ToolbarGlassGroupNode: Node {
     override func drawContent(_ p: Painter) {
         if let appearance, drawsGlass {
             let bounds = CGRect(origin: .zero, size: frame.size)
-            p.fillGlass(.roundedRect(bounds, radius: bounds.height / 2), appearance: appearance)
+            p.fillGlass(.roundedRect(bounds, radius: min(bounds.width, bounds.height) / 2), appearance: appearance)
         }
         drawChildren(p)
     }
