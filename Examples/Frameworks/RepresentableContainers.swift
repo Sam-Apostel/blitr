@@ -4,7 +4,7 @@ import UIKit
 // Representables that are only plumbing: a UIKit container hosting SwiftUI (a zooming scroll view, a
 // view pinned around a hosting controller's view), and invisible helpers (a view that reaches the window,
 // one that installs a gesture recognizer). They draw the SwiftUI they host, or nothing. A view that draws
-// itself (`draw(_:)`) or arranges UIKit subviews is still a placeholder naming the class.
+// itself (`draw(_:)`) is drawn at its frame (more in UIKitViewTrees.swift).
 
 /// SwiftUI content in a UIScrollView for pinch-zoom.
 struct ZoomContainer<Content: View>: UIViewRepresentable {
@@ -89,13 +89,15 @@ struct TwoFingerTap: UIViewRepresentable {
     }
 }
 
-/// Draws itself with Core Graphics: cannot be shown, so it stays a placeholder.
+/// Draws itself with Core Graphics, at the size SwiftUI gives it.
 struct Sparkline: UIViewRepresentable {
     final class LineView: UIView {
         override func draw(_ rect: CGRect) {
             guard let context = UIGraphicsGetCurrentContext() else { return }
             context.move(to: CGPoint(x: 0, y: rect.midY))
             context.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+            context.setLineWidth(2)
+            UIColor.systemBlue.setStroke()
             context.strokePath()
         }
     }
