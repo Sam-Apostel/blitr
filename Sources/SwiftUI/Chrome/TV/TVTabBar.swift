@@ -22,12 +22,16 @@ extension TVMetrics {
     static let pageDotScale: CGFloat = 2                                // est.
 
     // tvOS 26 top tab bar (measured: tvOS 26.5). A light glass capsule, 68 pt high, 46 pt from the top; each
-    // tab is its icon and a semibold title; tab contents 62 pt apart, 39 pt from the capsule's ends; the selected
+    // tab is its icon and a bold 25 pt title; tab contents 72 pt apart, 43 pt from the capsule's ends; the selected
     // or focused pill reaches 27 pt beyond the content and 14 pt inside the capsule's top and bottom.
-    static let glassTabTitleFont = Font.system(size: 29, weight: .semibold)
+    // The title: "Search" inks 79.5 pt wide with a 17.5 pt cap height (29 pt semibold inks 89.5 and 20); the
+    // capsule spans 528.5 to 1391.5, the inks of neighbouring tabs 74 to 74.5 pt apart, 42.5 and 44 pt from its ends.
+    static let glassTabTitleFont = Font.system(size: 25, weight: .bold)
+    /// The tab icons keep the 29 pt semibold size ("Search"'s magnifier inks 28 pt wide).
+    static let glassTabIconFont = Font.system(size: 29, weight: .semibold)
     static let glassTabIconSpacing: CGFloat = 12
-    static let glassTabContentSpacing: CGFloat = 62
-    static let glassTabEndPadding: CGFloat = 39
+    static let glassTabContentSpacing: CGFloat = 72
+    static let glassTabEndPadding: CGFloat = 43
     static let glassTabPillPadding: CGFloat = 27
     static let glassTabPillInset: CGFloat = 14
     /// From the bottom of the bar to the top of the content's safe area (measured: 157 - 114).
@@ -44,6 +48,17 @@ extension TVMetrics {
     static let glassSidebarDim: Double = 0.3
     static let glassSidebarContentTop: CGFloat = 60
     static let glassSidebarTitleFont = Font.system(size: 28, weight: .medium)
+    // tvOS 26 sidebar while focus is in the content (measured: tvOS 26.5 simulator): only the selected tab, as a
+    // capsule at (50, 50), 60 pt high, its icon's ink 12.5 pt in, the bold title 13 pt after the icon and 23.5 pt
+    // from the end ("Home": 50 to 210.5), with a backward chevron 37 to 45 by 66.5 to 93.5 beside it. The
+    // content keeps the place it has beside the open sidebar.
+    static let glassCollapsedSidebarOrigin: CGFloat = 50
+    static let glassCollapsedSidebarHeight: CGFloat = 60
+    static let glassCollapsedSidebarLead: CGFloat = 12.5
+    static let glassCollapsedSidebarGap: CGFloat = 13
+    static let glassCollapsedSidebarTrail: CGFloat = 23.5
+    static let glassCollapsedSidebarTitleFont = Font.system(size: 28, weight: .bold)
+    static let glassCollapsedChevron = (x: CGFloat(37), width: CGFloat(8), height: CGFloat(27), line: CGFloat(3))
 }
 
 extension TVColors {
@@ -56,6 +71,9 @@ extension TVColors {
     /// Unselected titles of the expanded tvOS 26 sidebar (measured: tvOS 26.5 simulator; light (86, 87, 90) over 213,
     /// black at about 55%; dark (222, 223, 225) over 33, white at about 85%).
     static func glassSidebarTitle(_ scheme: ColorScheme) -> RGBA { scheme == .dark ? RGBA(1, 1, 1, 0.85) : RGBA(0, 0, 0, 0.54) }
+    /// The collapsed tvOS 26 sidebar's capsule (measured: tvOS 26.5 simulator; light (246, 255, 255) over (220, 233,
+    /// 248), white at about 80%; dark (43, 49, 54) over 52, black at about 17%) and its content (black / white).
+    static func glassCollapsedSidebar(_ scheme: ColorScheme) -> RGBA { scheme == .dark ? RGBA(0, 0, 0, 0.17) : RGBA(1, 1, 1, 0.8) }
     static func glassFocusedTab(_ scheme: ColorScheme) -> RGBA { scheme == .dark ? RGBA(234 / 255.0, 235 / 255.0, 235 / 255.0, 1) : RGBA(1, 1, 1, 1) }
 }
 
@@ -70,6 +88,7 @@ extension TabViewNode {
             let color: RGBA
             let glass = env.designLanguage.isGlass
             if isFocused { color = TVColors.focusedLabel(glass: glass) }
+            else if glass && collapsed { color = scheme == .dark ? .white : TVColors.glassFocusedLabel }
             else if isSelected || (glass && !layout.isSidebar) { color = scheme == .dark ? .white : TVColors.focusedLabel(glass: glass) }
             else if glass && layout.isSidebar { color = TVColors.glassSidebarTitle(scheme) }
             else { color = SystemColor.secondaryLabel.resolve(scheme) }
@@ -91,10 +110,12 @@ extension TabViewNode {
                 item.icon = label(adjust(glass ? TVMetrics.glassSidebarTitleFont : TVMetrics.sidebarIconFont)).lazy.compactMap { $0.firstDescendant(ImageNode.self) }.first
                 if !collapsed {
                     item.title = label(adjust(glass ? TVMetrics.glassSidebarTitleFont : TVMetrics.sidebarTitleFont)).lazy.compactMap { $0.firstDescendant(TextNode.self) }.first
+                } else if glass && isSelected {
+                    item.title = label(adjust(TVMetrics.glassCollapsedSidebarTitleFont)).lazy.compactMap { $0.firstDescendant(TextNode.self) }.first
                 }
             } else if glass {
                 // tvOS 26: icon and title (measured).
-                item.icon = label(adjust(TVMetrics.glassTabTitleFont)).lazy.compactMap { $0.firstDescendant(ImageNode.self) }.first
+                item.icon = label(adjust(TVMetrics.glassTabIconFont)).lazy.compactMap { $0.firstDescendant(ImageNode.self) }.first
                 item.title = label(adjust(TVMetrics.glassTabTitleFont)).lazy.compactMap { $0.firstDescendant(TextNode.self) }.first
             } else {
                 item.title = label(adjust(TVMetrics.tabTitleFont)).lazy.compactMap { $0.firstDescendant(TextNode.self) }.first
@@ -158,6 +179,36 @@ extension TabViewNode {
                     s.width = min(s.width, rect.maxX - 16 - textX)
                     title.place(at: CGPoint(x: textX, y: rect.midY - s.height / 2), size: s, ctx)
                 }
+            }
+            barTop = capsule.minY
+            glassItemFrames = itemRects
+            glassBarFrame = capsule
+            let safeTop = ctx.safeRect.minY + TVMetrics.glassSidebarContentTop
+            inner.safeRect = CGRect(x: ctx.safeRect.minX, y: safeTop, width: ctx.safeRect.width, height: max(0, ctx.safeRect.maxY - safeTop))
+        case .sidebar where design.isGlass:
+            // Collapsed: the selected tab alone.
+            let o = TVMetrics.glassCollapsedSidebarOrigin, h = TVMetrics.glassCollapsedSidebarHeight
+            itemRects = []
+            capsule = .zero
+            for (i, item) in items.enumerated() {
+                guard i == selectedIndex else {
+                    item.icon?.place(at: .zero, size: .zero, ctx)
+                    item.title?.place(at: .zero, size: .zero, ctx)
+                    itemRects.append(.zero)
+                    continue
+                }
+                let iconSize = item.icon?.sizeThatFits(.unspecified) ?? .zero
+                let titleSize = item.title?.sizeThatFits(.unspecified) ?? .zero
+                let mid = screen.minY + o + h / 2
+                var x = screen.minX + o + TVMetrics.glassCollapsedSidebarLead
+                if let icon = item.icon {
+                    icon.place(at: CGPoint(x: x, y: mid - iconSize.height / 2), size: iconSize, ctx)
+                    x += iconSize.width + TVMetrics.glassCollapsedSidebarGap
+                }
+                item.title?.place(at: CGPoint(x: x, y: mid - titleSize.height / 2), size: titleSize, ctx)
+                x += titleSize.width + TVMetrics.glassCollapsedSidebarTrail
+                capsule = CGRect(x: screen.minX + o, y: screen.minY + o, width: x - screen.minX - o, height: h)
+                itemRects.append(capsule)
             }
             barTop = capsule.minY
             glassItemFrames = itemRects
@@ -234,6 +285,20 @@ extension TabViewNode {
             let screen = CGRect(x: -frame.minX - 4000, y: -frame.minY - 4000, width: 12000, height: 12000)
             p.fill(Path(screen), with: .color(RGBA(0, 0, 0, TVMetrics.glassSidebarDim)), in: screen)
             p.fillGlass(.roundedRect(capsule, radius: 40), appearance: TVColors.glassCard(scheme, design: design))
+        case .sidebar where glass:
+            // Collapsed: the selected tab's capsule and a backward chevron beside it.
+            p.fill(Path(roundedRect: capsule, cornerRadius: capsule.height / 2, style: .circular),
+                   with: .color(TVColors.glassCollapsedSidebar(scheme)), in: capsule)
+            let c = TVMetrics.glassCollapsedChevron, line = c.line
+            let left = capsule.minX - TVMetrics.glassCollapsedSidebarOrigin + c.x + line / 2
+            var chevron = Path()
+            chevron.move(to: CGPoint(x: left + c.width - line, y: capsule.midY - (c.height - line) / 2))
+            chevron.addLine(to: CGPoint(x: left, y: capsule.midY))
+            chevron.addLine(to: CGPoint(x: left + c.width - line, y: capsule.midY + (c.height - line) / 2))
+            p.stroke(chevron, with: .color(scheme == .dark ? .white : RGBA(0, 0, 0, 1)),
+                     style: StrokeStyle(lineWidth: line, lineCap: .round, lineJoin: .round), in: capsule)
+            if items.indices.contains(selectedIndex) { items[selectedIndex].icon?.draw(p); items[selectedIndex].title?.draw(p) }
+            return
         case .sidebar(let expanded):
             if expanded {
                 // The content behind an open sidebar is dimmed (est.).

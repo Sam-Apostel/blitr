@@ -243,7 +243,7 @@ struct TVGlassSegment: View {
         style.lifted = focused
         let inset = TVMetrics.segmentInset
         style.outset = EdgeInsets(top: -inset, leading: -inset, bottom: -inset, trailing: -inset)
-        if focused { style.platter = .color(TVColors.glassFocusedPlatter(scheme)); style.useGlassFocus(); style.growth = 0 }
+        if focused { style.platter = .color(TVColors.glassFocusedSegment(scheme)); style.useGlassFocus(); style.growth = 0 }
         else if isSelected { style.platter = .color(TVColors.glassSelectedSegment(scheme)) }
         else { style.platter = .none }
         return _NodeView(focused ? onPlatter : node)

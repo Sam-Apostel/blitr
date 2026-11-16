@@ -80,7 +80,9 @@ extension ListRowNode {
                        with: .color(RGBA(0, 0, 0, TVMetrics.glassShadowOpacity)), in: shadow)
                 p.restore()
                 p.fill(path, with: .color(TVColors.focusedPlatter), in: plate)
-            } else {
+            } else if !tvBare {
+                // A plain List's rows have no film (measured: tvOS 26.5 simulator, NavigationLink and Toggle rows
+                // of a List show the backdrop until focused).
                 p.fill(path, with: .color(TVColors.glassRow(tvScheme)), in: plate)
             }
         } else if tvFocused {

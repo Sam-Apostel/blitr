@@ -52,6 +52,15 @@ struct _DefaultLabelLayout: View {
     /// tvOS 26: the title starts 19.5 pt after the icon (measured: tvOS 26.5 simulator, checkmark.circle
     /// "Downloaded": icon 1002.5 to 1031.5, the title's stem at 1056.5 with its 5 pt side bearing).
     static let tvGlassSpacing: CGFloat = 19.5
+    /// tvOS 26 bordered buttons: the title 15.5 pt after the icon and the icon 3.5 pt further in than the padding
+    /// (small buttons: 11 and 2.5) (measured: tvOS 26.5 simulator, "Add to List" with plus: the icon's ink 33.5 pt
+    /// in, the title's ink 16 pt after it; "Trailer" with film 33.5 and 16.5; a small "Rate" with star 32.5 and 12.5).
+    static func tvGlassButtonSpacing(_ size: ControlSize) -> (spacing: CGFloat, lead: CGFloat) {
+        switch size {
+        case .mini, .small: return (11, 2.5)
+        default: return (15.5, 3.5)
+        }
+    }
     /// In a list row the icon sits in a column, so the titles of rows line up whatever their icons:
     /// the icon is centred `listIconCenter` from the label's leading edge at the large image scale, and
     /// the title starts `listTitleInset` from it (where the row's separator starts).
@@ -66,6 +75,7 @@ struct _DefaultLabelLayout: View {
     static let watchListTitleInset: CGFloat = 26
     @Environment(\.isInListRow) private var inListRow
     @Environment(\.tvInButtonPlatter) private var inTVButton
+    @Environment(\.controlSize) private var controlSize
     var body: some View {
         if platform == .watchOS && inListRow {
             title.padding(.leading, Self.watchListTitleInset)
@@ -74,8 +84,11 @@ struct _DefaultLabelLayout: View {
             // The larger icon does not make the row taller: it is centred on the title's line.
             title.padding(.leading, Self.listTitleInset)
                 .overlay(alignment: .leading) { icon.imageScale(.large).frame(width: Self.listIconCenter * 2) }
+        } else if design.isGlass && platform == .tvOS && inTVButton {
+            let m = Self.tvGlassButtonSpacing(controlSize)
+            HStack(spacing: m.spacing) { icon.padding(.leading, m.lead); title }
         } else {
-            // A tvOS button's label keeps the 6 pt gap (its icon and title spacing are not measured yet).
+            // A tvOS 18 button's label keeps the 6 pt gap (est.).
             HStack(spacing: !design.isGlass || inTVButton ? 6 : platform == .tvOS ? Self.tvGlassSpacing : Self.glassSpacing) { icon; title }
         }
     }

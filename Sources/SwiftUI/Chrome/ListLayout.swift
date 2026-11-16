@@ -25,6 +25,8 @@ final class ListRowNode: Node {
     var tvFocused = false
     var tvGlass = false
     var tvScheme = ColorScheme.light
+    /// tvOS 26: a row of a plain `List` (not a `Form`) has no film until it is focused.
+    var tvBare = false
 
     /// Per-edge overrides from `.listRowInsets(_:_:)`, applied over the default insets.
     let partialInsets: PartialRowInsets?
@@ -196,6 +198,7 @@ final class ListNode: Node {
 
         // tvOS 26: a toggle row of a plain `List` is taller than one of a `Form` (measured: tvOS 26.5 simulator).
         let tallToggleRows = tv && env.designLanguage.isGlass && !env[TVInFormKey.self] && env.explicitMinListRowHeight == nil
+        let glassTVRows = tv && env.designLanguage.isGlass
         func makeRow(_ node: Node, inherited: Traits?) -> ListRowNode {
             func trait<K: TraitKey>(_ key: K.Type) -> K.Value? { node.traits[key] ?? inherited?[key] }
             let minHeight = tallToggleRows && ListNode.containsSwitch(node) ? TVMetrics.listToggleRowHeight : minHeight
@@ -209,6 +212,11 @@ final class ListNode: Node {
             if let inset = design.switchRowInsetVertical, row.usesDefaultInsets, ListNode.containsSwitch(node) {
                 row.insets.top = inset
                 row.insets.bottom = inset
+                row.applyPartialInsets()
+            }
+            if glassTVRows && row.usesDefaultInsets && ListNode.containsRole("segmentedControl", node) {
+                row.insets.top = TVMetrics.glassSegmentedRowInset
+                row.insets.bottom = TVMetrics.glassSegmentedRowInset
                 row.applyPartialInsets()
             }
             return row
@@ -233,7 +241,11 @@ final class ListNode: Node {
         }
         flushLoose()
         self.sections = sections
-        if tv { ListNode.markTVFocus(sections.flatMap(\.rows), glass: env.designLanguage.isGlass, scheme: env.colorScheme) }
+        if tv {
+            let rows = sections.flatMap(\.rows)
+            ListNode.markTVFocus(rows, glass: env.designLanguage.isGlass, scheme: env.colorScheme)
+            if env.designLanguage.isGlass && !env[TVInFormKey.self] { rows.forEach { $0.tvBare = true } }
+        }
         var kids: [Node] = []
         for s in sections {
             if let h = s.header { kids.append(h) }
@@ -259,6 +271,11 @@ final class ListNode: Node {
     }
 
     /// A row holding a Toggle drawn as a switch.
+    static func containsRole(_ role: String, _ node: Node) -> Bool {
+        if node.ax?.info.role == role { return true }
+        return node.children.contains { containsRole(role, $0) }
+    }
+
     static func containsSwitch(_ node: Node) -> Bool {
         if node.ax?.info.role == "switch" { return true }
         return node.children.contains { containsSwitch($0) }
