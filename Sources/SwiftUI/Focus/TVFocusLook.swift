@@ -212,7 +212,7 @@ enum TVColors {
     static func glassPlatter(_ scheme: ColorScheme) -> RGBA {
         scheme == .dark ? RGBA(1, 1, 1, 0.10) : RGBA(0, 0, 0, 0.09) // measured: tvOS 26.5 simulator
     }
-    /// A focused tvOS 26 button, toggle, text field or segment (measured: tvOS 26.5 simulator): white in light,
+    /// A focused tvOS 26 button, toggle or text field (measured: tvOS 26.5 simulator): white in light,
     /// a light grey (207, 212, 217) in dark. Focused list rows and alert actions stay white in dark.
     static func glassFocusedPlatter(_ scheme: ColorScheme) -> RGBA {
         scheme == .dark ? RGBA(207 / 255.0, 212 / 255.0, 217 / 255.0, 1) : RGBA(1, 1, 1, 1)
@@ -241,6 +241,11 @@ enum TVColors {
     /// selected segment white at 20%, (42, 40, 33) -> (84, 82, 77)).
     static func glassSegmentTrack(_ scheme: ColorScheme) -> RGBA {
         scheme == .dark ? .clear : RGBA(1, 1, 1, 0.6)
+    }
+    /// The focused segment: white in light, (234, 234, 234) in dark, lighter than a focused button (measured: tvOS
+    /// 26.5 simulator, segmented pickers on their own and inline).
+    static func glassFocusedSegment(_ scheme: ColorScheme) -> RGBA {
+        scheme == .dark ? RGBA(234 / 255.0, 234 / 255.0, 234 / 255.0, 1) : RGBA(1, 1, 1, 1)
     }
     static func glassSelectedSegment(_ scheme: ColorScheme) -> RGBA {
         scheme == .dark ? RGBA(1, 1, 1, 0.2) : RGBA(0, 0, 0, 0.18)

@@ -17,6 +17,13 @@ extension TVMetrics {
     /// (214, 212, 222) light, (55, 55, 59) -> (76, 76, 80) dark, the H 27 pt high; "Edit" 1705 to 1840 by 62 to
     /// 131). Focused, it is white and grows by 4 pt like other controls ("Edit": 1701 to 1844 by 58 to 136).
     static let glassToolbarItemTop: CGFloat = 2
+    /// tvOS 26: a `List` whose first section has no header starts 6 pt higher under a navigation title than a
+    /// header does (measured: tvOS 26.5 simulator, the first row of a List under "Account" at 145, where a Form's
+    /// first header sits at 151).
+    static let glassHeaderlessListLift: CGFloat = 6
+    /// tvOS 26: a segmented picker in a List row sits 5.5 pt inside its 95 pt row (measured: tvOS 26.5 simulator,
+    /// rows at 60 and 249, the segments 84 pt high at 146).
+    static let glassSegmentedRowInset: CGFloat = 5.5
     static let glassToolbarItemHeight: CGFloat = 70
     static let glassToolbarItemPadding: CGFloat = 36
     static let searchFont = Font.system(size: 38, weight: .medium)            // est. (HIG search screen image)
@@ -87,6 +94,10 @@ extension NavigationStackNode {
         let hasTitle = inlineTitle != nil || principal != nil
         let barHeight = hasTitle || !leading.isEmpty || !trailing.isEmpty ? TVMetrics.navigationTitleHeight : 0
         var y = barTop + (barVisible ? barHeight : 0)
+        if tvGlassBar, barVisible, barHeight > 0, search == nil, let list = content.firstDescendant(ListNode.self),
+           let first = list.sections.first, first.header == nil {
+            y -= TVMetrics.glassHeaderlessListLift
+        }
         if barVisible, let search {
             if let field = search as? SearchFieldNode, !field.tvGlassKeys.isEmpty {
                 search.place(at: CGPoint(x: safe.minX, y: y), size: CGSize(width: safe.width, height: TVMetrics.glassSearchHeight), ctx)

@@ -79,8 +79,11 @@ extension Picker {
 
         switch kind {
         case .segmented, .wheel:
-            let normal = options("seg")
-            let dark = options("seg", onPlatter)
+            // tvOS 26 segment titles are semibold (measured: tvOS 26.5 simulator). The options are resolved here, so
+            // the weight is set here: a modifier on the resolved nodes would not reach them.
+            let glass = env.designLanguage.isGlass
+            let normal = options("seg") { if glass { $0.fontWeight = .semibold } }
+            let dark = options("seg") { onPlatter(&$0); if glass { $0.fontWeight = .semibold } }
             let sel = selectedIndex(normal)
             let view = TVSegmentedBody(nodes: normal, onPlatter: dark, selected: sel, select: selector(normal))
                 .axInfo { $0.role = "segmentedControl"; $0.children = .contain; $0.label = labelText.isEmpty ? nil : labelText }
