@@ -138,6 +138,23 @@ enum TabBarMetrics {
         }
     }
 
+    /// iOS 27: the selected tab's icon and title are vibrant, so their color depends on the pill under them
+    /// (`backdrop`, its average). Light mode deepens the color the more colourful the pill is: (0,136,255) turns
+    /// into (0,130,248) over the plain 234 pill, (0,118,232) over a 205,183,241 pill and (0,114,226) over
+    /// 166,208,239. Dark mode lifts it by the pill's brightness: (0,145,255) turns into (6,151,255) over the
+    /// black pill, (99,238,255) and (92,237,255) over pills of luma 103 and 110. measured: iOS 27.0 simulator
+    /// (icon interiors of NavigationTabs-Tabs, GlassTabsAndSheets-0/1)
+    static func vibrantSelection(_ color: RGBA, over backdrop: RGBA, scheme: ColorScheme) -> RGBA {
+        if scheme == .dark {
+            let luma = 0.2126 * backdrop.r + 0.7152 * backdrop.g + 0.0722 * backdrop.b
+            let lift = max(0, 0.92 * luma - 4 / 255)
+            return RGBA(min(1, color.r + lift), min(1, color.g + lift), min(1, color.b + lift), color.a)
+        }
+        let chroma = max(backdrop.r, backdrop.g, backdrop.b) - min(backdrop.r, backdrop.g, backdrop.b)
+        let redGreen = max(0, 0.956 - 0.388 * chroma), blue = max(0, 0.973 - 0.277 * chroma)
+        return RGBA(color.r * redGreen, color.g * redGreen, color.b * blue, color.a)
+    }
+
     static func forDesign(_ design: DesignLanguage) -> Glass {
         switch design {
         case .liquidGlass27:
@@ -750,6 +767,8 @@ final class TabViewNode: Node {
     let accessory: Node?
     /// The tab drawn as a separate circle at the trailing end (`role: .search`, iOS 27 `.prominent`).
     let separateIndex: Int?
+    /// The selected tab's icon and title color before vibrancy (the accent color).
+    let selectedColor: RGBA
     /// The TabView's identity and how to select a tab (focus engine: tab items and remote `select`).
     var focusPath: IdentityPath?
     var selectTab: (@MainActor (Int) -> Void)?
@@ -812,6 +831,7 @@ final class TabViewNode: Node {
 
         let glass = TabBarMetrics.forDesign(design)
         let accent = Color.accentColor.rgba(in: barEnv)
+        selectedColor = accent
         let gray = (design.isGlass ? SystemColor.label : TabBarMetrics.unselectedColor).resolve(scheme)
         let iconFont = design.isGlass ? glass.iconFont : TabBarMetrics.iconFont
         let titleFont = design.isGlass ? glass.titleFont : TabBarMetrics.titleFont
@@ -1086,10 +1106,18 @@ final class TabViewNode: Node {
             p.fillGlass(.roundedRect(accessoryRect, radius: accessoryRect.height / 2), appearance: appearance)
         }
         g.drawPill(pillRect, scheme: scheme, design: design, in: p)
+        let vibrant = design == .liquidGlass27 && pillRect.width > 0 ? p.averageDrawnColor(in: pillRect) : nil
         accessory?.draw(p)
         for (i, item) in items.enumerated() {
-            item.icon?.draw(p)
-            if i != separateIndex { item.title?.draw(p) }
+            if i == selectedIndex, let vibrant {
+                p.drawRecolored(TabBarMetrics.vibrantSelection(selectedColor, over: vibrant, scheme: scheme)) {
+                    item.icon?.draw(p)
+                    if i != separateIndex { item.title?.draw(p) }
+                }
+            } else {
+                item.icon?.draw(p)
+                if i != separateIndex { item.title?.draw(p) }
+            }
             item.badge?.draw(p)
         }
     }

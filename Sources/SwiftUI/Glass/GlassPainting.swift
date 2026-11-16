@@ -273,6 +273,39 @@ extension Painter {
         }
     }
 
+    /// Draws `body` in one solid color, keeping its coverage (a vibrant label over glass).
+    func drawRecolored(_ color: RGBA, _ body: () -> Void) {
+        let (r, g, b) = (Float(color.r), Float(color.g), Float(color.b))
+        let matrix: [Float] = [0, 0, 0, 0, r,  0, 0, 0, 0, g,  0, 0, 0, 0, b,  0, 0, 0, 1, 0]
+        saveLayer(LayerOptions(colorFilter: sk_colorfilter_new_color_matrix(matrix)))
+        body()
+        restore()
+    }
+
+    /// The average color already drawn in a rectangle (local coordinates), read back from the surface.
+    /// Nil when it cannot be read (inside a layer, transformed, or no surface).
+    func averageDrawnColor(in rect: CGRect) -> RGBA? {
+        guard let surface, !isInsideLayer else { return nil }
+        var matrix = sk_matrix44_t()
+        sk_canvas_get_matrix(canvas, &matrix)
+        guard matrix.m01 == 0, matrix.m10 == 0, matrix.m03 == 0, matrix.m13 == 0, matrix.m00 > 0, matrix.m11 > 0 else { return nil }
+        let device = CGRect(x: rect.minX * CGFloat(matrix.m00) + CGFloat(matrix.m30), y: rect.minY * CGFloat(matrix.m11) + CGFloat(matrix.m31),
+                            width: rect.width * CGFloat(matrix.m00), height: rect.height * CGFloat(matrix.m11)).integral
+        let w = Int(device.width), h = Int(device.height)
+        guard w > 0, h > 0, device.minX >= 0, device.minY >= 0 else { return nil }
+        var info = sk_imageinfo_t(colorspace: nil, width: Int32(w), height: Int32(h),
+                                  colorType: RGBA_8888_SK_COLORTYPE, alphaType: UNPREMUL_SK_ALPHATYPE)
+        var pixels = [UInt8](repeating: 0, count: w * h * 4)
+        let ok = pixels.withUnsafeMutableBytes { sk_surface_read_pixels(surface, &info, $0.baseAddress, w * 4, Int32(device.minX), Int32(device.minY)) }
+        guard ok else { return nil }
+        var sum = (0.0, 0.0, 0.0)
+        for i in stride(from: 0, to: pixels.count, by: 4) {
+            sum.0 += Double(pixels[i]); sum.1 += Double(pixels[i + 1]); sum.2 += Double(pixels[i + 2])
+        }
+        let n = Double(w * h) * 255
+        return RGBA(sum.0 / n, sum.1 / n, sum.2 / n, 1)
+    }
+
     private func drawLens(snapshot: OpaquePointer, effect: OpaquePointer, rect: CGRect, radius: CGFloat,
                           matrix: sk_matrix44_t, appearance a: GlassAppearance) -> Bool {
         let (sx, sy, tx, ty) = (CGFloat(matrix.m00), CGFloat(matrix.m11), CGFloat(matrix.m30), CGFloat(matrix.m31))
