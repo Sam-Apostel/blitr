@@ -154,8 +154,8 @@ public enum _ScreenshotRunner {
             case "--crop-padding": config.cropPadding = CGFloat(Double(value(flag)) ?? 0)
             case "--locale":
                 let identifier = value(flag)
-                guard identifier.range(of: #"^[A-Za-z]{2,3}([_-][A-Za-z0-9]{2,8})*$"#, options: .regularExpression) != nil else {
-                    fail("--locale takes a language and region such as en_US or nl_BE, not \"\(identifier)\"")
+                guard identifier.range(of: #"^[A-Za-z]{2,3}([_-][A-Za-z0-9]{2,8})*(@[a-z]+=[A-Za-z0-9]+(;[a-z]+=[A-Za-z0-9]+)*)?$"#, options: .regularExpression) != nil else {
+                    fail("--locale takes a language and region such as en_US, nl_BE or en_US@rg=bezzzz, not \"\(identifier)\"")
                 }
                 config.locale = identifier
             case "--location":
