@@ -74,7 +74,7 @@ public struct _WidgetHostOptions: Sendable {
     public var renderingMode: _WidgetRenderingModeID?
     public var deviceName: String?
 
-    public static let current = _WidgetHostOptions(arguments: CommandLine.arguments)
+    public static let current = _WidgetHostOptions(arguments: _RunnerArguments.all)
 
     init(arguments: [String]) {
         var args = arguments[...]
