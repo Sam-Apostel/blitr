@@ -11,5 +11,5 @@
   "scripts": { "postinstall": "node lib/postinstall.js" },
   "os": ["darwin", "linux"],
   "cpu": ["x64", "arm64"],
-  "engines": { "node": ">=18" }
+  "engines": { "node": ">=20" }
 }
