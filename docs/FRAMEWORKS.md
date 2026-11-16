@@ -36,9 +36,29 @@ Apple's Core Graphics overlay would (`DarwinGeometry.swift`).
 the SDK, and `canImport` of one Apple does not ship for the rendered platform is rewritten to `false`
 (UIKit off on macOS, AppKit only on macOS, WatchConnectivity on iOS and watchOS, ...). Submodule imports
 (`import CoreImage.CIFilterBuiltins`) are rewritten to the module, and `@objc`, `@IBAction` and friends are
-dropped and `#selector(x)` becomes `Selector("x")` (there is no Objective-C runtime on Linux). For the same reason an `override`
-declared in an extension (`extension UIWindow { override func motionEnded(...) }`, legal on Apple platforms only for
-`@objc dynamic` members) is left out, with a warning naming it: such hooks never show in a still frame. DateFormatter's symbol
+dropped and `#selector(x)` becomes `Selector("x")` (there is no Objective-C runtime on Linux).
+
+**Overrides in extensions** (`extension UIWindow { override func motionEnded(...) }`) are legal on Apple platforms
+only for `@objc dynamic` members, through the Objective-C runtime, so they cannot compile as written here. The
+preprocessor (`Preprocessor.rewriteExtensionOverrides`) rewrites them, keeping every line where it was:
+
+- **An extension of the app's own class** (declared in the same module): an override of a UIKit lifecycle, layout,
+  drawing or responder member (`viewDidLoad`, `viewWillAppear`, `layoutSubviews`, `draw(_:)`,
+  `intrinsicContentSize`, `motionEnded`, ... the list is `relocatableOverrides`) stays in the extension, renamed,
+  and the class body gets an ordinary override that calls it. It then runs when UIKit would call it: a
+  representable's controller runs `viewDidLoad` when its view loads, a view's `draw(_:)` draws it.
+- **`UIWindow`'s motion events** (`motionBegan`, `motionEnded`, `motionCancelled`) are `dynamic` in the shim, and an
+  override in `extension UIWindow` becomes an `@_dynamicReplacement` of them, which needs no Objective-C runtime.
+  This is how SwiftUI apps detect a shake; the `shake` step of an interaction capture delivers one
+  (docs/INTERACTION.md).
+- **Anything else** is left out, with a warning naming it: an override in an extension of another UIKit class
+  (`extension UINavigationController { override func viewDidLoad() }`) changes a class the renderer never runs
+  (navigation is SwiftUI's own here), and so do the rest of the hooks that need the Objective-C runtime to swap a
+  method of a class compiled elsewhere. Making them all replaceable would mean marking UIKit's members `dynamic`
+  one by one; only the motion events are, because a step can deliver them. A property with a setter or
+  observers, a generic or variadic method, and a declaration split over several lines are left out the same way.
+
+DateFormatter's symbol
 properties (`monthSymbols`, `amSymbol`, ...) are `[String]!` / `String!` on Apple and non-optional on Linux, so `?.`, `?[`
 and `!` right after them are removed.
 

@@ -93,6 +93,11 @@ public struct _UIKitRepresentableBody: View {
         } else if let view = controller.viewIfLoaded {
             content = _UIKitRepresentableBody.show(view, representable: representable, wrapping: String(describing: type(of: controller)),
                                                    sizeThatFits: sizeThatFits)
+        } else if _UIKitRepresentableBody.uiKitClass(of: type(of: controller)) == UIViewController.self {
+            // The app's own controller: its view is loaded, as UIKit does when it shows it (loadView, then
+            // viewDidLoad). A framework's controller (SFSafariViewController, ...) has no view to show here.
+            content = _UIKitRepresentableBody.show(controller.view, representable: representable,
+                                                   wrapping: String(describing: type(of: controller)), sizeThatFits: sizeThatFits)
         } else {
             content = AnyView(_RepresentablePlaceholder(typeName: representable, wrapping: String(describing: type(of: controller))))
         }

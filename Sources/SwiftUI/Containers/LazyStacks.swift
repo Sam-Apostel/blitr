@@ -14,6 +14,10 @@ public struct PinnedScrollableViews: OptionSet, Sendable {
 final class LazyStackNode: WrapperNode {
     let axis: Axis
     let alignment: Alignment
+    /// Whether the stack's length is rounded up to a whole point, its content at the start.
+    /// measured: iOS 27.2 simulator: LazyVStacks of two texts 42.67, 48.67, 40.67 and 50.33pt tall take
+    /// 43, 49, 41 and 51pt (Examples/TextSpacing.swift); the VStacks beside them keep their height.
+    var roundsLengthUp = false
 
     init(stack: StackNode, alignment: Alignment) {
         self.axis = stack.axis
@@ -24,6 +28,7 @@ final class LazyStackNode: WrapperNode {
     override func measure(_ proposal: ProposedViewSize) -> CGSize {
         var size = child.sizeThatFits(proposal)
         if let cross = proposal[axis.cross], cross.isFinite { size[axis.cross] = cross }
+        if roundsLengthUp { size[axis] = (size[axis] - 0.001).rounded(.up) }
         return size
     }
 
@@ -52,7 +57,15 @@ public struct LazyVStack<Content: View>: View, PrimitiveView {
     func resolve(_ ctx: ResolveContext, into out: inout [Node]) {
         let children = resolveNodes(content, ctx.with { $0.stackAxis = .vertical })
         let stack = StackNode(axis: .vertical, alignment: alignment.key, spacing: spacing, children: children)
-        out.append(LazyStackNode(stack: stack, alignment: Alignment(horizontal: alignment, vertical: .top)))
+        // A LazyVStack puts two texts their leading apart like a VStack does, also for texts in
+        // `.system(size:)` fonts, whose leading is 0 (Examples/TextSpacing.swift). measured: iOS 27.2 simulator:
+        // body over body 2pt, caption over title 0.67pt, size 17 over size 17 and size 12 over size 30 0pt,
+        // the same as the VStack beside it; rows of a ForEach 2pt.
+        let measured = ctx.env.renderPlatform == .iOS && ctx.env.platformVersion >= 27
+        stack.textToTextSpacing = measured
+        let node = LazyStackNode(stack: stack, alignment: Alignment(horizontal: alignment, vertical: .top))
+        node.roundsLengthUp = measured
+        out.append(node)
     }
 }
 

@@ -76,9 +76,10 @@ open class UIResponder: NSObject {
     open func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {}
     open func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {}
     open func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {}
-    open func motionBegan(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {}
-    open func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {}
-    open func motionCancelled(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {}
+    // As in UIKit, a responder that does not handle a motion passes it up the chain.
+    open func motionBegan(_ motion: UIEvent.EventSubtype, with event: UIEvent?) { next?.motionBegan(motion, with: event) }
+    open func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) { next?.motionEnded(motion, with: event) }
+    open func motionCancelled(_ motion: UIEvent.EventSubtype, with event: UIEvent?) { next?.motionCancelled(motion, with: event) }
     open func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool { false }
     open func target(forAction action: Selector, withSender sender: Any?) -> Any? { nil }
 }

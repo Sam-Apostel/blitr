@@ -31,6 +31,8 @@ func screenKey(_ relative: String) -> String {
 }
 
 var preprocessor = Preprocessor()
+// Overrides in extensions compile on iOS as they are.
+preprocessor.rewritesExtensionOverrides = false
 
 /// The Preprocessor targets the Linux module: entries are `SwiftUI._PreviewEntry`, availability checks call
 /// `SwiftUI.RenderedPlatform`, and `os(iOS)` becomes `os(Linux)`. Undo those for real SwiftUI. Its other

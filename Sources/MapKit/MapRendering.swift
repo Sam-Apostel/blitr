@@ -66,14 +66,25 @@ struct MapSurface: View {
                                                markerScale: markerScale, safeArea: safeArea)
         proxyStorage?.projection = projection
         proxyStorage?.geometry = geo
-        Runtime.current?.warn("Map: map tiles are not drawn (no map data on Linux); the app's markers, annotations and overlays are drawn on a placeholder surface.")
+        var tiles: [MapTile]?
+        if let source = MapTileSource.current {
+            let cover = source.tiles(for: projection)
+            tiles = cover.tiles
+            if source.zooms.isEmpty {
+                Runtime.current?.warn("Map: --map-tiles \(source.directory) has no zoom level directories (<z>/<x>/<y>.png); the map is a placeholder surface.")
+            } else if cover.missing > 0 {
+                Runtime.current?.warn("Map: \(cover.missing) of \(cover.tiles.count + cover.missing) visible tiles are not in --map-tiles \(source.directory) at this zoom or a lower one; the placeholder surface shows there.")
+            }
+        } else {
+            Runtime.current?.warn("Map: map tiles are not drawn (no map data on Linux; --map-tiles <dir> draws offline tiles); the app's markers, annotations and overlays are drawn on a placeholder surface.")
+        }
         let palette = MapPalette.resolve(style, scheme)
         let pins = MapPins.build(elements, projection: projection, selection: config.selection, palette: palette, scale: markerScale)
         let actions = cameraActions
         let context = projection.context
         return ZStack(alignment: .topLeading) {
             Canvas { ctx, size in
-                MapPainter(projection: projection, palette: palette).draw(elements, in: &ctx, size: size)
+                MapPainter(projection: projection, palette: palette, tiles: tiles).draw(elements, in: &ctx, size: size)
             }
             MapPinLayout {
                 ForEach(pins.indices, id: \.self) { i in
@@ -99,10 +110,16 @@ struct MapSurface: View {
 struct MapPainter {
     let projection: MapProjection
     let palette: MapPalette
+    /// Offline tiles (`--map-tiles`) drawn instead of the graticule.
+    var tiles: [MapTile]?
 
     func draw(_ elements: [MapElement], in ctx: inout GraphicsContext, size: CGSize) {
         ctx.fill(Path(CGRect(origin: .zero, size: size)), with: .color(palette.land))
-        drawGraticule(in: &ctx, size: size)
+        if let tiles {
+            drawTiles(tiles, in: &ctx)
+        } else {
+            drawGraticule(in: &ctx, size: size)
+        }
         for level in [MKOverlayLevel.aboveRoads, .aboveLabels] {
             for element in elements where element.isOverlay && element.overlayLevel == level { drawOverlay(element, in: &ctx) }
         }

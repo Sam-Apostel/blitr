@@ -78,6 +78,15 @@ grep -q "no iphone-17.png" "$out/frame/fallback.log" && echo "ok    --frame-dir 
   -o "$out/frame/full-screen.png" >"$out/frame/full.log" 2>&1
 grep -q "full-content images are not framed" "$out/frame/full.log" && echo "ok    --full-content warns" || fail "full-content: $(cat "$out/frame/full.log")"
 
+# Shaking: an override of UIWindow.motionEnded in an extension (a dynamic replacement) posts a notification
+# the view counts. Overrides in extensions of the app's own classes draw (Tests/Projects/run.sh checks the warnings).
+mkdir -p "$out/shake"
+"$bin" render Tests/Projects/Diagnostics/ExtensionOverrides.swift --no-project --open-fonts --scale 1 -o "$out/shake/shake.png" \
+  --steps 'shake; shake' --accessibility-outline >"$out/shake/shake.log" 2>&1 || fail "shake render"
+grep -q 'Shakes: 2' "$out/shake/shake.log" && echo "ok    shake reaches UIWindow.motionEnded" || fail "shake: $(cat "$out/shake/shake.log")"
+grep -q 'staticText "Set up in viewDidLoad"' "$out/shake/shake.log" && echo "ok    viewDidLoad in an extension runs" \
+  || fail "viewDidLoad in an extension did not run: $(cat "$out/shake/shake.log")"
+
 # Determinism: same input, same bytes.
 for f in $(cd "$out/a" && find . -type f ! -name '*.log' ! -name '*.json' | sort); do
   cmp -s "$out/a/$f" "$out/b/$f" || fail "$f differs between two runs"

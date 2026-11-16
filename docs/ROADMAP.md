@@ -11,6 +11,8 @@ Where the renderer stands, what is open (in priority order), and which items nee
 - **tvOS focus** (`docs/FOCUS.md`): `--press`, `--focus`, `--focus-map` and `--focus-overlay`. Checked against tvOS 26.5 recordings: 18 of 465 moves still differ.
 - **Interaction capture** (`docs/INTERACTION.md`): scripted taps, typing and scrolling. Outputs are frames, filmstrips, GIF, APNG, WebP and MP4, plus full-content captures.
 - **Time and network:** `Task.sleep` runs on a virtual clock and renders are offline by default.
+- **Maps** (`docs/MAPS.md`): markers, annotations and overlays on a placeholder surface, or on offline tiles the user
+  supplies (`--map-tiles`).
 - **Native macOS** (issue #19): the same engine builds and renders on a Mac, against a filtered SDK so user code
   sees the same frameworks as on Linux (ARCHITECTURE.md, "macOS").
 - **Calibration** (`docs/REFERENCE.md`, `scripts/calibrate.py`): simulator references live on the `data/references` branch (`ios-27.0`, `ios-26.5`, `tvos-26.5` light and dark, `watchos-26.5` on three watches). The tool renders and compares against them.
@@ -34,7 +36,7 @@ The iOS 27 sum over all screens is 26.6% in light and 30.5% in dark.
 | [#22](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/22) | Liquid Glass: iOS 27 glass is a fitted response curve and the selected tab is vibrant. Open: the dark bar and alert curves are held partway to the old model because our lens smears blurred content near the rim (NavigationTabs-Tabs, GlassTabsAndSheets-4); text under the reference tab bars stays readable, so the system may blur less than our 14pt. | no |
 | [#21](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/21) | SF Symbol frames, per glyph | measuring on a Mac helps |
 | [#23](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/23) | tvOS: one focus move, tvOS 18, the few looks the set does not show (docs/TVOS.md checklist) | tvOS 18 needs captures |
-| [#25](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/25) | Smaller gaps found on real apps: map tiles, LazyVStack text spacing, clock gaps, representables | no |
+| [#25](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/25) | Smaller gaps found on real apps: the `Interactions-Loading` preview varies between runs; LazyVStack spacing is measured on iOS 27 only; overrides in extensions of UIKit classes other than UIWindow's motion events are left out | iOS 18 and 26 captures |
 
 #2 and #3 are the umbrella issues for the Mac reference work.
 

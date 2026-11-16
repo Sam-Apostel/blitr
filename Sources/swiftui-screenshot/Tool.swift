@@ -58,6 +58,8 @@ Render options:
                          them return at once (default 2). Sleeps that end later wait past the frame
       --time-zone <tz>   The device's time zone, an IANA name such as Europe/Brussels (default UTC)
       --allow-network    Let the code reach the network; by default requests fail at once (offline)
+      --map-tiles <dir>  Draw maps with offline raster tiles from <dir>/<z>/<x>/<y>.png (the usual web map
+                         scheme, also .jpg or .webp); without it maps are a placeholder surface. See docs/MAPS.md
       --widget-family <f>          Widgets: render this family (systemSmall, systemMedium, systemLarge,
                                    systemExtraLarge, accessoryCircular, accessoryRectangular, accessoryInline)
       --widget-rendering-mode <m>  Widgets: fullColor | accented | vibrant (default: fullColor; vibrant for
@@ -305,6 +307,10 @@ func parse(_ arguments: [String]) -> Options {
         case "--no-chrome", "--show-tips", "--allow-network": options.runnerArguments.append(arg)
         case "--orientation": options.runnerArguments += [arg, value(arg)]
         case "--rounded-corners", "--show-island", "--frame": options.runnerArguments.append(arg)
+        case "--map-tiles":
+            let dir = value(arg)
+            guard FileManager.default.fileExists(atPath: dir) else { fail("--map-tiles: no directory \(dir)") }
+            options.runnerArguments += [arg, dir.hasPrefix("/") ? dir : FileManager.default.currentDirectoryPath + "/" + dir]
         case "--frame-dir":
             let dir = value(arg)
             options.runnerArguments += [arg, dir.hasPrefix("/") ? dir : FileManager.default.currentDirectoryPath + "/" + dir]

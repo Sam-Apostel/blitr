@@ -21,6 +21,19 @@ extension ObservedObject.Wrapper {
     package init(_object object: ObjectType) { self.init(object: object) }
 }
 
+// MARK: - Device events for UIKit
+
+/// Device events the interaction steps deliver through UIKit (the `shake` step). UIKit's `_UIKitDeviceEvents`
+/// conforms; SwiftUI finds it by name, since it cannot import UIKit.
+package protocol _DeviceEventDelivery {
+    @MainActor static func _shake()
+}
+
+/// UIKit's `_UIKitDeviceEvents`, when UIKit is loaded (it is part of the engine library, so always).
+package var _deviceEventDelivery: _DeviceEventDelivery.Type? {
+    _typeByName("5UIKit18_UIKitDeviceEventsO") as? _DeviceEventDelivery.Type
+}
+
 // MARK: - Fonts and symbols for UIKit's UIFont and UIImage
 
 /// Vertical metrics, as fractions of the point size, of the font that would draw this description.

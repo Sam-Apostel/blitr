@@ -93,6 +93,7 @@ swiftui-screenshot version
 | `--time-zone <tz>` | The device's time zone, an IANA name such as `Europe/Brussels` (default `UTC`, whatever the host's): `TimeZone.current`, `Date.formatted`, `Text(date, style:)` and the date pickers use it. |
 | `--date <ISO 8601>` | "Now" for `TimelineView` and interaction captures, such as `2026-06-01T09:41:00Z` (default: the real time; `Date()` in your own code always is). |
 | `--allow-network` | Let the code reach the network. By default a render is offline: requests fail at once with `URLError(.notConnectedToInternet)`. |
+| `--map-tiles <dir>` | Draw `Map`s on your own offline raster tiles, `<dir>/<z>/<x>/<y>.png` in the usual web map layout, instead of a plain surface. No tiles are bundled; their licence and attribution are yours to follow. See [docs/MAPS.md](docs/MAPS.md#offline-tiles). |
 | `--accessibility-tree f.json`, `--tap-targets f.png`, `--accessibility-outline` | Accessibility outputs, below. |
 | `--json` | One JSON object per image with path, size and warnings. |
 | `--no-cache`, `-v` | Recompile even if an identical build is cached; show the compiler command. |

@@ -186,7 +186,8 @@ The tool and engine build and run natively on macOS (issue #19). What differs fr
   (`SFNS.ttf`, `SFNSRounded.ttf`, `SFNSMono.ttf`, `NewYork.ttf`, `Apple Color Emoji.ttc`).
 - **At run time** libSkiaSharp links Cocoa, so AppKit and with it Apple's SwiftUICore are mapped into every
   runner, next to our SwiftUI module. Their types carry the same mangled `SwiftUI` names as ours. Nothing in a
-  render looks types up by name, and the full regression set renders the same as on Linux, but code that calls
+  render looks SwiftUI types up by name (the `shake` step finds one UIKit type of ours, `_UIKitDeviceEvents`, by
+  its mangled name), and the full regression set renders the same as on Linux, but code that calls
   `_typeByName` or `NSClassFromString` on a SwiftUI name could find Apple's.
 
 ## Conventions

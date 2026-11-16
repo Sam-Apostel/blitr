@@ -568,6 +568,10 @@ final class InteractionSession {
         case .back:
             try goBack(step: step)
             outcome.note = "went back"
+        case .shake:
+            guard let delivery = _deviceEventDelivery else { throw RenderError("\(step): shaking needs UIKit, which is not loaded") }
+            delivery._shake()
+            outcome.note = "shook the device"
         case .press(let press):
             let result = runtime.focus.press(press, runtime: runtime)
             outcome.note = result.note
