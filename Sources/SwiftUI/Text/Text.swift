@@ -32,6 +32,8 @@ public struct Text: Equatable, Sendable {
         case concatenated(Text, Text)
         case image(Image)
         case attributed(AttributedString)
+        /// A value formatted when drawn, with the environment's locale, as SwiftUI does.
+        case formatted((Locale) -> String)
     }
     enum Modifier: @unchecked Sendable {
         case font(Font?), weight(Font.Weight?), bold(Bool), italic(Bool), style(AnyShapeStyle?)
@@ -57,7 +59,12 @@ public struct Text: Equatable, Sendable {
         storage = .verbatim(dates.lowerBound.formatted(date: .omitted, time: .shortened) + " – " + dates.upperBound.formatted(date: .omitted, time: .shortened))
     }
     public init<F: FormatStyle>(_ input: F.FormatInput, format: F) where F.FormatInput: Equatable, F.FormatOutput == String {
-        storage = .verbatim(format.format(input))
+        storage = .formatted { locale in
+            if let localizable = format as? any _LocaleSettableFormat, let styled = localizable._withLocale(locale) as? F {
+                return styled.format(input)
+            }
+            return format.format(input)
+        }
     }
     @_disfavoredOverload
     public init(_ attributedContent: AttributedString) { storage = .attributed(attributedContent) }
@@ -93,6 +100,7 @@ public struct Text: Equatable, Sendable {
         case .concatenated(let a, let b): return a.plainString + b.plainString
         case .image: return ""
         case .attributed(let a): return String(a.characters)
+        case .formatted(let format): return format(LocaleKey.defaultValue)
         }
     }
 
@@ -190,6 +198,8 @@ extension Text {
         switch storage {
         case .verbatim(let string):
             return [Text.makeRun(string, attrs, env)]
+        case .formatted(let format):
+            return [Text.makeRun(format(env.locale), attrs, env)]
         case .localized(let key):
             return key.runs(in: env, attrs: attrs)
         case .concatenated(let a, let b):
@@ -448,3 +458,18 @@ extension View {
     public func baselineOffset(_ offset: CGFloat) -> some View { self }
     public func textScale(_ scale: Text.Scale, isEnabled: Bool = true) -> some View { self }
 }
+
+/// Format styles whose locale `Text(_:format:)` sets to the environment's, as SwiftUI does.
+protocol _LocaleSettableFormat {
+    func _withLocale(_ locale: Locale) -> Self
+}
+extension IntegerFormatStyle: _LocaleSettableFormat { func _withLocale(_ l: Locale) -> Self { locale(l) } }
+extension IntegerFormatStyle.Percent: _LocaleSettableFormat { func _withLocale(_ l: Locale) -> Self { locale(l) } }
+extension IntegerFormatStyle.Currency: _LocaleSettableFormat { func _withLocale(_ l: Locale) -> Self { locale(l) } }
+extension FloatingPointFormatStyle: _LocaleSettableFormat { func _withLocale(_ l: Locale) -> Self { locale(l) } }
+extension FloatingPointFormatStyle.Percent: _LocaleSettableFormat { func _withLocale(_ l: Locale) -> Self { locale(l) } }
+extension FloatingPointFormatStyle.Currency: _LocaleSettableFormat { func _withLocale(_ l: Locale) -> Self { locale(l) } }
+extension Decimal.FormatStyle: _LocaleSettableFormat { func _withLocale(_ l: Locale) -> Self { locale(l) } }
+extension Decimal.FormatStyle.Percent: _LocaleSettableFormat { func _withLocale(_ l: Locale) -> Self { locale(l) } }
+extension Decimal.FormatStyle.Currency: _LocaleSettableFormat { func _withLocale(_ l: Locale) -> Self { locale(l) } }
+extension Date.FormatStyle: _LocaleSettableFormat { func _withLocale(_ l: Locale) -> Self { locale(l) } }

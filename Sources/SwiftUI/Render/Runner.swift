@@ -29,10 +29,10 @@ public enum _ScreenshotRunner {
         MainActor.assumeIsolated { runOnMain(previews) }
     }
 
-    /// On macOS, Locale.current is the Mac's own region and language, so number, currency and date formats
-    /// would follow whoever runs the render. The runner formats as en_US instead, as the simulator references
-    /// and a Linux host do (`SWIFTUI_SCREENSHOT_LOCALE` overrides it). It must run before anything reads
-    /// Locale.current.
+    /// On macOS, Locale.current is the Mac's own region and language, so formats that user code applies itself
+    /// would follow whoever runs the render. The runner formats as en_US instead, as the simulator references do
+    /// (`SWIFTUI_SCREENSHOT_LOCALE` overrides it). It must run before anything reads Locale.current. `Text`
+    /// formats with the environment's locale on every host (`Text.Storage.formatted`).
     static func applyLocale() {
         #if canImport(Darwin)
         let identifier = ProcessInfo.processInfo.environment["SWIFTUI_SCREENSHOT_LOCALE"] ?? "en_US"
