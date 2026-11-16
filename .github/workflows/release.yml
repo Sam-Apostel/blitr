@@ -220,7 +220,7 @@ jobs:
       # the current LTS, whose npm (11.5.1 or newer) can use trusted publishing.
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Set the version
         working-directory: npm
