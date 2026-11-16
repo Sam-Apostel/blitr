@@ -244,7 +244,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/npm-smoke" && cd "$RUNNER_TEMP/npm-smoke"
           npm init -y >/dev/null
           export BLITR_HOME="$RUNNER_TEMP/blitr-home"
-          npm install --foreground-scripts "$GITHUB_WORKSPACE"/npm/blitr-*.tgz
+          npm install --foreground-scripts "$GITHUB_WORKSPACE"/npm/*.tgz
           # With the runner's own Swift (on PATH through a symlink), then with no Swift at all, so the launcher
           # downloads the toolchain from swift.org.
           for pass in installed downloaded; do
