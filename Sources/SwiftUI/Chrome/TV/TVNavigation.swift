@@ -4,16 +4,20 @@
 // estimates (TVMetrics). The on-screen keyboard of a search screen is not drawn.
 
 extension TVMetrics {
-    /// measured: tvOS 26.5, a 67 pt line (title 2 size); tvOS 18 est. (title 3 size).
-    static func navigationTitleFont(glass: Bool) -> Font { .system(size: glass ? 57 : 48, weight: .medium) }
-    /// tvOS 26: the title's top sits 4 pt below the safe area's top (measured).
-    static let navigationTitleTop: CGFloat = 4
-    /// tvOS 26 toolbar items beside the title: capsules 56 pt high, 8 pt below the safe area's top, headline
+    /// tvOS 26: 57 pt bold (measured: tvOS 26.5 simulator, "Account" inks 217.5 pt wide where the medium weight
+    /// inks 206, the cap height 40.5 in both); tvOS 18 est. (title 3 size, medium).
+    static func navigationTitleFont(glass: Bool) -> Font { .system(size: glass ? 57 : 48, weight: glass ? .bold : .medium) }
+    /// The title's top below the safe area's top: tvOS 26 places it 4 pt above it (measured: tvOS 26.5 simulator,
+    /// the ink of "Account" and "Settings" 8 pt higher than with the title's top 4 pt below the safe area's top);
+    /// tvOS 18 est.
+    static func navigationTitleTop(glass: Bool) -> CGFloat { glass ? -4 : 4 }
+    /// tvOS 26 toolbar items beside the title: capsules 70 pt high, 2 pt below the safe area's top, headline
     /// labels 36 pt in, white in both appearances, on a film of black 7.5% (light) or white 10.5% (dark)
-    /// (measured: tvOS 26.5 simulator, "Help": 1690 to 1840 by 68 to 124, (230, 231, 241) -> (214, 212, 222)
-    /// light, (55, 55, 59) -> (76, 76, 80) dark, the H 27 pt high).
-    static let glassToolbarItemTop: CGFloat = 8
-    static let glassToolbarItemHeight: CGFloat = 56
+    /// (measured: tvOS 26.5 simulator, "Help": 1690 to 1840 by 62 to 131 across its middle, (230, 231, 241) ->
+    /// (214, 212, 222) light, (55, 55, 59) -> (76, 76, 80) dark, the H 27 pt high; "Edit" 1705 to 1840 by 62 to
+    /// 131). Focused, it is white and grows by 4 pt like other controls ("Edit": 1701 to 1844 by 58 to 136).
+    static let glassToolbarItemTop: CGFloat = 2
+    static let glassToolbarItemHeight: CGFloat = 70
     static let glassToolbarItemPadding: CGFloat = 36
     static let searchFont = Font.system(size: 38, weight: .medium)            // est. (HIG search screen image)
 
@@ -122,7 +126,8 @@ extension NavigationStackNode {
             let maxWidth = max(0, min(size.width / 2 - leadingEnd, trailingStart - size.width / 2) * 2 - 40)
             var s = center.sizeThatFits(ProposedViewSize(width: maxWidth, height: barHeight))
             s.width = min(s.width, maxWidth)
-            let titleY = barHeight >= s.height + TVMetrics.navigationTitleTop * 2 ? barTop + TVMetrics.navigationTitleTop : barTop + (barHeight - s.height) / 2
+            let top = TVMetrics.navigationTitleTop(glass: tvGlassBar)
+            let titleY = tvGlassBar || barHeight >= s.height + top * 2 ? barTop + top : barTop + (barHeight - s.height) / 2
             center.place(at: CGPoint(x: size.width / 2 - s.width / 2, y: titleY), size: s, ctx)
         }
         statusItem?.place(at: .zero, size: .zero, ctx)
