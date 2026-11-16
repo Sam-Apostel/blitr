@@ -642,6 +642,7 @@ public struct TabView<SelectionValue: Hashable, Content: View>: View, PrimitiveV
             page.dotsCenterFromBottom = ctx.env.designLanguage == .liquidGlass26 ? TabBarMetrics.pageDotsCenterFromBottom26
                 : TabBarMetrics.pageDotsCenterFromBottom27
             page.vertical = ctx.env[TabViewVerticalPageKey.self]
+            page.onWatch = ctx.env.renderPlatform == .watchOS
             if let background = page.content.preferences[TabContainerBackgroundKey.self] {
                 page.containerBackground = resolveSingle(background, ctx.child("containerBackground"))
             }
@@ -1155,8 +1156,10 @@ final class PageTabViewNode: Node {
     private var dotsCenterY: CGFloat = 0
     /// tvOS draws larger page dots (est.).
     var dotScale: CGFloat = 1
-    /// watchOS `.verticalPage`: small dots stacked at the trailing edge, centred vertically.
+    /// watchOS `.verticalPage`: small dots stacked at the trailing edge.
     var vertical = false
+    /// Rendered for watchOS (the dots' place and the darkened container background are measured there).
+    var onWatch = false
     /// `containerBackground(_:for: .tabView)` of the page: fills the screen behind it.
     var containerBackground: Node?
     /// Liquid Glass (iOS 26 and 27): each page is hosted inside the device's safe area, even when the TabView
@@ -1208,6 +1211,7 @@ final class PageTabViewNode: Node {
 
     override func drawContent(_ p: Painter) {
         containerBackground?.draw(p)
+        if vertical && onWatch, let background = containerBackground { drawWatchBackgroundVeil(p, over: background.frame) }
         drawChildren(p)
         guard showsDots, count > 0 else { return }
         if vertical { drawVerticalDots(p); return }
@@ -1229,14 +1233,41 @@ final class PageTabViewNode: Node {
         }
     }
 
-    /// watchOS vertical page indicator (est.: 5pt dots, 9pt apart, 6pt from the trailing edge).
+    /// watchOS darkens a page's container background: little at the top, most of it from 62% of the height down.
+    /// measured: watchOS 26.5 simulator (Watch-0, `Color.orange.opacity(0.35).gradient`): #2C1A08 at the top,
+    /// falling linearly to #0D0803 at y 155 of 248 and flat below, on all three watches. Applied as a black veil
+    /// over the style as drawn (65% at the top, 85.5% from 62% down).
+    private func drawWatchBackgroundVeil(_ p: Painter, over rect: CGRect) {
+        let veil = _Paint(.linear(stops: [GradientStop(color: RGBA(0, 0, 0, 0.65), location: 0),
+                                          GradientStop(color: RGBA(0, 0, 0, 0.855), location: 0.62),
+                                          GradientStop(color: RGBA(0, 0, 0, 0.855), location: 1)],
+                                  start: .top, end: .bottom))
+        p.fill(Path(rect), with: veil, in: rect)
+    }
+
+    /// watchOS vertical page indicator: a column of dots near the top trailing corner (`WatchMetrics`). Drawn on
+    /// another platform (where `.verticalPage` does not compile), the estimate: 5pt dots, 9pt apart, centred vertically
+    /// 6pt from the trailing edge.
     private func drawVerticalDots(_ p: Painter) {
-        let diameter: CGFloat = 5, pitch: CGFloat = 9
+        guard onWatch else {
+            let diameter: CGFloat = 5, pitch: CGFloat = 9
+            let total = CGFloat(count - 1) * pitch
+            let startY = frame.height / 2 - total / 2, x = frame.width - 6
+            for i in 0..<count {
+                let r = CGRect(x: x - diameter / 2, y: startY + CGFloat(i) * pitch - diameter / 2, width: diameter, height: diameter)
+                p.fill(Path(ellipseIn: r), with: .color(RGBA(1, 1, 1, i == selected ? 1 : TabBarMetrics.pageDotInactiveOpacity)), in: r)
+            }
+            return
+        }
+        let m = WatchMetrics.current
+        let diameter = m.pageDotDiameter, pitch = m.pageDotPitch
         let total = CGFloat(count - 1) * pitch
-        let startY = frame.height / 2 - total / 2, x = frame.width - 6
+        // Placed on the screen, whatever the page's frame.
+        let screenTop = -absoluteOrigin.y, screenRight = _currentConfiguration().device.size.width - absoluteOrigin.x
+        let startY = screenTop + m.pageDotsCenterY - total / 2, x = screenRight - m.pageDotsCenterFromTrailing
         for i in 0..<count {
             let r = CGRect(x: x - diameter / 2, y: startY + CGFloat(i) * pitch - diameter / 2, width: diameter, height: diameter)
-            p.fill(Path(ellipseIn: r), with: .color(RGBA(1, 1, 1, i == selected ? 1 : TabBarMetrics.pageDotInactiveOpacity)), in: r)
+            p.fill(Path(ellipseIn: r), with: .color(RGBA(1, 1, 1, i == selected ? 1 : m.pageDotInactiveOpacity)), in: r)
         }
     }
 }
