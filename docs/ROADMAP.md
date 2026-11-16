@@ -13,7 +13,7 @@ Where the renderer stands, what is open (in priority order), and which items nee
 - **Time and network:** `Task.sleep` runs on a virtual clock and renders are offline by default.
 - **Native macOS** (issue #19): the same engine builds and renders on a Mac, against a filtered SDK so user code
   sees the same frameworks as on Linux (ARCHITECTURE.md, "macOS").
-- **Calibration** (`docs/REFERENCE.md`, `scripts/calibrate.py`): simulator references live on the `data/references` branch (`ios-27.0`, `ios-26.5`, `tvos-26.5`). The tool renders and compares against them.
+- **Calibration** (`docs/REFERENCE.md`, `scripts/calibrate.py`): simulator references live on the `data/references` branch (`ios-27.0`, `ios-26.5`, `tvos-26.5` light and dark, `watchos-26.5` on three watches). The tool renders and compares against them.
 
 | Set | Typical screen difference |
 |---|---|
@@ -28,9 +28,7 @@ The iOS 27 sum over all screens is 26.6% in light and 30.5% in dark.
 
 | # | Item | Needs a Mac |
 |---|---|---|
-| [#14](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/14) | Re-capture tvOS 26.5 dark mode: the current dark set is a copy of light. | yes |
-| [#16](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/16) | watchOS reference captures | yes |
-| [#24](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/24) | watchOS chrome: lists, navigation, measured safe areas. Blocked by #16. | after #16 |
+| [#24](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/24) | watchOS chrome: lists, navigation, measured safe areas. References are in (`watchos-26.5`). | no |
 | [#22](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/22) | Liquid Glass: the light glass model and the selected tab's vibrancy | no |
 | [#21](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/21) | SF Symbol frames, per glyph | measuring on a Mac helps |
 | [#23](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/23) | tvOS: one focus move, List toggle rows, tvOS 18 | tvOS 18 needs captures |
