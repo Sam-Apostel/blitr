@@ -136,7 +136,23 @@ enum FocusMovement {
             || (snap.sections[k].kind == "tabBar" && s.distance <= best!.0.distance + 0.5) {
             return entry(into: snap.sections[k], from: origin, snap)
         }
+        if best == nil, d == .right, let leave = leavingSidebar(from: i, in: snap) { return leave }
         return best?.1
+    }
+
+    /// Right from a tab of a `.sidebarAdaptable` sidebar (a tab bar section narrower than the screen) with nothing
+    /// in its beam: focus goes into the content, to its element nearest the tab (measured: tvOS 26.5 simulator,
+    /// right from the "Home" row lands on the first poster, below the sidebar's row and partly behind it).
+    static func leavingSidebar(from i: Int, in snap: FocusSnapshot) -> Int? {
+        guard snap.elements[i].isTab,
+              snap.sections.contains(where: { $0.kind == "tabBar" && $0.members.contains(i) && $0.frame.width < snap.screen.width - 1 })
+        else { return nil }
+        let origin = snap.elements[i].frame
+        return snap.elements.indices.filter { !snap.elements[$0].isTab && $0 != i }.min { a, b in
+            let da = rectDistance(origin, snap.elements[a].frame), db = rectDistance(origin, snap.elements[b].frame)
+            if abs(da - db) > 0.5 { return da < db }
+            return snap.elements[a].frame.minX < snap.elements[b].frame.minX
+        }
     }
 
     /// The element focus lands on when it enters `section` from `origin` (history-free: the nearest one).
