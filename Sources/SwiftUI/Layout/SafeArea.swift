@@ -101,6 +101,41 @@ final class SafeAreaInsetNode: Node {
     private var yFactor: CGFloat { alignment.vertical == .top ? 0 : alignment.vertical == .bottom ? 1 : 0.5 }
 }
 
+/// `safeAreaPadding`: insets added to the safe area. Content is laid out inside them as with `padding`, but the
+/// insets are safe area, not the view's edge: a child that ignores the safe area extends back over them (a
+/// page that keeps its text clear of a side column while its photo runs under it).
+final class SafeAreaPaddingNode: WrapperNode {
+    let insets: EdgeInsets
+    init(child: Node, insets: EdgeInsets) {
+        self.insets = insets
+        super.init(child: child)
+    }
+    override func measure(_ proposal: ProposedViewSize) -> CGSize {
+        let h = insets.leading + insets.trailing, v = insets.top + insets.bottom
+        let c = child.sizeThatFits(ProposedViewSize(width: proposal.width.map { max(0, $0 - h) }, height: proposal.height.map { max(0, $0 - v) }))
+        return CGSize(width: c.width + h, height: c.height + v)
+    }
+    override func layout(size: CGSize, _ ctx: PlaceContext) {
+        let rect = CGRect(x: insets.leading, y: insets.top, width: max(0, size.width - insets.leading - insets.trailing),
+                          height: max(0, size.height - insets.top - insets.bottom))
+        var inner = ctx
+        let own = CGRect(origin: ctx.origin, size: size)
+        // Content may bleed over the padding, and on past it wherever this view could already bleed.
+        inner.container = own.outset(by: ctx.safeAreaBleed(for: own, edges: .all))
+        // Where the view is under the screen's safe area, that still applies; content scrolled away from it
+        // (a pager's other pages) has only its own.
+        let padded = rect.offsetBy(dx: ctx.origin.x, dy: ctx.origin.y)
+        let limited = padded.intersection(ctx.safeRect)
+        inner.safeRect = limited.isNull || limited.isEmpty ? padded : limited
+        child.place(at: rect.origin, size: rect.size, inner)
+    }
+}
+
+struct SafeAreaPaddingModifier: ViewModifier, NodeModifier {
+    let insets: EdgeInsets
+    func makeNode(child: Node, _ ctx: ResolveContext) -> Node { SafeAreaPaddingNode(child: child, insets: insets) }
+}
+
 struct SafeAreaInsetModifier<Inset: View>: ViewModifier, PrimitiveModifier {
     let edge: Edge
     let alignment: Alignment
@@ -130,9 +165,11 @@ extension View {
         modifier(SafeAreaInsetModifier(edge: edge == .leading ? .leading : .trailing, alignment: Alignment(horizontal: .center, vertical: alignment),
                                        spacing: spacing, inset: content()))
     }
-    public func safeAreaPadding(_ insets: EdgeInsets) -> some View { padding(insets) }
-    public func safeAreaPadding(_ edges: Edge.Set = .all, _ length: CGFloat? = nil) -> some View { padding(edges, length) }
-    public func safeAreaPadding(_ length: CGFloat) -> some View { padding(length) }
+    public func safeAreaPadding(_ insets: EdgeInsets) -> some View { modifier(SafeAreaPaddingModifier(insets: insets)) }
+    public func safeAreaPadding(_ edges: Edge.Set = .all, _ length: CGFloat? = nil) -> some View {
+        modifier(SafeAreaPaddingModifier(insets: EdgeInsets(edges, length ?? defaultPadding)))
+    }
+    public func safeAreaPadding(_ length: CGFloat) -> some View { modifier(SafeAreaPaddingModifier(insets: EdgeInsets(all: length))) }
 }
 
 // MARK: - GeometryReader
