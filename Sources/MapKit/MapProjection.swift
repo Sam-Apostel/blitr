@@ -47,6 +47,9 @@ struct MapProjection {
         return out
     }
 
+    /// A map point taken as it is, not wrapped to the copy of the world nearest the center (tiles).
+    func screenPoint(x: Double, y: Double) -> CGPoint { screen(dx: x - center.x, dy: y - center.y) }
+
     private func screen(dx: Double, dy: Double) -> CGPoint {
         let t = -heading * .pi / 180
         let rx = dx * cos(t) - dy * sin(t), ry = dx * sin(t) + dy * cos(t)

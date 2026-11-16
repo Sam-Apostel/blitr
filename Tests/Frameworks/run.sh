@@ -1,6 +1,7 @@
 #!/bin/bash
 # Framework shim checks: known-answer tests (hashes, UTType, keychain, colors) and decoding the generated
-# barcodes with zxing-cpp when it is installed (pip install zxing-cpp pillow). Run from the repository
+# barcodes with zxing-cpp when it is installed (pip install zxing-cpp pillow), and offline map tiles
+# (Tests/Maps/tiles.sh). Run from the repository
 # root after `swift build`.
 set -u
 cd "$(dirname "$0")/../.."
@@ -21,4 +22,6 @@ from PIL import Image
 print(len(zxingcpp.read_barcodes(Image.open('$out/barcodes.png').convert('RGB'))))")
   if [ "$decoded" -ge 4 ]; then echo "PASS barcodes decode ($decoded)"; else echo "FAIL barcodes decode ($decoded)"; failures=$((failures + 1)); fi
 fi
+# Offline map tiles: markers' coordinates and the tiles' pixels agree.
+if Tests/Maps/tiles.sh "$out/MapTiles"; then echo "PASS map tiles"; else echo "FAIL map tiles"; failures=$((failures + 1)); fi
 [ "$failures" -eq 0 ] || { echo "$failures failed"; exit 1; }

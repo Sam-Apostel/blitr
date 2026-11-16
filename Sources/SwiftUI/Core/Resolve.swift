@@ -41,7 +41,7 @@ package final class Runtime {
     var runningTasks = 0
     private(set) var warnings: [String] = []
     private var warningSet: Set<String> = []
-    var config: RenderConfiguration
+    package var config: RenderConfiguration
     /// Absolute origins of `.coordinateSpace(name:)` views, recorded during layout.
     var namedCoordinateSpaces: [AnyHashable: CGPoint] = [:]
     /// Which element has focus, scroll offsets, navigation pushes: state that survives passes (Focus/).

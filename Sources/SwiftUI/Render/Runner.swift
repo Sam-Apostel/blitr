@@ -147,6 +147,7 @@ public enum _ScreenshotRunner {
                     fail("unknown time zone \"\(timeZone)\"; --time-zone takes an IANA name such as Europe/Brussels or UTC")
                 }
             case "--allow-network": config.allowsNetwork = true
+            case "--map-tiles": config.mapTileDirectory = value(flag)
             case "--fonts": config.fontDirectories.append(value(flag))
             case "--assets": config.assetDirectories.append(value(flag))
             case "--accessibility-tree": AccessibilityOutputs.request.treePath = value(flag)
