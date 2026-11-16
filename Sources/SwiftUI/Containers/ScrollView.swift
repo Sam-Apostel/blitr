@@ -127,8 +127,11 @@ public struct ScrollView<Content: View>: View, PrimitiveView {
 
 /// Scrolls programmatically in an interactive app; inert in a still frame.
 public struct ScrollViewProxy {
-    init() {}
-    /// Scrolls the scroll views around the view with this id (`.id(_:)`) so it shows: with an anchor, that
+    /// The reader this proxy belongs to: only scroll views inside its content scroll, as in SwiftUI.
+    let reader: ScrollReaderToken?
+    init(reader: ScrollReaderToken? = nil) { self.reader = reader }
+    /// Scrolls the scroll views around the view with this id (`.id(_:)`), within this proxy's
+    /// `ScrollViewReader`, so it shows: with an anchor, that
     /// point of the view goes to the same point of the scroll view; without one, by the least amount. Takes
     /// effect from the next pass, so call it from an action (`onChange`, a button, `onAppear`). The scroll is
     /// not animated in a still frame; captures show the end state.
@@ -136,7 +139,10 @@ public struct ScrollViewProxy {
         let target = AnyHashable(id)
         MainActor.assumeIsolated {
             guard let runtime = Runtime.current else { return }
-            guard let root = runtime.layoutRoot, let (node, scrolls) = Self.find(target, in: root, scrolls: []) else {
+            // Search only the reader's own content: a scroll view around the reader (the page a
+            // carousel sits on) does not move.
+            let scopes = runtime.layoutRoot.map { root in reader.map { Self.readerNodes($0, in: root) } ?? [root] } ?? []
+            guard let (node, scrolls) = scopes.lazy.compactMap({ Self.find(target, in: $0, scrolls: []) }).first else {
                 runtime.warn("ScrollViewProxy.scrollTo: no view with id \(id) on screen")
                 return
             }
@@ -176,6 +182,12 @@ public struct ScrollViewProxy {
     }
 
     @MainActor
+    private static func readerNodes(_ reader: ScrollReaderToken, in node: Node) -> [Node] {
+        if node.traits[ScrollReaderTraitKey.self] === reader { return [node] }
+        return node.children.flatMap { readerNodes(reader, in: $0) }
+    }
+
+    @MainActor
     private static func find(_ id: AnyHashable, in node: Node, scrolls: [ScrollNode]) -> (Node, [ScrollNode])? {
         if node.traits[IDTraitKey.self] == id { return (node, scrolls) }
         let inner = (node as? ScrollNode).map { scrolls + [$0] } ?? scrolls
@@ -186,10 +198,17 @@ public struct ScrollViewProxy {
     }
 }
 
+/// Identifies one `ScrollViewReader` across passes; its content's nodes carry it as a trait.
+final class ScrollReaderToken {}
+enum ScrollReaderTraitKey: TraitKey { typealias Value = ScrollReaderToken }
+
 public struct ScrollViewReader<Content: View>: View {
     public var content: (ScrollViewProxy) -> Content
+    @State private var token = ScrollReaderToken()
     public init(@ViewBuilder content: @escaping (ScrollViewProxy) -> Content) { self.content = content }
-    public var body: some View { content(ScrollViewProxy()) }
+    public var body: some View {
+        content(ScrollViewProxy(reader: token)).trait(ScrollReaderTraitKey.self, token)
+    }
 }
 
 // MARK: - Supporting types

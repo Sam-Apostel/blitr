@@ -73,7 +73,10 @@ enum ToolbarGlassItemKind {
     case plainText
     /// The back button: fills its circle.
     case back
-    /// Anything else (shapes, controls, stacks of styled views): drawn as is, without glass.
+    /// Anything else (shapes, controls, stacks of styled views): drawn at its own size on the shared glass,
+    /// with the capsule's end insets and no padding of its own. measured: iOS 27.2 simulator
+    /// (ToolbarCustomItems: an HStack of a chevron button, a divider and a menu chip on one capsule, 4pt
+    /// beyond the item's frame at each end, as `itemEndInset`).
     case custom
 }
 
@@ -148,9 +151,10 @@ func makeToolbarGlassSlots(_ tokens: [ToolbarGlassToken], height: CGFloat, metri
             let kind = toolbarGlassKind(of: node)
             let info = toolbarGlassInfo(of: node)
             let isProminent = (prominentPlacement || info?.role == .confirm) && info?.isEnabled != false
-            if kind == .custom || !shares {
+            // `.sharedBackgroundVisibility(.hidden)`: drawn as is, without glass.
+            if !shares {
                 flush()
-                slots.append(.group(ToolbarGlassGroupNode(items: [node], kinds: [kind == .custom ? .custom : kind], appearance: nil,
+                slots.append(.group(ToolbarGlassGroupNode(items: [node], kinds: [kind], appearance: nil,
                                                           height: height, metrics: metrics, bottom: bottom)))
                 continue
             }
