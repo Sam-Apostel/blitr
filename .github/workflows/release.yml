@@ -1,17 +1,46 @@
 name: Release
 
-# Pushing a tag such as v0.1.0 builds relocatable tarballs for x86_64 and arm64, smoke-tests them
-# from a clean directory, and attaches them (with .sha256 files and install.sh) to a GitHub release.
+# Pushing a tag such as v0.1.0 releases blitr everywhere:
+#   1. Relocatable tarballs for Linux (x86_64, aarch64) and macOS (arm64, on a self-hosted Mac runner), each
+#      smoke-tested from a clean directory; Linux with no HarfBuzz package installed, macOS loading nothing from
+#      Homebrew.
+#   2. A GitHub release with the tarballs, their .sha256 files and install.sh.
+#   3. The npm package `blitr`, after a smoke test of it on Linux against the new release.
+#   4. The image ghcr.io/<owner>/blitr for linux/amd64 and linux/arm64.
+#   5. Formula/blitr.rb in the Homebrew tap <owner>/homebrew-blitr.
+# A tag with a hyphen (v0.2.0-rc.1) is a prerelease: npm's `next` tag, no `latest` image, no formula.
+# A pull request that changes the packaging runs the same builds and smoke tests as v0.0.0-dev, and publishes
+# nothing.
+#
+# Secrets: NPM_TOKEN (until npm trusted publishing is set up for this workflow), HOMEBREW_TAP_TOKEN (a
+# fine-grained token with contents: write on the tap repository). Without one, that step is skipped.
 on:
   push:
     tags: ["v*"]
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+      - scripts/make-dist.sh
+      - scripts/bootstrap.sh
+      - scripts/dist/**
+      - install.sh
+      - npm/**
+      - Package.swift
 
 permissions:
-  contents: write
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  DIST_VERSION: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'v0.0.0-dev' }}
+  PRERELEASE: ${{ contains(github.ref_name, '-') }}
 
 jobs:
-  dist:
-    name: Build ${{ matrix.arch }} tarball
+  linux:
+    name: Linux ${{ matrix.arch }} tarball
     strategy:
       fail-fast: true
       matrix:
@@ -33,17 +62,18 @@ jobs:
           apt-get install -y --no-install-recommends libharfbuzz-dev curl unzip binutils ca-certificates patchelf
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      - name: Fetch pinned Skia and fonts
+      - name: Fetch pinned Skia, HarfBuzz and fonts
         run: scripts/bootstrap.sh
 
       - name: Build the tarball
-        run: scripts/make-dist.sh "$GITHUB_REF_NAME"
+        run: scripts/make-dist.sh "$DIST_VERSION"
 
-      - name: Smoke test from the unpacked tarball
+      - name: Smoke test from the unpacked tarball, without the system HarfBuzz
         run: |
           set -euo pipefail
           tarball="$(ls "$PWD"/dist/blitr-*-linux-${{ matrix.arch }}.tar.gz)"
           cp Examples/Hello.swift /tmp/Hello.swift
+          dpkg -r --force-depends libharfbuzz-dev libharfbuzz0b
           # A clean directory with no checkout, no Vendor/ and no build tree in reach.
           mkdir -p /tmp/smoke/unpacked /tmp/smoke/work
           tar -xzf "$tarball" -C /tmp/smoke/unpacked
@@ -53,28 +83,101 @@ jobs:
           /tmp/smoke/moved/bin/blitr version
           /tmp/smoke/moved/bin/blitr doctor
           /tmp/smoke/moved/bin/blitr render /tmp/Hello.swift -o hello.png
-          test -s hello.png
           head -c 8 hello.png | od -An -c | grep -q 'P *N *G'
           cd "$GITHUB_WORKSPACE" && mv .build.hidden .build
 
       - name: Checksum
-        run: |
-          cd dist
-          for f in blitr-*.tar.gz; do sha256sum "$f" > "$f.sha256"; done
-          ls -l
+        run: cd dist && for f in blitr-*.tar.gz; do sha256sum "$f" > "$f.sha256"; done
 
       - uses: actions/upload-artifact@v4
         with:
-          name: dist-${{ matrix.arch }}
-          path: |
-            dist/*.tar.gz
-            dist/*.tar.gz.sha256
+          name: dist-linux-${{ matrix.arch }}
+          path: dist/*.tar.gz*
+          if-no-files-found: error
+
+  macos:
+    name: macOS arm64 tarball
+    # A self-hosted runner on a Mac (GitHub's macOS images lag behind the Xcode this needs). It runs nothing
+    # from forks, and changes nothing on the machine: Xcode is picked with DEVELOPER_DIR, caches go to the
+    # job's temporary directory, and Homebrew is only touched if harfbuzz or pkg-config is missing.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, macOS, ARM64, xcode]
+    env:
+      # The oldest Xcode whose Swift starts with this is used: the tarball works with that Swift and newer.
+      SWIFT_SERIES: "6.4"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select Xcode
+        run: |
+          set -euo pipefail
+          chosen=""
+          for app in $(ls -d /Applications/Xcode*.app | sort -V); do
+            v="$("$app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc" --version 2>/dev/null | sed -nE 's/.*Swift version ([0-9.]+).*/\1/p' | head -1)"
+            echo "$app: Swift ${v:-?}"
+            case "$v" in "$SWIFT_SERIES"|"$SWIFT_SERIES".*) [ -n "$chosen" ] || chosen="$app" ;; esac
+          done
+          [ -n "$chosen" ] || { echo "no Xcode with Swift $SWIFT_SERIES on this machine" >&2; exit 1; }
+          echo "DEVELOPER_DIR=$chosen/Contents/Developer" >> "$GITHUB_ENV"
+          echo "BLITR_CACHE=$RUNNER_TEMP/blitr-cache" >> "$GITHUB_ENV"
+          DEVELOPER_DIR="$chosen/Contents/Developer" xcrun swiftc --version
+
+      - name: HarfBuzz and pkg-config (build only)
+        run: |
+          eval "$(/opt/homebrew/bin/brew shellenv)"
+          echo "/opt/homebrew/bin" >> "$GITHUB_PATH"
+          pkg-config --exists harfbuzz 2>/dev/null || brew install harfbuzz pkg-config
+
+      - name: Fetch pinned Skia, HarfBuzz and fonts
+        run: scripts/bootstrap.sh
+
+      - name: Build the tarball
+        run: scripts/make-dist.sh "$DIST_VERSION"
+
+      - name: Smoke test from the unpacked tarball
+        run: |
+          set -euo pipefail
+          tarball="$(ls "$PWD"/dist/blitr-*-macos-arm64.tar.gz)"
+          cp Examples/Hello.swift "$RUNNER_TEMP/Hello.swift"
+          smoke="$RUNNER_TEMP/smoke"
+          rm -rf "$smoke" "$BLITR_CACHE"
+          mkdir -p "$smoke/unpacked" "$smoke/work"
+          tar -xzf "$tarball" -C "$smoke/unpacked"
+          mv "$smoke/unpacked/blitr" "$smoke/moved"
+          # Nothing in the tree may load from Homebrew (it carries its own HarfBuzz).
+          if find "$smoke/moved" -type f \( -name '*.dylib' -o -path '*/bin/*' \) -exec otool -L {} + | grep -E '/opt/homebrew|/usr/local/(opt|Cellar)'; then
+            echo "the tarball loads a library from Homebrew" >&2; exit 1
+          fi
+          mv .build .build.hidden
+          cd "$smoke/work"
+          "$smoke/moved/bin/blitr" version
+          "$smoke/moved/bin/blitr" doctor
+          "$smoke/moved/bin/blitr" render "$RUNNER_TEMP/Hello.swift" -o hello.png
+          head -c 8 hello.png | od -An -c | grep -q 'P *N *G'
+          runner="$(find "$BLITR_CACHE" -name runner -type f | head -1)"
+          if otool -L "$runner" | grep -qE 'SwiftUI|UIKit|AppKit|/opt/homebrew'; then
+            echo "a compiled preview links an Apple UI framework or Homebrew" >&2; exit 1
+          fi
+          cd "$GITHUB_WORKSPACE" && mv .build.hidden .build
+
+      - name: Checksum
+        run: cd dist && for f in blitr-*.tar.gz; do shasum -a 256 "$f" > "$f.sha256"; done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-macos-arm64
+          path: dist/*.tar.gz*
           if-no-files-found: error
 
   release:
-    name: Publish release
-    needs: dist
+    name: GitHub release
+    needs: [linux, macos]
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -84,6 +187,13 @@ jobs:
           path: assets
           merge-multiple: true
 
+      - name: Check the required assets
+        run: |
+          ls -l assets
+          for a in linux-x86_64 linux-aarch64 macos-arm64; do
+            test -f "assets/blitr-$GITHUB_REF_NAME-$a.tar.gz" || { echo "missing $a" >&2; exit 1; }
+          done
+
       - name: Create the release
         uses: softprops/action-gh-release@v2
         with:
@@ -92,4 +202,158 @@ jobs:
             assets/*.tar.gz.sha256
             install.sh
           generate_release_notes: true
+          prerelease: ${{ env.PRERELEASE == 'true' }}
           fail_on_unmatched_files: true
+
+  npm:
+    name: npm package
+    needs: [linux, macos, release]
+    if: ${{ !cancelled() && needs.linux.result == 'success' && (needs.release.result == 'success' || !startsWith(github.ref, 'refs/tags/')) }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write   # provenance, and trusted publishing once it is configured
+    steps:
+      - uses: actions/checkout@v4
+
+      # The smoke test runs on the oldest Node the package supports (package.json's engines); publishing on
+      # the current LTS, whose npm (11.5.1 or newer) can use trusted publishing.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set the version
+        working-directory: npm
+        run: npm pkg set version="${DIST_VERSION#v}"
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dist-linux-x86_64
+          path: assets
+          merge-multiple: true
+
+      - name: Smoke test the package against the new release
+        working-directory: npm
+        run: |
+          set -euo pipefail
+          npm pack
+          # The tarball this run built, served the way the GitHub release serves it.
+          (cd "$GITHUB_WORKSPACE/assets" && python3 -m http.server 8765 >/dev/null 2>&1 &)
+          sleep 1
+          export BLITR_DOWNLOAD_URL=http://127.0.0.1:8765
+          mkdir -p "$RUNNER_TEMP/npm-smoke" && cd "$RUNNER_TEMP/npm-smoke"
+          npm init -y >/dev/null
+          export BLITR_HOME="$RUNNER_TEMP/blitr-home"
+          npm install --foreground-scripts "$GITHUB_WORKSPACE"/npm/blitr-*.tgz
+          # With the runner's own Swift (on PATH through a symlink), then with no Swift at all, so the launcher
+          # downloads the toolchain from swift.org.
+          for pass in installed downloaded; do
+            if [ "$pass" = downloaded ] && command -v swiftc >/dev/null; then
+              swiftc_real="$(readlink -f "$(command -v swiftc)")"
+              sudo mv "${swiftc_real%/usr/bin/swiftc}" "$RUNNER_TEMP/hidden-swift"
+              if command -v swiftc >/dev/null; then echo "swiftc is still on PATH" >&2; exit 1; fi
+            fi
+            npx blitr version
+            npx blitr render "$GITHUB_WORKSPACE/Examples/Hello.swift" -o "hello-$pass.png"
+            head -c 8 "hello-$pass.png" | od -An -c | grep -q 'P *N *G'
+          done
+          test -x "$BLITR_HOME"/toolchains/swift-*/usr/bin/swiftc
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          registry-url: https://registry.npmjs.org
+
+      - name: Publish
+        if: startsWith(github.ref, 'refs/tags/')
+        working-directory: npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          tag=latest; [ "$PRERELEASE" = true ] && tag=next
+          npm publish --access public --provenance --tag "$tag"
+
+  docker:
+    name: Container image
+    needs: release
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dist-linux-*
+          path: assets
+          merge-multiple: true
+
+      - name: Image name and Swift version
+        id: meta
+        run: |
+          echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/blitr" >> "$GITHUB_OUTPUT"
+          swift="$(tar -xzOf "assets/blitr-$GITHUB_REF_NAME-linux-x86_64.tar.gz" blitr/share/blitr/VERSION | sed -n 's/^swift_version: *//p')"
+          echo "swift=$swift" >> "$GITHUB_OUTPUT"
+          tags="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/blitr:${GITHUB_REF_NAME#v}"
+          [ "$PRERELEASE" = true ] || tags="$tags,ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/blitr:latest"
+          echo "tags=$tags" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: scripts/dist/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            VERSION=${{ github.ref_name }}
+            SWIFT_VERSION=${{ steps.meta.outputs.swift }}
+          tags: ${{ steps.meta.outputs.tags }}
+          push: true
+
+      - name: Smoke test the image
+        run: |
+          docker run --rm -v "$PWD/Examples:/work" "${{ steps.meta.outputs.image }}:${GITHUB_REF_NAME#v}" render Hello.swift -o /tmp/hello.png
+
+  homebrew:
+    name: Homebrew formula
+    needs: release
+    if: ${{ startsWith(github.ref, 'refs/tags/') && !contains(github.ref_name, '-') }}
+    runs-on: ubuntu-24.04
+    env:
+      TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dist-macos-*
+          path: assets
+          merge-multiple: true
+
+      - name: Write and push the formula
+        if: env.TAP_TOKEN != ''
+        run: |
+          set -euo pipefail
+          git clone "https://x-access-token:${TAP_TOKEN}@github.com/${GITHUB_REPOSITORY_OWNER}/homebrew-blitr.git" tap
+          mkdir -p tap/Formula
+          scripts/dist/homebrew-formula.sh "$GITHUB_REF_NAME" assets > tap/Formula/blitr.rb
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/blitr.rb
+          git commit -m "blitr ${GITHUB_REF_NAME#v}"
+          git push origin HEAD:main
+
+      - name: No tap token
+        if: env.TAP_TOKEN == ''
+        run: echo "::warning::HOMEBREW_TAP_TOKEN is not set; the formula was not updated"

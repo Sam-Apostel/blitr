@@ -5,8 +5,10 @@
 #       Inter (SF Pro), Nunito (SF Rounded), Source Serif 4 (New York),
 #       JetBrains Mono (SF Mono), Noto Color Emoji (Apple Color Emoji)
 # Safe to re-run; skips anything already present.
-# HarfBuzz is not fetched: it comes from the system (libharfbuzz-dev on Linux; on macOS Homebrew's
-# harfbuzz, found through pkg-config). macOS support is in progress (issue #19).
+#   - HarfBuzz, self-contained (libHarfBuzzSharp, no glib or freetype) -> Vendor/harfbuzz/lib, for release
+#     tarballs only (scripts/make-dist.sh)
+# A build from source compiles and links against the system's HarfBuzz (libharfbuzz-dev on Linux; on macOS
+# Homebrew's harfbuzz, found through pkg-config); a release carries its own, so it needs neither.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -14,6 +16,10 @@ SKIA_VERSION=4.156.0
 SKIA_SHA256=45780b4ae200797bba6ce479f10554711902eeab5676bd3854894df89d0edc10
 # The macOS package of the same release: one universal (arm64 + x86_64) libSkiaSharp.dylib.
 SKIA_MACOS_SHA256=5014f2cb2560cdc99b2fd7d0b88497bc2742e766d21f2a79fc7dbcbb71137f9d
+# HarfBuzzSharp, from the same project as SkiaSharp: HarfBuzz built with no dependencies beyond libc.
+HARFBUZZ_VERSION=14.4.0.101
+HARFBUZZ_SHA256=39ad37a2fcd1a8a1597315b636a7a711b7305c84296bf16b0119aa3eebbfb288
+HARFBUZZ_MACOS_SHA256=db0e3be411603f30abdf5745b066a64ea1d7e983f6664d7501bc7e81fa691eea
 INTER_VERSION=4.1
 INTER_SHA256=9883fdd4a49d4fb66bd8177ba6625ef9a64aa45899767dde3d36aa425756b11e
 
@@ -64,6 +70,16 @@ elif [ ! -f Vendor/skia/lib/libSkiaSharp.so ]; then
   soname=$(objdump -p Vendor/skia/lib/libSkiaSharp.so | awk '$1 == "SONAME" { print $2 }')
   if [ -n "$soname" ] && [ "$soname" != libSkiaSharp.so ]; then ln -sf libSkiaSharp.so "Vendor/skia/lib/$soname"; fi
   cp "$tmp/skia/LICENSE.txt" "$tmp/skia/THIRD-PARTY-NOTICES.txt" Vendor/skia/
+fi
+
+if [ "$OS" = Darwin ]; then hb_package=harfbuzzsharp.nativeassets.macos; hb_sha=$HARFBUZZ_MACOS_SHA256; hb_file=libHarfBuzzSharp.dylib
+else hb_package=harfbuzzsharp.nativeassets.linux; hb_sha=$HARFBUZZ_SHA256; hb_file=libHarfBuzzSharp.so; fi
+if [ ! -f "Vendor/harfbuzz/lib/$hb_file" ]; then
+  echo "Fetching HarfBuzz $HARFBUZZ_VERSION ($RID)"
+  fetch "https://api.nuget.org/v3-flatcontainer/$hb_package/$HARFBUZZ_VERSION/$hb_package.$HARFBUZZ_VERSION.nupkg" "$hb_sha" "$tmp/harfbuzz.zip"
+  mkdir -p Vendor/harfbuzz/lib
+  unzip -qo "$tmp/harfbuzz.zip" "runtimes/$RID/native/$hb_file" -d "$tmp/harfbuzz"
+  cp "$tmp/harfbuzz/runtimes/$RID/native/$hb_file" Vendor/harfbuzz/lib/
 fi
 
 if [ ! -f Vendor/fonts/InterVariable.ttf ]; then

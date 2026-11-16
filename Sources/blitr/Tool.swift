@@ -156,6 +156,24 @@ struct Installation {
         return Installation(sdk: (sdk as NSString).standardizingPath, fontDirectories: fonts, appleFontDirectory: appleFonts, swiftc: swiftc)
     }
 
+    /// The compiler file `swiftc` runs, without running it: on a Mac, /usr/bin/swiftc is the xcrun shim, and
+    /// the compiler is the selected Xcode's (DEVELOPER_DIR, else `xcode-select`'s choice).
+    var compilerFile: String {
+        var path = swiftc
+        #if canImport(Darwin)
+        if path == "/usr/bin/swiftc" {
+            let env = ProcessInfo.processInfo.environment
+            let developer = env["DEVELOPER_DIR"]
+                ?? (try? FileManager.default.destinationOfSymbolicLink(atPath: "/var/db/xcode_select_link"))
+                ?? "/Applications/Xcode.app/Contents/Developer"
+            let xcode = developer + "/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+            let commandLineTools = developer + "/usr/bin/swiftc"
+            path = FileManager.default.fileExists(atPath: xcode) ? xcode : commandLineTools
+        }
+        #endif
+        return (path as NSString).resolvingSymlinksInPath
+    }
+
     /// The modules of the SDK: every `Name.swiftmodule` next to the SwiftUI module (SwiftUI, Combine, the
     /// shim frameworks and the Foundation shim, all linked into the engine library).
     var modules: [String] {
@@ -167,7 +185,9 @@ struct Installation {
     /// rebuilt SwiftUI or shim module invalidates what was compiled against the old one.
     var stamp: String {
         let fm = FileManager.default
-        var parts: [String] = []
+        // The compiler too: a module rebuilt from its interface by a newer compiler, or a new Xcode, changes what
+        // a compile produces.
+        var parts: [String] = [swiftc, compilerFile + fileStamp(compilerFile)]
         for name in ((try? fm.contentsOfDirectory(atPath: sdk)) ?? []).sorted() {
             let path = sdk + "/" + name
             if HostPlatform.libraryName(fromFile: name) != nil {
@@ -175,7 +195,7 @@ struct Installation {
             } else if name.hasSuffix(".swiftmodule") {
                 var isDirectory: ObjCBool = false
                 guard fm.fileExists(atPath: path, isDirectory: &isDirectory) else { continue }
-                let files = isDirectory.boolValue ? ((try? fm.contentsOfDirectory(atPath: path)) ?? []).sorted().filter { $0.hasSuffix(".swiftmodule") }.map { path + "/" + $0 } : [path]
+                let files = isDirectory.boolValue ? ((try? fm.contentsOfDirectory(atPath: path)) ?? []).sorted().filter { $0.hasSuffix(".swiftmodule") || $0.hasSuffix(".swiftinterface") }.map { path + "/" + $0 } : [path]
                 parts += files.map { name + fileStamp($0) }
             }
         }
@@ -549,6 +569,19 @@ func moduleCompiler(_ installation: Installation) -> String? {
     return swiftVersionBanner(in: String(decoding: data.map { $0 < 0x80 ? $0 : 0x20 }, as: UTF8.self))
 }
 
+/// True when the SwiftUI module carries a .swiftinterface, which any newer compiler can load.
+func hasModuleInterfaces(_ installation: Installation) -> Bool {
+    let dir = installation.sdk + "/SwiftUI.swiftmodule"
+    return ((try? FileManager.default.contentsOfDirectory(atPath: dir)) ?? []).contains { $0.hasSuffix(".swiftinterface") }
+}
+
+/// [6, 4, 2] out of "Swift version 6.4.2 (...)".
+func numericSwiftVersion(_ banner: String) -> [Int]? {
+    guard let range = banner.range(of: #"\d+(\.\d+)+"#, options: .regularExpression) else { return nil }
+    let parts = banner[range].split(separator: ".").compactMap { Int($0) }
+    return parts + Array(repeating: 0, count: max(0, 3 - parts.count))
+}
+
 func runtimeCompiler(_ installation: Installation) -> String? {
     guard !installation.swiftc.isEmpty else { return nil }
     return swiftVersionBanner(in: run(installation.swiftc, ["--version"]).stdout)
@@ -557,6 +590,13 @@ func runtimeCompiler(_ installation: Installation) -> String? {
 /// A plain-language message if the compiler on this machine cannot load the bundled modules.
 func compilerMismatch(_ installation: Installation) -> String? {
     guard let built = moduleCompiler(installation), let current = runtimeCompiler(installation), built != current else { return nil }
+    // With textual interfaces (a macOS release), a newer compiler rebuilds the modules from them.
+    if hasModuleInterfaces(installation), let builtVersion = numericSwiftVersion(built), let currentVersion = numericSwiftVersion(current) {
+        if currentVersion.lexicographicallyPrecedes(builtVersion) {
+            return "the bundled SwiftUI modules need \(built) or newer, but \(installation.swiftc) is \(current). Update Xcode, or set SWIFTC to a newer compiler."
+        }
+        return nil
+    }
     return "the bundled SwiftUI modules were built with \(built), but \(installation.swiftc) is \(current). "
         + "Swift modules only load with the exact compiler that built them: install \(built) (set SWIFTC or put it first on PATH), or rebuild blitr with this compiler."
 }

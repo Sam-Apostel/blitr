@@ -18,9 +18,17 @@ let engineLibrary = "BlitrEngine"
 // Modules that user code imports are built with library evolution so their private
 // C dependencies do not leak into the user's compile. Their code is all in the engine library, so none of
 // them may autolink it (it would link against itself); importers autolink it through `linkEngine`.
+// On macOS they also get a textual interface (.swiftinterface): the Swift runtime is the system's there, so a
+// release built with one Xcode can be used with a newer one, which rebuilds the modules from their interfaces.
+// Linux has no stable runtime ABI, so a release there is used with the exact toolchain it was built with.
+#if os(macOS)
+let interfaceFlags = ["-emit-module-interface", "-no-verify-emitted-module-interface"]
+#else
+let interfaceFlags: [String] = []
+#endif
 let moduleSettings: [SwiftSetting] = [.swiftLanguageMode(.v5), .unsafeFlags([
     "-enable-library-evolution", "-Xfrontend", "-disable-autolink-library", "-Xfrontend", engineLibrary,
-])]
+] + interfaceFlags)]
 // The modules an importer links the engine for: SwiftUI, and the Foundation shim (imported on its own into
 // Foundation-only modules in project mode).
 let linkEngine: [SwiftSetting] = [.unsafeFlags(["-module-link-name", engineLibrary])]

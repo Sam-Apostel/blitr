@@ -1,14 +1,10 @@
 name: macOS
 
 # The native macOS build (issue #19): build, the regression set, the three suites, and the release tarball.
-# Started by hand only: the repository is private and macOS runner minutes count 10x against the quota.
+# Started by hand, on the self-hosted Mac runner (GitHub's macOS images lag behind the Xcode this needs). It
+# changes nothing on the machine: caches go to the job's temporary directory.
 on:
   workflow_dispatch:
-    inputs:
-      swift-version:
-        description: Swift toolchain to install with swiftly (empty uses the runner's Xcode toolchain)
-        required: false
-        default: ""
 
 defaults:
   run:
@@ -17,24 +13,17 @@ defaults:
 jobs:
   macos:
     name: Build, render and test on macOS
-    runs-on: macos-latest
+    runs-on: [self-hosted, macOS, ARM64, xcode]
     env:
       BLITR_CACHE: ${{ github.workspace }}/.cache/blitr
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install HarfBuzz and pkg-config
-        run: brew install harfbuzz pkg-config
-
-      - name: Install the Swift toolchain
-        if: inputs.swift-version != ''
+      - name: HarfBuzz and pkg-config
         run: |
-          curl -fsSLO https://download.swift.org/swiftly/darwin/swiftly.pkg
-          installer -pkg swiftly.pkg -target CurrentUserHomeDirectory
-          ~/.swiftly/bin/swiftly init --quiet-shell-followup --skip-install
-          . "${SWIFTLY_HOME_DIR:-$HOME/.swiftly}/env.sh"
-          swiftly install --use "${{ inputs.swift-version }}"
-          echo "${SWIFTLY_BIN_DIR:-$HOME/.swiftly/bin}" >> "$GITHUB_PATH"
+          eval "$(/opt/homebrew/bin/brew shellenv)"
+          echo "/opt/homebrew/bin" >> "$GITHUB_PATH"
+          pkg-config --exists harfbuzz 2>/dev/null || brew install harfbuzz pkg-config
 
       - name: Toolchain
         run: |

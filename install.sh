@@ -1,28 +1,32 @@
 #!/usr/bin/env bash
-# Installs blitr (a Linux CLI that renders SwiftUI source to PNG) from a release tarball.
+# Installs blitr (renders SwiftUI source to PNG) from a release tarball, on Linux or macOS.
 # Written for an unattended root setup script: idempotent, quiet on success, one-line error on failure.
 #
 #   install.sh [--prefix /opt/blitr] [--version vX.Y.Z] [--from <url-or-path-to-tarball>]
 #              [--apple-fonts --accept-apple-font-license] [--claude-instructions]
 #              [--bin-dir /usr/local/bin] [--swift-dir /opt/swift]
 #
-#   --prefix        Where the tree is unpacked (default /opt/blitr).
+#   --prefix        Where the tree is unpacked (default /opt/blitr; on macOS ~/.local/share/blitr).
 #   --version       Release tag to install (default: the latest release).
 #   --from          A tarball path or URL instead of the GitHub release. For a URL, <url>.sha256 is verified;
 #                   for a path, <path>.sha256 is verified if it exists.
 #   --apple-fonts   Also download Apple's fonts from Apple (needs --accept-apple-font-license).
 #   --claude-instructions
 #                   Add (or refresh) a short block in ~/.claude/CLAUDE.md that tells a coding agent about the tool.
-#   --bin-dir       Where the `blitr` symlink goes (default /usr/local/bin).
-#   --swift-dir     Where a missing Swift toolchain is installed (default /opt/swift).
+#   --bin-dir       Where the `blitr` symlink goes (default /usr/local/bin; on macOS ~/.local/bin).
+#   --swift-dir     Linux: where a missing Swift toolchain is installed (default /opt/swift). On macOS the
+#                   compiler is Xcode's (or the Command Line Tools'), of the release's Swift version or newer.
 #
 # Releases are fetched from https://github.com/Sam-Apostel/blitr.
 # shellcheck disable=SC2015  # `[ a ] && [ b ] || die` is intended
 set -Eeuo pipefail
 
 REPO="Sam-Apostel/blitr"
-prefix=/opt/blitr
-bin_dir=/usr/local/bin
+if [ "$(uname -s)" = Darwin ]; then
+  prefix="$HOME/.local/share/blitr"; bin_dir="$HOME/.local/bin"
+else
+  prefix=/opt/blitr; bin_dir=/usr/local/bin
+fi
 swift_dir=/opt/swift
 version=""
 from=""
@@ -51,10 +55,15 @@ done
 if [ "$apple_fonts" = 1 ] && [ "$apple_accepted" != 1 ]; then
   die "--apple-fonts also needs --accept-apple-font-license (terms: https://developer.apple.com/fonts/)"
 fi
-[ "$(uname -s)" = Linux ] || die "only Linux is supported"
-case "$(uname -m)" in
-  x86_64) arch=x86_64 ;;
-  aarch64|arm64) arch=aarch64 ;;
+case "$(uname -s)" in
+  Linux) os=linux ;;
+  Darwin) os=macos ;;
+  *) die "only Linux and macOS are supported" ;;
+esac
+case "$os-$(uname -m)" in
+  *-x86_64) arch=x86_64 ;;
+  linux-aarch64|linux-arm64) arch=aarch64 ;;
+  macos-arm64) arch=arm64 ;;
   *) die "unsupported architecture $(uname -m)" ;;
 esac
 
@@ -88,8 +97,10 @@ need_packages() { # packages...: installs the ones dpkg does not know
   [ ${#missing[@]} -eq 0 ] || apt_install "${missing[@]}"
 }
 
-need_packages curl ca-certificates libharfbuzz0b
-[ "$apple_fonts" = 0 ] || need_packages 7zip
+if [ "$os" = linux ]; then
+  need_packages curl ca-certificates
+  [ "$apple_fonts" = 0 ] || need_packages 7zip
+fi
 
 download() { # url dest
   local code
@@ -101,7 +112,7 @@ download() { # url dest
   fi
 }
 
-sha_of() { sha256sum "$1" | cut -d' ' -f1; }
+sha_of() { if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1"; else shasum -a 256 "$1"; fi | cut -d' ' -f1; }
 
 verify_sha() { # file sha-file
   local want have
@@ -120,7 +131,7 @@ case "$from" in
       version="${latest##*/}"
       case "$version" in v*) ;; *) die "could not find the latest release of $REPO (is it published, and public? otherwise use --from)" ;; esac
     fi
-    asset="blitr-$version-linux-$arch.tar.gz"
+    asset="blitr-$version-$os-$arch.tar.gz"
     url="https://github.com/$REPO/releases/download/$version/$asset"
     download "$url" "$tmp/$asset"
     download "$url.sha256" "$tmp/$asset.sha256"
@@ -167,15 +178,20 @@ else
   chmod 755 "$prefix"
 fi
 
-# 3. The Swift toolchain, pinned to the version the modules were built with.
+# 3. The Swift toolchain, pinned to the version the modules were built with. On macOS, Xcode's: the release
+# carries module interfaces, so any compiler of its Swift version or newer can use it.
+swiftc_path=""
+if [ "$os" = macos ]; then
+  swiftc_path="$(xcrun --find swiftc 2>/dev/null || true)"
+  [ -n "$swiftc_path" ] || die "blitr compiles SwiftUI code with Xcode's Swift compiler: install Xcode, or run xcode-select --install"
+fi
 swift_matches() { # path to swiftc
   [ -x "$1" ] && "$1" --version 2>/dev/null | grep -q "Swift version $swift_version "
 }
-swiftc_path=""
-for candidate in "$(command -v swiftc 2>/dev/null || true)" "$swift_dir/usr/bin/swiftc" /opt/swift/usr/bin/swiftc; do
+[ "$os" = macos ] || for candidate in "$(command -v swiftc 2>/dev/null || true)" "$swift_dir/usr/bin/swiftc" /opt/swift/usr/bin/swiftc; do
   if [ -n "$candidate" ] && swift_matches "$candidate"; then swiftc_path="$candidate"; break; fi
 done
-if [ -z "$swiftc_path" ]; then
+if [ -z "$swiftc_path" ] && [ "$os" = linux ]; then
   case "$swift_version" in
     [0-9]*.[0-9]*|[0-9]*.[0-9]*.[0-9]*) ;;
     *) die "the tarball needs Swift $swift_version, which is not a release toolchain that can be downloaded" ;;

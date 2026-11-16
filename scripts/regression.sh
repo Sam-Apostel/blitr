@@ -24,7 +24,7 @@ fi
 out="${1:?usage: scripts/regression.sh OUT_DIR [--jobs N] [render options...]}"; shift
 jobs=4
 if [ "${1:-}" = --jobs ]; then jobs="$2"; shift 2; fi
-bin="$(cd "$root" && swift build --show-bin-path)"
+bin="${BLITR_BIN_DIR:-$(cd "$root" && swift build --show-bin-path)}"
 mkdir -p "$out"
 cd "$root"
 find Tests/Corpus Examples -name '*.swift' | sort |

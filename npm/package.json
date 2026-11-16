@@ -1,0 +1,15 @@
+{
+  "name": "blitr",
+  "version": "0.0.0",
+  "description": "Render SwiftUI previews to PNG without Xcode's simulator, on macOS and Linux",
+  "keywords": ["swiftui", "screenshot", "preview", "ios", "render", "png", "snapshot"],
+  "homepage": "https://github.com/Sam-Apostel/blitr",
+  "repository": { "type": "git", "url": "git+https://github.com/Sam-Apostel/blitr.git", "directory": "npm" },
+  "bugs": "https://github.com/Sam-Apostel/blitr/issues",
+  "bin": { "blitr": "bin/blitr.js" },
+  "files": ["bin", "lib", "README.md"],
+  "scripts": { "postinstall": "node lib/postinstall.js" },
+  "os": ["darwin", "linux"],
+  "cpu": ["x64", "arm64"],
+  "engines": { "node": ">=22" }
+}
