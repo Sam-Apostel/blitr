@@ -541,7 +541,6 @@ func doctor(_ installation: Installation) {
 @main
 enum Tool {
     static func main() {
-        HostPlatform.setRenderLocale()
         var arguments = Array(CommandLine.arguments.dropFirst())
         guard let command = arguments.first else {
             print(usage)
