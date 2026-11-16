@@ -423,6 +423,8 @@ final class NavigationStackNode: Node {
     let tv: Bool
     /// watchOS: a grey title at the top leading edge, in the clock's row, and no bar chrome (`WatchMetrics`).
     let watch: Bool
+    /// tvOS 26 and later: toolbar items sit near the top of the title row.
+    var tvGlassBar = false
     /// Glass: the search field may go to the bottom bar (iPhone, automatic/toolbar placement).
     private let searchPrefersBottom: Bool
     private let tabBarHostsContent: Bool
@@ -459,6 +461,7 @@ final class NavigationStackNode: Node {
 
         let tv = env.renderPlatform == .tvOS
         self.tv = tv
+        tvGlassBar = tv && env.designLanguage.isGlass
         if tv, chrome.titleDisplayMode != nil {
             Runtime.current?.warn("navigationBarTitleDisplayMode is not available on tvOS: a real tvOS build fails to compile")
         }
@@ -473,6 +476,7 @@ final class NavigationStackNode: Node {
         if tv {
             barAdjust = { e in
                 e.colorScheme = barScheme
+                e.tvToolbarItem = true
                 e.stackAxis = .horizontal
                 e.isInListRow = false
                 e.lineLimit = 1

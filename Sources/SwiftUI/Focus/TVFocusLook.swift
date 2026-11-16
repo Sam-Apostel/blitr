@@ -252,6 +252,11 @@ enum TVColors {
     static func outsidePickerValue(_ scheme: ColorScheme) -> RGBA {
         scheme == .dark ? RGBA(1, 1, 1, 0.66) : RGBA(0, 0, 0, 0.83)
     }
+    /// An unfocused tvOS 26 toolbar item beside the navigation title (measured: tvOS 26.5 simulator, see
+    /// TVMetrics.glassToolbarItemTop).
+    static func glassToolbarItem(_ scheme: ColorScheme) -> RGBA {
+        scheme == .dark ? RGBA(1, 1, 1, 0.105) : RGBA(0, 0, 0, 0.075)
+    }
     /// Trailing values of rows (measured: black at about 57%, white at about 55%).
     static func rowValue(_ scheme: ColorScheme) -> RGBA {
         scheme == .dark ? RGBA(1, 1, 1, 0.55) : RGBA(0, 0, 0, 0.57)
@@ -285,6 +290,8 @@ enum TVOnFocusedPlatterKey: EnvironmentKey { static let defaultValue = false }
 enum TVInFormKey: EnvironmentKey { static let defaultValue = false }
 /// Content of a tvOS sheet.
 enum TVInSheetKey: EnvironmentKey { static let defaultValue = false }
+/// A tvOS navigation bar item.
+enum TVToolbarItemKey: EnvironmentKey { static let defaultValue = false }
 /// Content of a tvOS bordered button's platter.
 enum TVInButtonPlatterKey: EnvironmentKey { static let defaultValue = false }
 /// `.hoverEffect(_:)` written on a view.
@@ -295,6 +302,10 @@ extension EnvironmentValues {
     var tvInSheet: Bool {
         get { self[TVInSheetKey.self] }
         set { self[TVInSheetKey.self] = newValue }
+    }
+    var tvToolbarItem: Bool {
+        get { self[TVToolbarItemKey.self] }
+        set { self[TVToolbarItemKey.self] = newValue }
     }
     var tvInButtonPlatter: Bool {
         get { self[TVInButtonPlatterKey.self] }
