@@ -32,6 +32,9 @@ Render options:
       --orientation <o>  portrait (default) | landscape (= landscape-left) | landscape-right
       --rounded-corners  Clip to the device's rounded display shape, corners transparent
       --show-island     Draw the Dynamic Island / notch over the content (simulator screenshots do not show it)
+      --frame            Draw generic device hardware around the screen: bezel, band, buttons, island or notch
+      --frame-dir <dir>  Use your own frame images instead: <dir>/<device-id>.png with a transparent screen
+                         (optionally <device-id>-landscape.png); devices without one get the generic frame
       --scheme <s>       light | dark | both (default light; dark on watchOS, which has no light appearance)
       --ios <version>    OS release whose look is drawn: 18, 26, 27 or latest (default latest)
       --os <version>     Same as --ios; the version applies to the platform rendered (tvOS 18, 26, 27, ...)
@@ -301,7 +304,10 @@ func parse(_ arguments: [String]) -> Options {
         case "--os": options.runnerArguments += ["--ios", value(arg)]
         case "--no-chrome", "--show-tips", "--allow-network": options.runnerArguments.append(arg)
         case "--orientation": options.runnerArguments += [arg, value(arg)]
-        case "--rounded-corners", "--show-island": options.runnerArguments.append(arg)
+        case "--rounded-corners", "--show-island", "--frame": options.runnerArguments.append(arg)
+        case "--frame-dir":
+            let dir = value(arg)
+            options.runnerArguments += [arg, dir.hasPrefix("/") ? dir : FileManager.default.currentDirectoryPath + "/" + dir]
         case "--widget-family", "--widget-rendering-mode": options.runnerArguments += [arg, value(arg)]
         case "--accessibility-tree", "--tap-targets": options.accessibility.record(arg, value: value(arg))
         case "--accessibility-outline": options.accessibility.record(arg, value: nil)

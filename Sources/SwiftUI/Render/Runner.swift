@@ -105,6 +105,8 @@ public enum _ScreenshotRunner {
                 }
             case "--rounded-corners": config.roundedCorners = true
             case "--show-island": config.showsSensorHousing = true
+            case "--frame": config.frame = config.frame ?? .procedural
+            case "--frame-dir": config.frame = .directory(value(flag))
             case "--layout":
                 layoutSet = true
                 switch value(flag) {

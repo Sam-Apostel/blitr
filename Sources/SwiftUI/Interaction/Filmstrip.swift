@@ -54,17 +54,21 @@ enum Filmstrip {
             let x = margin + (cellWidth + gap) * CGFloat(i)
             let w = CGFloat(cell.image.width) / s, h = CGFloat(cell.image.height) / s
             let rect = CGRect(x: x + (cellWidth - w) / 2, y: margin, width: w, height: h)
+            // Framed cells (`--frame`) bring their own outline.
+            let framed = DeviceFrame.current != nil
             if let image = FramePixels.makeImage(cell.image) {
                 painter.save()
-                painter.clip(Path(roundedRect: rect, cornerRadius: cornerRadius, style: .continuous))
+                if !framed { painter.clip(Path(roundedRect: rect, cornerRadius: cornerRadius, style: .continuous)) }
                 var src = sk_rect_t(left: 0, top: 0, right: Float(cell.image.width), bottom: Float(cell.image.height))
                 var dst = Painter.skRect(rect)
                 sk_canvas_draw_image_rect(canvas, image, &src, &dst, &sampling, nil)
                 painter.restore()
                 sk_image_unref(image)
             }
-            painter.stroke(Path(roundedRect: rect, cornerRadius: cornerRadius, style: .continuous),
-                           with: .color(SystemColor.separator.resolve(scheme)), style: StrokeStyle(lineWidth: 1 / s), in: rect)
+            if !framed {
+                painter.stroke(Path(roundedRect: rect, cornerRadius: cornerRadius, style: .continuous),
+                               with: .color(SystemColor.separator.resolve(scheme)), style: StrokeStyle(lineWidth: 1 / s), in: rect)
+            }
             let caption = captions[i]
             caption.node.place(at: CGPoint(x: x + (cellWidth - caption.size.width) / 2, y: margin + cellHeight + captionGap), size: caption.size,
                                PlaceContext(origin: .zero, container: container, safeRect: container, scale: s))

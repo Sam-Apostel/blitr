@@ -93,6 +93,11 @@ activation registry (`Runtime.activations`), or a control's recorded handlers
 
 The runner's JSON line reports `frameCount`, `captureDuration`, `frames`, `animated`, `animatedFrames`.
 
+With `--frame` or `--frame-dir` (README, "Device frames") the frames, the animated output and the filmstrip
+cells carry the device frame; the filmstrip then draws no outline of its own. Taps and other steps still address
+the bare screen. GIF has only on-off transparency, so the frame's anti-aliased edge is hard there; APNG and WebP
+keep it smooth. `--full-content` is not framed.
+
 ### Encoders
 
 - **GIF** (`Interaction/GIFEncoder.swift`): median-cut palette (255 colors, perceptually weighted, one
