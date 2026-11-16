@@ -70,6 +70,21 @@ extension FocusEngine {
                 notes.append("onMoveCommand(\(press.rawValue)) called")
             }
             if let t = snapshot.move(f, direction) {
+                let vertical = direction == .up || direction == .down
+                let from = snapshot.elements[f].frame, to = snapshot.elements[t].frame
+                // The line: the one this run already keeps to, else the centre of an element focus narrows from.
+                var line: CGFloat?
+                if let a = moveAnchor, a.path == snapshot.elements[f].path, a.vertical == vertical { line = a.value }
+                let (lo, hi) = vertical ? (to.minX, to.maxX) : (to.minY, to.maxY)
+                let spans = { (v: CGFloat) in v >= lo - 0.5 && v <= hi + 0.5 }
+                if let l = line, !spans(l) { line = nil }
+                if line == nil, (vertical ? to.width < from.width - 0.5 : to.height < from.height - 0.5) {
+                    let centre = vertical ? from.midX : from.midY
+                    if spans(centre) { line = centre }
+                }
+                moveAnchor = automaticInitialFocus ? line.map {
+                    MoveAnchor(path: snapshot.elements[t].path, vertical: vertical, value: $0)
+                } : nil
                 requestedPath = snapshot.elements[t].path
                 userMoved = true
                 log.to = snapshot.elements[t].id
@@ -82,6 +97,8 @@ extension FocusEngine {
             return log
         }
 
+        handlingPress = true
+        defer { handlingPress = false }
         switch press {
         case .select:
             guard let f else {
@@ -99,7 +116,10 @@ extension FocusEngine {
             }
         case .menu:
             if let handler = innermost({ k -> (() -> Void)? in if case .onExit(let h) = k { return h }; return nil }) {
+                // `@Environment(\.dismiss)` called by the handler acts (Compat/EnvironmentKeys.swift).
+                handlingPress = true
                 handler()
+                handlingPress = false
                 log.note = "onExitCommand called"
             } else if let dismiss = snapshot.dismissTop {
                 dismiss()
@@ -114,7 +134,10 @@ extension FocusEngine {
                 pushes[stack]?.removeLast()
                 log.note = "popped a screen pushed by select"
             } else {
-                log.note = "nothing to go back to"
+                // Nothing in the app handles it: tvOS goes back to the Home Screen (measured: tvOS 26.5).
+                log.to = nil
+                log.toLabel = nil
+                log.note = "nothing to go back to: tvOS would leave the app"
                 runtime.warn("--press menu: no onExitCommand, presentation or pushed screen to go back from (tvOS would leave the app); screens pushed through a NavigationStack path binding cannot be popped")
             }
         case .playpause:

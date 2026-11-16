@@ -67,6 +67,10 @@ Render options:
       --allow-network    Let the code reach the network; by default requests fail at once (offline)
       --image-cache <dir>  Keep the images the code downloads (with --allow-network) in <dir>, and answer
                          offline renders from it, so remote photos show without the network
+      --env <KEY=VALUE>  Set an environment variable for the rendered program, read through
+                         ProcessInfo.processInfo.environment (repeatable)
+      --arg <value>      Append a launch argument for the rendered program, read through
+                         ProcessInfo.processInfo.arguments and CommandLine.arguments (repeatable)
       --map-tiles <dir>  Draw maps with offline raster tiles from <dir>/<z>/<x>/<y>.png (the usual web map
                          scheme, also .jpg or .webp); without it maps are a placeholder surface. See docs/MAPS.md
       --widget-family <f>          Widgets: render this family (systemSmall, systemMedium, systemLarge,
@@ -193,10 +197,21 @@ struct Installation {
 // MARK: - Helpers
 
 @discardableResult
-func run(_ executable: String, _ arguments: [String], captureOutput: Bool = true) -> (status: Int32, stdout: String, stderr: String) {
+func run(_ executable: String, _ arguments: [String], captureOutput: Bool = true, launch: ProgramLaunch? = nil)
+    -> (status: Int32, stdout: String, stderr: String) {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: executable)
     process.arguments = arguments
+    if let launch {
+        // The program's own argv is its launch arguments (none unless --arg), as an app's is; the runner's options
+        // travel in the environment and are removed from it before the program's code runs.
+        var environment = ProcessInfo.processInfo.environment
+        for (key, value) in launch.environment { environment[key] = value }
+        let data = (try? JSONSerialization.data(withJSONObject: arguments)) ?? Data()
+        environment[ProgramLaunch.runnerArgumentsVariable] = String(decoding: data, as: UTF8.self)
+        process.arguments = launch.arguments
+        process.environment = environment
+    }
     let out = Pipe(), err = Pipe()
     if captureOutput {
         process.standardOutput = out
@@ -214,6 +229,20 @@ func run(_ executable: String, _ arguments: [String], captureOutput: Bool = true
     drained.wait()
     process.waitUntilExit()
     return (process.terminationStatus, String(decoding: outData, as: UTF8.self), String(decoding: errData, as: UTF8.self))
+}
+
+/// `--env` / `--arg`: what the rendered program finds in ProcessInfo's environment and arguments.
+struct ProgramLaunch {
+    static let runnerArgumentsVariable = "SWIFTUI_SCREENSHOT_RUNNER_ARGUMENTS"
+    var environment: [(String, String)] = []
+    var arguments: [String] = []
+
+    mutating func addEnvironment(_ assignment: String) {
+        guard let equals = assignment.firstIndex(of: "="), equals != assignment.startIndex else {
+            fail("--env needs KEY=VALUE, got \"\(assignment)\"")
+        }
+        environment.append((String(assignment[..<equals]), String(assignment[assignment.index(after: equals)...])))
+    }
 }
 
 /// FNV-1a, enough to key the build cache.
@@ -274,6 +303,7 @@ struct Options {
     var accessibility = AccessibilityCLIOptions()
     var focus = FocusCLIOptions()
     var interaction = InteractionCLIOptions()
+    var launch = ProgramLaunch()
 }
 
 func parse(_ arguments: [String]) -> Options {
@@ -317,6 +347,8 @@ func parse(_ arguments: [String]) -> Options {
             options.runnerArguments += [arg, ProjectFiles.absolute(value(arg), relativeTo: FileManager.default.currentDirectoryPath)]
         case "--os": options.runnerArguments += ["--ios", value(arg)]
         case "--no-chrome", "--show-tips", "--allow-network": options.runnerArguments.append(arg)
+        case "--env": options.launch.addEnvironment(value(arg))
+        case "--arg": options.launch.arguments.append(value(arg))
         case "--orientation": options.runnerArguments += [arg, value(arg)]
         case "--rounded-corners", "--show-island", "--frame": options.runnerArguments.append(arg)
         case "--map-tiles":
@@ -476,7 +508,7 @@ func render(_ options: Options, _ installation: Installation) {
             let apple = options.openFonts ? [] : [installation.appleFontDirectory].compactMap { $0 }
             for dir in options.userFontDirectories + apple + installation.fontDirectories { arguments += ["--fonts", dir] }
             for dir in options.userAssetDirectories + autoAssets { arguments += ["--assets", dir] }
-            let result = run(built.runner, arguments)
+            let result = run(built.runner, arguments, launch: options.launch)
             if result.status != 0 {
                 failures += 1
                 note(result.stderr.trimmingCharacters(in: .whitespacesAndNewlines))

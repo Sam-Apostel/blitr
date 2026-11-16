@@ -50,6 +50,9 @@ package final class Runtime {
     var activations = ActivationRegistry()
     /// The value each `onChange` saw in the previous pass (tvOS: see Modifiers/Lifecycle.swift).
     var changeValues: [IdentityPath: AnyObject] = [:]
+    /// The tree of the current pass once it is laid out, for actions that read geometry
+    /// (`ScrollViewProxy.scrollTo`).
+    var layoutRoot: Node?
 
     package static var current: Runtime?
 

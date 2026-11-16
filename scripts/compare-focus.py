@@ -37,8 +37,9 @@ DIRS = ["up", "down", "left", "right"]
 class Renderer:
     def __init__(self, root, out, device):
         self.root, self.out, self.device = root, out, device
-        bin_dir = subprocess.check_output(["swift", "build", "--show-bin-path"], cwd=root, text=True).strip()
-        self.tool = os.path.join(bin_dir, "swiftui-screenshot")
+        # SWIFTUI_SCREENSHOT_TOOL: another build of the tool (a before/after comparison).
+        self.tool = os.environ.get("SWIFTUI_SCREENSHOT_TOOL") or os.path.join(
+            subprocess.check_output(["swift", "build", "--show-bin-path"], cwd=root, text=True).strip(), "swiftui-screenshot")
         self.cache = {}
 
     def focus_map(self, source, preview, presses=None):

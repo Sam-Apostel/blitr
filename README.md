@@ -96,11 +96,12 @@ swiftui-screenshot doctor | version
 |---|---|
 | `--scheme light\|dark\|both` | Appearance. |
 | `--dynamic-type <size>` | `xSmall` to `xxxLarge`, `accessibility1` to `accessibility5`. |
-| `--locale nl_BE` | Language and region: strings, number, currency and date formats (default `en_US`). |
+| `--locale nl_BE` | Language and region: strings, number, currency and date formats (default `en_US`). A region override such as `en_US@rg=bezzzz` (English with Belgian formats) works too. |
 | `--time-zone Europe/Brussels`, `--date 2026-06-01T09:41:00Z` | Time zone (default UTC) and the moment timelines show. |
 | `--location 51.05,3.72` | Location access granted, and this position reported. Without it, access is not determined. |
 | `--allow-network` | Let the code load data and remote images. Renders are offline by default. |
 | `--image-cache <dir>` | Keep the images the code downloads, and show them in later offline renders: record once with `--allow-network`, then render anywhere. |
+| `--env KEY=VALUE`, `--arg <value>` | Environment variables and launch arguments for the app, read through `ProcessInfo`: reach debug routes and states without writing a preview. |
 | `--map-tiles <dir>` | Draw maps on map tiles you supply (`z/x/y.png`). |
 | `--assets <dir>`, `--fonts <dir>` | Extra images, asset catalogs and fonts. |
 

@@ -69,6 +69,12 @@ References are captured with the scripts in `scripts/mac/` and kept on the Mac i
 `~/Library/Application Support/swiftui-screenshot/references` unless `SWIFTUI_SCREENSHOT_REFERENCES` names another folder. They are never committed:
 anything can be re-captured from the same runtime, and the measured constants carry their numbers in the code.
 
+For an app of your own on tvOS, `scripts/mac/tvos/record-app.sh --app <App.app> --out <references>/<set>
+[--env KEY=VALUE] name=presses...` installs the built app on the Apple TV simulator and records each Siri Remote
+press sequence (a screenshot, the focused element and the buttons' frames after every press);
+`scripts/compare-app-paths.py <dir> -- <render options>` renders the same presses (`--env` for the same launch
+environment) and reports every step where focus differs, keeping our last frame of each sequence.
+
 ```
 swiftui-screenshot compare <reference> <candidate> [options]
 ```

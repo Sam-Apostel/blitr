@@ -21,6 +21,11 @@ extension TVMetrics {
     /// header does (measured: tvOS 26.5 simulator, the first row of a List under "Account" at 145, where a Form's
     /// first header sits at 151).
     static let glassHeaderlessListLift: CGFloat = 6
+    /// tvOS 26: a NavigationStack in a tab of the tab bar has its title 60.5 pt and its content 60 pt lower than the
+    /// tab's content would start (measured: tvOS 26.5 simulator, TVFocus "Settings Tabs": the ink of the "Settings" title from
+    /// 226 to 278, the first row of its headerless List at 302, where content under the bar starts at 157).
+    static let glassTabbedTitleDrop: CGFloat = 60.5
+    static let glassTabbedContentDrop: CGFloat = 60
     /// tvOS 26: a segmented picker in a List row sits 5.5 pt inside its 95 pt row (measured: tvOS 26.5 simulator,
     /// rows at 60 and 249, the segments 84 pt high at 146).
     static let glassSegmentedRowInset: CGFloat = 5.5
@@ -93,7 +98,14 @@ extension NavigationStackNode {
         barTop = max(0, safe.minY)
         let hasTitle = inlineTitle != nil || principal != nil
         let barHeight = hasTitle || !leading.isEmpty || !trailing.isEmpty ? TVMetrics.navigationTitleHeight : 0
+        // Under the tab bar (the safe area starts below the bar, not at the screen's inset).
+        let tabbed = tvGlassBar && barVisible && barHeight > 0
+            && ctx.safeRect.minY >= ctx.container.minY + TVMetrics.tabBarTop + TVMetrics.tabBarHeight
         var y = barTop + (barVisible ? barHeight : 0)
+        if tabbed {
+            barTop += TVMetrics.glassTabbedTitleDrop
+            y += TVMetrics.glassTabbedContentDrop
+        }
         if tvGlassBar, barVisible, barHeight > 0, search == nil, let list = content.firstDescendant(ListNode.self),
            let first = list.sections.first, first.header == nil {
             y -= TVMetrics.glassHeaderlessListLift

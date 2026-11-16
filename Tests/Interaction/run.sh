@@ -82,6 +82,27 @@ SWIFT
 "$bin" render "$out/state/cached.swift" --open-fonts --layout fit --scale 1 --image-cache "$out/state/cache" -o "$out/state/cached.png" >"$out/state/cached.log" 2>&1 || fail "image cache render: $(cat "$out/state/cached.log")"
 grep -q "cached.png  $half" "$out/state/cached.log" && echo "ok    --image-cache serves a recorded image offline" || fail "--image-cache: $(cat "$out/state/cached.log")"
 
+# --env and --arg reach ProcessInfo of the rendered program; the runner's own options do not show up in its arguments.
+cat > "$out/state/launch.swift" <<'SWIFT'
+import SwiftUI
+struct LaunchInfo: View {
+    var body: some View {
+        let info = ProcessInfo.processInfo
+        VStack {
+            Text("env " + (info.environment["APP_SCREEN"] ?? "none"))
+            Text("args " + info.arguments.dropFirst().joined(separator: " "))
+        }
+    }
+}
+#Preview { LaunchInfo() }
+SWIFT
+"$bin" render "$out/state/launch.swift" --open-fonts --layout fit -o "$out/state/launch.png" --accessibility-tree "$out/state/launch.json" \
+  --env APP_SCREEN=flight=2 --arg -openSection --arg "two words" >"$out/state/launch.log" 2>&1 || fail "launch render: $(cat "$out/state/launch.log")"
+grep -q '"env flight=2"' "$out/state/launch.json" && grep -q '"args -openSection two words"' "$out/state/launch.json" \
+  && echo "ok    --env and --arg" || fail "--env/--arg: $(grep -o '"label": "[^"]*"' "$out/state/launch.json" | head -4)"
+"$bin" render "$out/state/launch.swift" --open-fonts --layout fit -o "$out/state/launch-none.png" --accessibility-tree "$out/state/launch-none.json" >/dev/null 2>&1 || fail "launch render without flags"
+grep -q '"env none"' "$out/state/launch-none.json" && echo "ok    no --env, no variable" || fail "launch without --env: $(grep -o '"label": "[^"]*"' "$out/state/launch-none.json" | head -4)"
+
 # Task.sleep on the virtual clock: delays within the settle time pass at once, no task is reported as
 # unfinished, and a `wait` step wakes the 5 s slideshow timer (a different frame).
 mkdir -p "$out/tasks"

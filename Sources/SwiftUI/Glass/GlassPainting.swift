@@ -109,6 +109,11 @@ extension GlassAppearance {
             edge: refined ? (dark ? RGBA(1, 1, 1, 0.1) : RGBA(0, 0, 0, 0.1)) : .clear,
             shadow: refined ? (RGBA(0, 0, 0, dark ? 0.3 : 0.1), 8, 2) : (RGBA(0, 0, 0, dark ? 0.36 : 0.14), 14, 4))
         a.saturatesBeforeTint = true
+        if dark && !refined {
+            // measured: tvOS 26.5 simulator, `glassEffect(.regular, in: Capsule())` over a (14, 16, 18) page in dark:
+            // (31, 32, 34), the iOS 26 dark tint (45% of a 0.19 gray); the earlier estimate gave (21, 23, 25).
+            a.tint = RGBA(0.19, 0.19, 0.2, 0.45)
+        }
         if variant == .clear {
             a.blurRadius = 4
             a.tint = a.tint.opacity(0.3)

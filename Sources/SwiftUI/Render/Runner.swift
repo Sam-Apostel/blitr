@@ -35,7 +35,7 @@ public enum _ScreenshotRunner {
     /// formats with the environment's locale on every host (`Text.Storage.formatted`).
     static func applyLocale() {
         #if canImport(Darwin)
-        let arguments = CommandLine.arguments
+        let arguments = _RunnerArguments.all
         let flag = arguments.firstIndex(of: "--locale").flatMap { $0 + 1 < arguments.count ? arguments[$0 + 1] : nil }
         let identifier = flag ?? ProcessInfo.processInfo.environment["SWIFTUI_SCREENSHOT_LOCALE"] ?? "en_US"
         let language = identifier.split(whereSeparator: { $0 == "_" || $0 == "-" }).first.map(String.init) ?? "en"
@@ -65,7 +65,7 @@ public enum _ScreenshotRunner {
         var orientation: DeviceOrientation?
         var layoutSet = false
         var timeZone = "UTC"
-        var args = Array(CommandLine.arguments.dropFirst())
+        var args = Array(_RunnerArguments.all.dropFirst())
         // `compare` support: pixel comparison of PNG pairs needs Skia, so the CLI delegates it here.
         if args.first == "--compare", args.count >= 2 { ImageComparison.runJobs(args[1]) }
 
@@ -154,8 +154,8 @@ public enum _ScreenshotRunner {
             case "--crop-padding": config.cropPadding = CGFloat(Double(value(flag)) ?? 0)
             case "--locale":
                 let identifier = value(flag)
-                guard identifier.range(of: #"^[A-Za-z]{2,3}([_-][A-Za-z0-9]{2,8})*$"#, options: .regularExpression) != nil else {
-                    fail("--locale takes a language and region such as en_US or nl_BE, not \"\(identifier)\"")
+                guard identifier.range(of: #"^[A-Za-z]{2,3}([_-][A-Za-z0-9]{2,8})*(@[a-z]+=[A-Za-z0-9]+(;[a-z]+=[A-Za-z0-9]+)*)?$"#, options: .regularExpression) != nil else {
+                    fail("--locale takes a language and region such as en_US, nl_BE or en_US@rg=bezzzz, not \"\(identifier)\"")
                 }
                 config.locale = identifier
             case "--location":

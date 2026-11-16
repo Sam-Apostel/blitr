@@ -12,7 +12,7 @@ public enum _DeviceLocation {
 
     /// The location given to the running render, if any.
     public static let current: (latitude: Double, longitude: Double)? = {
-        let arguments = CommandLine.arguments
+        let arguments = _RunnerArguments.all
         guard let index = arguments.firstIndex(of: "--location"), index + 1 < arguments.count else { return nil }
         return parse(arguments[index + 1])
     }()
