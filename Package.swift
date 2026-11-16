@@ -86,7 +86,7 @@ let package = Package(
         .target(name: "AppIntents", dependencies: ["SwiftUI", "UIKit"], swiftSettings: moduleSettings),
         .target(name: "ActivityKit", dependencies: ["SwiftUIScreenshotFoundation"], swiftSettings: moduleSettings),
         .target(name: "WidgetKit", dependencies: ["SwiftUI", "AppIntents", "ActivityKit"], swiftSettings: moduleSettings),
-        .target(name: "CoreLocation", swiftSettings: moduleSettings),
+        .target(name: "CoreLocation", dependencies: ["SwiftUIScreenshotFoundation"], swiftSettings: moduleSettings),
         .target(name: "MapKit", dependencies: ["SwiftUI", "UIKit", "CoreLocation"], swiftSettings: moduleSettings),
         .target(name: "CryptoKit", swiftSettings: moduleSettings),
         .target(name: "Security", dependencies: ["CoreGraphics"], swiftSettings: moduleSettings),

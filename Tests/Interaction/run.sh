@@ -36,6 +36,13 @@ grep -q 'state changed, 15 frames' "$out/a/card.log" && echo "ok    card step lo
 # The settled end of the animation is the plain render of the end state.
 cmp -s "$out/a/card.png" "$out/a/card-apng.png" && echo "ok    end frames agree" || fail "card PNGs differ between runs with different outputs"
 
+# Device state from the command line: --locale sets formats and the currency, --location grants access and reports it.
+mkdir -p "$out/state"
+"$bin" render Examples/DeviceState.swift --open-fonts --layout fit -o "$out/state/us.png" --accessibility-tree "$out/state/us.json" >/dev/null 2>&1 || fail "device state render"
+"$bin" render Examples/DeviceState.swift --open-fonts --layout fit --locale nl_BE --location 51.0543,3.7174 -o "$out/state/be.png" --accessibility-tree "$out/state/be.json" >/dev/null 2>&1 || fail "device state render with flags"
+grep -q '1,234.50' "$out/state/us.json" && grep -q 'not determined' "$out/state/us.json" && echo "ok    default device state" || fail "default device state: $(grep -o '"label": "[^"]*"' "$out/state/us.json" | head -4)"
+grep -q '1.234,50' "$out/state/be.json" && grep -q '51.0543, 3.7174' "$out/state/be.json" && echo "ok    --locale and --location" || fail "--locale/--location: $(grep -o '"label": "[^"]*"' "$out/state/be.json" | head -4)"
+
 # Task.sleep on the virtual clock: delays within the settle time pass at once, no task is reported as
 # unfinished, and a `wait` step wakes the 5 s slideshow timer (a different frame).
 mkdir -p "$out/tasks"

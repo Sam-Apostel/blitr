@@ -91,6 +91,8 @@ swiftui-screenshot version
 | `--task-timeout <s>` | Real seconds `.task` closures may run before the frame is taken (default 0.5; `--task-budget` is the old name). |
 | `--settle-time <s>` | Virtual seconds that pass before the frame is taken (default 2): `Task.sleep` runs on a virtual clock, so a sleep that ends within them returns at once and one that ends later waits past the frame. |
 | `--time-zone <tz>` | The device's time zone, an IANA name such as `Europe/Brussels` (default `UTC`, whatever the host's): `TimeZone.current`, `Date.formatted`, `Text(date, style:)` and the date pickers use it. |
+| `--locale <id>` | The device's language and region, such as `nl_BE` (default `en_US`): number, currency and date formats, and in project mode the string catalogs' language. `Text` follows it on every host; `Locale.current` in your own code follows it on macOS. |
+| `--location <lat>,<lon>` | The device's position: location access is granted and `CLLocationManager` and `CLLocationUpdate.liveUpdates()` report it (default: access not determined, no position, as on a fresh install). |
 | `--date <ISO 8601>` | "Now" for `TimelineView` and interaction captures, such as `2026-06-01T09:41:00Z` (default: the real time; `Date()` in your own code always is). |
 | `--allow-network` | Let the code reach the network. By default a render is offline: requests fail at once with `URLError(.notConnectedToInternet)`. |
 | `--map-tiles <dir>` | Draw `Map`s on your own offline raster tiles, `<dir>/<z>/<x>/<y>.png` in the usual web map layout, instead of a plain surface. No tiles are bundled; their licence and attribution are yours to follow. See [docs/MAPS.md](docs/MAPS.md#offline-tiles). |

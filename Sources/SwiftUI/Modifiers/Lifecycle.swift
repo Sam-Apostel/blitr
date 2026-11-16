@@ -94,7 +94,8 @@ extension Runtime {
     func drainTasks() {
         // Work queued on the main queue (Combine's `receive(on: DispatchQueue.main)`, `DispatchQueue.main.async`
         // from onAppear) runs before the next pass decides whether anything changed.
-        RunLoop.main.run(mode: .default, before: Date())
+        // A few turns, so work that queues more work (a delegate callback that asks for a location) runs too.
+        for _ in 0..<4 { RunLoop.main.run(mode: .default, before: Date()) }
         guard runningTasks > 0 else { return }
         let clock = _RenderClock.shared
         let deadline = Date().addingTimeInterval(config.taskTimeout)

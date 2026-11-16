@@ -1,7 +1,8 @@
-// Location services. There is no device position here: managers stay `.notDetermined`, never
-// deliver updates, and geocoding throws `CLError.network`.
+// Location services. Without `--location` there is no device position: managers stay `.notDetermined`,
+// never deliver updates, and geocoding throws `CLError.network`. With it, that position is reported.
 
 import Foundation
+internal import SwiftUIScreenshotFoundation
 
 public enum CLAuthorizationStatus: Int32, Sendable {
     case notDetermined = 0
@@ -113,10 +114,27 @@ open class CLVisit: NSObject, @unchecked Sendable {
     public var horizontalAccuracy: CLLocationAccuracy { -1 }
 }
 
-/// Inert: authorization stays `.notDetermined`, requests are ignored and no update is delivered.
+/// Without `--location`, inert: authorization stays `.notDetermined`, requests are ignored and no update is
+/// delivered, as on a fresh install. With `--location <lat>,<lon>`, access is granted (when in use) and that
+/// position is reported: from `location`, and to the delegate after `requestLocation()` or
+/// `startUpdatingLocation()`, on the main queue.
 open class CLLocationManager: NSObject, @unchecked Sendable {
-    public weak var delegate: CLLocationManagerDelegate?
-    public var authorizationStatus: CLAuthorizationStatus { .notDetermined }
+    public weak var delegate: CLLocationManagerDelegate? {
+        didSet {
+            // iOS tells a new delegate the current authorization.
+            guard delegate != nil else { return }
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.delegate?.locationManagerDidChangeAuthorization(self)
+                self.delegate?.locationManager(self, didChangeAuthorization: self.authorizationStatus)
+            }
+        }
+    }
+    /// The position given with `--location`, if any.
+    static var deviceLocation: CLLocation? {
+        _DeviceLocation.current.map { CLLocation(latitude: $0.latitude, longitude: $0.longitude) }
+    }
+    public var authorizationStatus: CLAuthorizationStatus { Self.deviceLocation == nil ? .notDetermined : .authorizedWhenInUse }
     public var accuracyAuthorization: CLAccuracyAuthorization { .fullAccuracy }
     public var isAuthorizedForWidgetUpdates: Bool { false }
     public var desiredAccuracy: CLLocationAccuracy = kCLLocationAccuracyBest
@@ -127,7 +145,7 @@ open class CLLocationManager: NSObject, @unchecked Sendable {
     public var pausesLocationUpdatesAutomatically = true
     public var allowsBackgroundLocationUpdates = false
     public var showsBackgroundLocationIndicator = false
-    public var location: CLLocation? { nil }
+    public var location: CLLocation? { Self.deviceLocation }
     public var heading: CLHeading? { nil }
     public var maximumRegionMonitoringDistance: CLLocationDistance { 200_000 }
     public var monitoredRegions: Set<CLRegion> { [] }
@@ -135,8 +153,8 @@ open class CLLocationManager: NSObject, @unchecked Sendable {
 
     public override init() { super.init() }
 
-    open class func authorizationStatus() -> CLAuthorizationStatus { .notDetermined }
-    open class func locationServicesEnabled() -> Bool { false }
+    open class func authorizationStatus() -> CLAuthorizationStatus { deviceLocation == nil ? .notDetermined : .authorizedWhenInUse }
+    open class func locationServicesEnabled() -> Bool { deviceLocation != nil }
     open class func headingAvailable() -> Bool { false }
     open class func significantLocationChangeMonitoringAvailable() -> Bool { false }
     open class func isMonitoringAvailable(for regionClass: AnyClass) -> Bool { false }
@@ -147,8 +165,16 @@ open class CLLocationManager: NSObject, @unchecked Sendable {
     open func requestAlwaysAuthorization() {}
     open func requestTemporaryFullAccuracyAuthorization(withPurposeKey purposeKey: String, completion: ((Error?) -> Void)? = nil) {}
     open func requestTemporaryFullAccuracyAuthorization(withPurposeKey purposeKey: String) async throws {}
-    open func requestLocation() {}
-    open func startUpdatingLocation() {}
+    open func requestLocation() { deliverLocation() }
+    open func startUpdatingLocation() { deliverLocation() }
+
+    private func deliverLocation() {
+        guard let location = Self.deviceLocation else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.delegate?.locationManager(self, didUpdateLocations: [location])
+        }
+    }
     open func stopUpdatingLocation() {}
     open func startUpdatingHeading() {}
     open func stopUpdatingHeading() {}
@@ -166,16 +192,18 @@ open class CLLocationManager: NSObject, @unchecked Sendable {
 
 // MARK: - iOS 17 live updates and service sessions
 
-/// `for try await update in CLLocationUpdate.liveUpdates()` ends at once: there is no position to report.
+/// `for try await update in CLLocationUpdate.liveUpdates()` yields the `--location` position once, or ends at
+/// once when there is none.
 public struct CLLocationUpdate: Sendable {
-    public var location: CLLocation? { nil }
+    let position: CLLocation?
+    public var location: CLLocation? { position }
     public var isStationary: Bool { false }
     public var authorizationDenied: Bool { false }
     public var authorizationDeniedGlobally: Bool { false }
     public var authorizationRestricted: Bool { false }
     public var authorizationRequestInProgress: Bool { false }
     public var insufficientlyInUse: Bool { false }
-    public var locationUnavailable: Bool { true }
+    public var locationUnavailable: Bool { position == nil }
     public var accuracyLimited: Bool { false }
     public var serviceSessionRequired: Bool { false }
     public var stationary: Bool { false }
@@ -191,7 +219,12 @@ public struct CLLocationUpdate: Sendable {
     public struct Updates: AsyncSequence, Sendable {
         public typealias Element = CLLocationUpdate
         public struct AsyncIterator: AsyncIteratorProtocol {
-            public mutating func next() async throws -> CLLocationUpdate? { nil }
+            var delivered = false
+            public mutating func next() async throws -> CLLocationUpdate? {
+                guard !delivered, let location = CLLocationManager.deviceLocation else { return nil }
+                delivered = true
+                return CLLocationUpdate(position: location)
+            }
         }
         public func makeAsyncIterator() -> AsyncIterator { AsyncIterator() }
     }

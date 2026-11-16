@@ -34,7 +34,8 @@ enum ProjectSession {
           --target <name>    Target to build (default: the target that compiles the file)
           --no-project       Compile only the given files, as for a loose file
           --whole-target     Compile every file of the target instead of the files the entry needs
-          --locale <id>      Language for string catalogs and .strings (default: the project's development language)
+          --locale <id>      Language for string catalogs and .strings (default: the project's development language),
+                             and the device's region and formats (see render --help)
       swiftui-screenshot check <file | --target Name> [--json]   Compile without rendering; summarize what is unsupported
     """
 
@@ -52,7 +53,10 @@ enum ProjectSession {
             case "--target": flags.target = value(arg)
             case "--no-project": flags.disabled = true
             case "--whole-target": flags.wholeTarget = true
-            case "--locale": flags.locale = value(arg)
+            case "--locale":
+                // Also the device's formatting locale: the render options see it too.
+                flags.locale = value(arg)
+                rest += [arg, flags.locale!]
             default: rest.append(arg)
             }
         }
