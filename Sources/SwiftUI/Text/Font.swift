@@ -41,6 +41,15 @@ public struct Font: Hashable, Sendable {
         /// the table leaves out, are estimates).
         func watchMetrics(extraLarge: Bool) -> (size: CGFloat, weight: Weight) {
             let d: CGFloat = extraLarge ? 1 : 0
+            if RenderedPlatform.current >= 26 {
+                // measured: watchOS 26.5 simulator (Examples/Watch.swift "Text styles", SF Compact): title is 34pt
+                // on the 42mm screen and 38pt on the 46mm and 49mm ones, caption 2 is 14pt and 15pt.
+                switch self {
+                case .title: return (34 + d * 4, .regular)
+                case .caption2: return (14 + d, .regular)
+                default: break
+                }
+            }
             switch self {
             case .extraLargeTitle: return (36 + d * 2, .bold)
             case .extraLargeTitle2: return (32 + d * 2, .bold)

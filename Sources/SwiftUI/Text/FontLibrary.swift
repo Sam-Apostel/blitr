@@ -224,6 +224,19 @@ final class FontLibrary {
         let key = SystemKey(design: design, italic: italic, staticWeight: design == .rounded || design == .monospaced ? step : 0)
         if let cached = systemFaces[key] { return cached }
         var found: FontFile?
+        // watchOS sets its system font in SF Compact (and SF Compact Rounded), when the user has it.
+        if RenderedPlatform.platform == .watchOS {
+            switch (design, italic) {
+            case (.default, false): found = find(["SF-Compact.ttf", "SFCompact.ttf"])
+            case (.default, true): found = find(["SF-Compact-Italic.ttf", "SFCompactItalic.ttf"])
+            case (.rounded, _): found = find(["SF-Compact-Rounded.ttf", "SFCompactRounded.ttf"])
+            default: break
+            }
+            if found != nil {
+                systemFaces[key] = found
+                return found
+            }
+        }
         switch (design, italic) {
         case (.default, false): found = find(["SF-Pro.ttf", "SFNS.ttf", "InterVariable.ttf"])
         case (.default, true): found = find(["SF-Pro-Italic.ttf", "SFNSItalic.ttf", "InterVariable-Italic.ttf"])
