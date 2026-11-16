@@ -51,6 +51,7 @@ struct _TVButtonVisual: View {
             if inRow { return AnyView(rowBody) }
             return AnyView(liftBody(specular: true))
         case .plain:
+            if design.isGlass { return AnyView(glassPlainBody) }
             return AnyView(liftBody(specular: false))
         case .card:
             return AnyView(cardBody)
@@ -142,6 +143,26 @@ struct _TVButtonVisual: View {
         style.lifted = focused
         let tinted = destructive ? AnyView(label.foregroundStyle(Color(SystemColor.red))) : label
         return tinted
+            .opacity(isEnabled ? 1 : 0.4)
+            .modifier(TVLiftModifier(style: style))
+    }
+
+    /// tvOS 26: a plain button keeps its label as it is and, when focused, gets a light platter around it
+    /// (TVMetrics.glassPlain*). Layout is unchanged: the platter reaches beyond the label's frame.
+    private var glassPlainBody: some View {
+        var style = TVLiftStyle()
+        style.lifted = focused
+        style.cornerRadius = TVMetrics.glassPlainCornerRadius
+        style.outset = EdgeInsets(top: TVMetrics.glassPlainVerticalOutset, leading: TVMetrics.glassPlainHorizontalOutset,
+                                  bottom: TVMetrics.glassPlainVerticalOutset, trailing: TVMetrics.glassPlainHorizontalOutset)
+        if focused {
+            style.platter = .color(TVColors.glassPlainPlatter(scheme))
+            style.rim = TVMetrics.glassPlainRim
+            style.useGlassFocus()
+        }
+        let tinted = destructive ? AnyView(label.foregroundStyle(Color(SystemColor.red))) : label
+        return tinted
+            .tvOnWhitePlatter(focused && !destructive)
             .opacity(isEnabled ? 1 : 0.4)
             .modifier(TVLiftModifier(style: style))
     }

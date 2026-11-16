@@ -50,6 +50,15 @@ enum TVMetrics {
     /// measured: tvOS 26.5, every control size (label ink starts 31-33 pt in, incl. side bearing).
     static let buttonHorizontalPadding: CGFloat = 30
     static let buttonIconSpacing: CGFloat = 20            // measured approx. ("Play" with play.fill: 153 pt wide)
+    /// tvOS 26 `.plain` buttons: unfocused, the bare label; focused, a light platter reaching 30 pt beyond the
+    /// label at the sides and 15 pt above and below (then grown by the usual 4 pt), corners of 36.5 pt (a
+    /// capsule around one line of text), a 1.5 pt white rim, and the focus shadow. The label does not move or
+    /// scale (measured: tvOS 26.5 simulator, "Plain text" 118 x 35 -> a 178 x 65 element whose platter spans
+    /// 1045.5 to 1229.5 by 373 to 446; a 240 x 404 artwork label -> 735.5 to 1043.5 by 373 to 815).
+    static let glassPlainHorizontalOutset: CGFloat = 30
+    static let glassPlainVerticalOutset: CGFloat = 15
+    static let glassPlainCornerRadius: CGFloat = 36.5
+    static let glassPlainRim: CGFloat = 1.5
     /// tvOS 18 bordered buttons are rounded rectangles (est. radius); tvOS 26 buttons are capsules (HIG images).
     static let buttonCornerRadius: CGFloat = 12
     static let cardCornerRadius: CGFloat = 12             // est.
@@ -202,6 +211,11 @@ enum TVColors {
     static func glassFocusedPlatter(_ scheme: ColorScheme) -> RGBA {
         scheme == .dark ? RGBA(207 / 255.0, 212 / 255.0, 217 / 255.0, 1) : RGBA(1, 1, 1, 1)
     }
+    /// A focused tvOS 26 `.plain` button's platter (measured: tvOS 26.5 simulator; light: 242 over a backdrop of
+    /// about 185, 245 -> 230 down a tall platter, white at about 82%; dark: 228 over about 45, white at 88%).
+    static func glassPlainPlatter(_ scheme: ColorScheme) -> RGBA {
+        scheme == .dark ? RGBA(1, 1, 1, 0.88) : RGBA(1, 1, 1, 0.82)
+    }
     /// Unfocused tvOS 26 list row: a light film (measured: white at 15% in light, 10% in dark).
     static func glassRow(_ scheme: ColorScheme) -> RGBA {
         scheme == .dark ? RGBA(1, 1, 1, 0.10) : RGBA(1, 1, 1, 0.15)
@@ -353,6 +367,8 @@ struct TVLiftStyle {
     var cornerRadius: CGFloat? = TVMetrics.buttonCornerRadius
     var outset = EdgeInsets()
     var specular = false
+    /// Width of a white rim drawn inside the platter's edge while lifted (tvOS 26 `.plain`).
+    var rim: CGFloat = 0
     /// The shadow and highlight follow the largest image or shape inside (a poster), not the bounds.
     var followsArtwork = false
     /// Scale and shadow are drawn (focused); when false only the platter is drawn (unfocused).
@@ -429,6 +445,10 @@ final class TVLiftNode: WrapperNode {
                     p.restore()
                 }
                 drawPlatter(p, plate)
+                if style.rim > 0 {
+                    let r = plate.insetBy(dx: style.rim / 2, dy: style.rim / 2)
+                    p.stroke(shape(r), with: .color(RGBA(1, 1, 1, 1)), style: StrokeStyle(lineWidth: style.rim), in: r)
+                }
                 drawChildren(p)
             } else {
                 p.saveLayer(.init(imageFilter: shadow))
