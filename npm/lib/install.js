@@ -12,7 +12,8 @@ const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 const { spawnSync } = require('child_process');
-const { Readable } = require('stream');
+const http = require('http');
+const https = require('https');
 const { pipeline } = require('stream/promises');
 
 const REPO = 'Sam-Apostel/blitr';
@@ -36,10 +37,29 @@ function log(message) {
   process.stderr.write(`blitr: ${message}\n`);
 }
 
+/// Node's http(s) modules rather than fetch: undici's fetch can crash outright (an internal assertion) when a
+/// server closes the connection while the body stream is paused.
+function get(url, redirects = 0) {
+  return new Promise((resolve, reject) => {
+    const client = url.startsWith('https:') ? https : http;
+    client.get(url, { headers: { 'user-agent': 'blitr-npm' } }, (response) => {
+      const { statusCode, headers } = response;
+      if (statusCode >= 300 && statusCode < 400 && headers.location) {
+        response.resume();
+        if (redirects >= 10) return reject(new Error(`too many redirects for ${url}`));
+        return resolve(get(new URL(headers.location, url).toString(), redirects + 1));
+      }
+      if (statusCode !== 200) {
+        response.resume();
+        return reject(new Error(`download of ${url} failed (HTTP ${statusCode})`));
+      }
+      resolve(response);
+    }).on('error', (error) => reject(new Error(`download of ${url} failed: ${error.message}`)));
+  });
+}
+
 async function download(url, file) {
-  const response = await fetch(url, { redirect: 'follow' });
-  if (!response.ok) throw new Error(`download of ${url} failed (HTTP ${response.status})`);
-  await pipeline(Readable.fromWeb(response.body), fs.createWriteStream(file));
+  await pipeline(await get(url), fs.createWriteStream(file));
 }
 
 async function sha256(file) {
