@@ -344,8 +344,13 @@ final class FontLibrary {
     func fallbackInstance(for scalar: Unicode.Scalar, like font: ResolvedFont) -> FontInstance? {
         if fallbacks == nil {
             var list: [FontFile] = []
+            #if canImport(Darwin)
+            // Skia draws through CoreText on macOS, which cannot read Noto Color Emoji's bitmap tables: the
+            // system's Apple Color Emoji is the emoji font there, whichever fonts were asked for.
+            if let f = file("/System/Library/Fonts/Apple Color Emoji.ttc") { list.append(f) }
+            #endif
             let candidates = ["AppleColorEmoji.ttf", "Apple Color Emoji.ttc", "NotoColorEmoji.ttf"]
-            if let f = find(candidates) { list.append(f) }
+            if list.isEmpty, let f = find(candidates) { list.append(f) }
             for path in ["/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf",
                          "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
                          "/usr/share/fonts/truetype/noto/NotoSansSymbols2-Regular.ttf",
