@@ -149,6 +149,8 @@ public enum _ScreenshotRunner {
                     fail("unknown time zone \"\(timeZone)\"; --time-zone takes an IANA name such as Europe/Brussels or UTC")
                 }
             case "--allow-network": config.allowsNetwork = true
+            case "--crop": config.crop = value(flag)
+            case "--crop-padding": config.cropPadding = CGFloat(Double(value(flag)) ?? 0)
             case "--locale":
                 let identifier = value(flag)
                 guard identifier.range(of: #"^[A-Za-z]{2,3}([_-][A-Za-z0-9]{2,8})*$"#, options: .regularExpression) != nil else {

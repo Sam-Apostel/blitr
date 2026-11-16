@@ -25,6 +25,10 @@ package struct RenderConfiguration {
     var fontDirectories: [String] = []
     var assetDirectories: [String] = []
     var padding: CGFloat = 0
+    /// Cut the image down to one part of the screen (`--crop`): an element's identifier or label, or `x,y,w,h` in points.
+    var crop: String?
+    /// Points kept around the cropped part (`--crop-padding`).
+    var cropPadding: CGFloat = 0
     var locale: String?
     /// Real seconds async `.task` work may run before the frame is taken (`--task-timeout`).
     var taskTimeout: TimeInterval = 0.5
@@ -168,7 +172,9 @@ enum Renderer {
         DeviceFrame.current = nil
         defer { DeviceFrame.current = nil }
         if let request = config.frame {
-            if config.layout != .device || config.width != nil || config.height != nil {
+            if config.crop != nil {
+                runtime.warn("--crop images are not framed")
+            } else if config.layout != .device || config.width != nil || config.height != nil {
                 runtime.warn("--frame needs the full-screen device layout; the image is not framed")
             } else {
                 DeviceFrame.current = DeviceFrame.make(request, device: config.device, scale: scale,
@@ -212,7 +218,18 @@ enum Renderer {
                                     canvasSize: { canvasSize }, scale: scale, colorScheme: { env.colorScheme }, environment: { env },
                                     background: background))
 
-        guard let screen = sk_surface_new_image_snapshot(surface) else { throw RenderError("Could not snapshot the surface") }
+        guard var screen = sk_surface_new_image_snapshot(surface) else { throw RenderError("Could not snapshot the surface") }
+        if let crop = config.crop {
+            let rect = try Self.cropRect(crop, root: root, screen: CGRect(origin: .zero, size: canvasSize), runtime: runtime)
+                .insetBy(dx: -config.cropPadding, dy: -config.cropPadding)
+                .intersection(CGRect(origin: .zero, size: canvasSize))
+            guard !rect.isNull, rect.width >= 1, rect.height >= 1 else { throw RenderError("--crop \(crop): the part is not on screen") }
+            var pixels = sk_irect_t(left: Int32((rect.minX * scale).rounded(.down)), top: Int32((rect.minY * scale).rounded(.down)),
+                                    right: Int32((rect.maxX * scale).rounded(.up)), bottom: Int32((rect.maxY * scale).rounded(.up)))
+            guard let cut = sk_image_make_subset_raster(screen, &pixels) else { throw RenderError("Could not crop the image") }
+            sk_image_unref(screen)
+            screen = cut
+        }
         let image = try DeviceFrame.current?.compose(screen) ?? screen
         if image != screen { sk_image_unref(screen) }
         defer { sk_image_unref(image) }
@@ -230,7 +247,32 @@ enum Renderer {
                                         painter: painter, surface: surface)
         try FocusOutputs.finish(engine: runtime.focus, config: config, canvasSize: canvasSize, scale: scale, presses: pressLogs,
                                 painter: painter, surface: surface, redraw: drawFrame)
-        return RenderResult(pixelSize: DeviceFrame.current?.pixelSize ?? (pixelWidth, pixelHeight), warnings: runtime.warnings)
+        return RenderResult(pixelSize: DeviceFrame.current?.pixelSize ?? (Int(sk_image_get_width(image)), Int(sk_image_get_height(image))),
+                            warnings: runtime.warnings)
+    }
+
+    /// The part of the screen `--crop` names, in points: `x,y,w,h`, else the view with that accessibility
+    /// identifier (any view, containers included), else an element by identifier or label as steps find it.
+    static func cropRect(_ crop: String, root: Node, screen: CGRect, runtime: Runtime) throws -> CGRect {
+        let numbers = crop.split(separator: ",").compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
+        if numbers.count == 4, crop.split(separator: ",").count == 4 {
+            return CGRect(x: numbers[0], y: numbers[1], width: numbers[2], height: numbers[3])
+        }
+        let name = crop.hasPrefix("id:") ? String(crop.dropFirst(3)) : crop
+        var found: [CGRect] = []
+        func visit(_ node: Node) {
+            if node.ax?.info.identifier == name, node.frame.width > 0, node.frame.height > 0 {
+                found.append(CGRect(origin: node.absoluteOrigin, size: node.frame.size))
+            }
+            for child in node.children { visit(child) }
+        }
+        visit(root)
+        if let rect = found.first {
+            if found.count > 1 { runtime.warn("--crop \(crop) matches \(found.count) views; the first is used") }
+            return rect
+        }
+        let index = ElementIndex(root: root, screen: screen, runtime: runtime)
+        return try index.resolve(.text(name, nth: nil), step: "--crop", interactiveOnly: false).frame
     }
 }
 

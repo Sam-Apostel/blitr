@@ -75,6 +75,7 @@ swiftui-screenshot version
 | `--ios 18\|26\|27\|latest` | Which iOS design to draw. Default `latest` (27, Liquid Glass). 26 is the first Liquid Glass; 18 is the flat, pre-glass look. |
 | `--device iphone-16` | Screen size, scale, safe areas and status bar of a device. Names are forgiving (`iphone-16-pro`, `"iPhone 16 Pro"`, `iphone16pro`). See `devices`. |
 | `--orientation portrait\|landscape` | Also `landscape-left` / `landscape-right`. Swaps the size and uses landscape insets; iPhones hide the status bar. `#Preview(traits: .landscapeLeft / .sizeThatFitsLayout / .fixedLayout(...))` set the defaults per preview; flags override them. |
+| `--crop <part>` | Only one part of the screen, at the device's scale and with no device chrome around it: a view's `.accessibilityIdentifier` (containers too), an element's label, or `x,y,w,h` in points. `--crop-padding <pt>` keeps a margin. To render a component on its own instead, use `--view "MyCard()" --layout fit`. |
 | `--rounded-corners` | Clip to the device's rounded display, corners transparent. |
 | `--show-island` | Draw the Dynamic Island or notch on top (simulator screenshots do not show it). |
 | `--frame` | Draw the device around the screen: glass border, band, side buttons, Dynamic Island or notch. See [Device frames](#device-frames). |

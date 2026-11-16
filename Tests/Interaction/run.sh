@@ -43,6 +43,11 @@ mkdir -p "$out/state"
 grep -q '1,234.50' "$out/state/us.json" && grep -q 'not determined' "$out/state/us.json" && echo "ok    default device state" || fail "default device state: $(grep -o '"label": "[^"]*"' "$out/state/us.json" | head -4)"
 grep -q '1.234,50' "$out/state/be.json" && grep -q '51.0543, 3.7174' "$out/state/be.json" && echo "ok    --locale and --location" || fail "--locale/--location: $(grep -o '"label": "[^"]*"' "$out/state/be.json" | head -4)"
 
+# --crop: one part of the screen, by rectangle in points or by an element's label, at the device's scale.
+"$bin" render Tests/Corpus/01_Settings.swift --open-fonts -o "$out/state/crop-rect.png" --crop 0,180,393,200 >"$out/state/crop.log" 2>&1 || fail "crop render"
+grep -q "crop-rect.png  1179x600" "$out/state/crop.log" && echo "ok    --crop by rectangle" || fail "--crop by rectangle: $(cat "$out/state/crop.log")"
+"$bin" render Tests/Corpus/01_Settings.swift --open-fonts -o "$out/state/crop-label.png" --crop "Airplane Mode" --crop-padding 4 >"$out/state/crop2.log" 2>&1 && echo "ok    --crop by label" || fail "--crop by label: $(cat "$out/state/crop2.log")"
+
 # Task.sleep on the virtual clock: delays within the settle time pass at once, no task is reported as
 # unfinished, and a `wait` step wakes the 5 s slideshow timer (a different frame).
 mkdir -p "$out/tasks"
