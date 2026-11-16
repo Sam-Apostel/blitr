@@ -57,7 +57,7 @@ struct Forecast: View {
                 let url = URL(string: "https://forecast.example.com/today.json")!
                 let (data, _) = try await session.data(from: url)
                 load = .loaded(String(decoding: data, as: UTF8.self))
-            } catch let error as URLError where error.code == .notConnectedToInternet {
+            } catch let error as URLError where [.notConnectedToInternet, .cannotConnectToHost, .cannotFindHost].contains(error.code) {
                 load = .failed("Offline")
             } catch {
                 load = .failed("Could not load")
