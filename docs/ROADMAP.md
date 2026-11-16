@@ -15,7 +15,7 @@ Where the renderer stands, what is open (in priority order), and which items nee
   supplies (`--map-tiles`).
 - **Native macOS** (issue #19): the same engine builds and renders on a Mac, against a filtered SDK so user code
   sees the same frameworks as on Linux (ARCHITECTURE.md, "macOS").
-- **Calibration** (`docs/REFERENCE.md`, `scripts/calibrate.py`): simulator references live on the `data/references` branch (`ios-27.0`, `ios-26.5`, `tvos-26.5` light and dark, `watchos-26.5` on three watches). The tool renders and compares against them.
+- **Calibration** (`docs/REFERENCE.md`, `scripts/calibrate.py`): simulator references are captured on the Mac and kept there, never in git (docs/REFERENCE.md): `ios-27.0`, `ios-26.5`, `tvos-26.5` light and dark, `watchos-26.5` on three watches. The tool renders and compares against them.
 
 | Set | Typical screen difference |
 |---|---|
@@ -51,4 +51,4 @@ The iOS 27 sum over all screens is 26.6% in light and 30.5% in dark.
   3. Gate each change to the OS version it was measured on.
   4. Mark the constant `// measured: <OS> simulator`.
   5. Make sure no screen gets worse.
-- **New reference sets:** commit them straight to the orphan `data/references` branch. Captures never go on `main`. The capture scripts are in `scripts/mac/`.
+- **New reference sets:** capture them with the scripts in `scripts/mac/`; they are written to the Mac's reference folder (docs/REFERENCE.md) and never committed. Only images used in documentation go in git.

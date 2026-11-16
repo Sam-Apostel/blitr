@@ -3,7 +3,7 @@
 
     scripts/compare-focus.py [--set tvos-26.5] [--only REGEX] [--out out/focus] [--verbose]
 
-Reads Tests/Reference/<set>/focus/<screen>-<preview>.json (written by scripts/mac/, the real focus engine's
+Reads <references>/<set>/focus/<screen>-<preview>.json (written by scripts/mac/, the real focus engine's
 initial focus and, for every element, where each press moves focus after reaching the element along its
 recorded `path`) and focus/probes/*.json (longer press sequences where history matters). For each recording
 it renders the same preview with `--focus-map` and compares, matching elements by label:
@@ -21,15 +21,15 @@ Exits 1 if anything mismatches. The reference set is fetched like scripts/calibr
 """
 import argparse, collections, json, os, re, subprocess, sys
 
-def fetch_references(root, name):
-    print(f"fetching reference set {name} from origin/data/references ...", file=sys.stderr)
-    subprocess.run(["git", "fetch", "--depth", "1", "origin", "data/references"], cwd=root, check=True)
-    dest = os.path.join(root, "Tests", "Reference")
-    os.makedirs(dest, exist_ok=True)
-    archive = subprocess.Popen(["git", "archive", "FETCH_HEAD", name], cwd=root, stdout=subprocess.PIPE)
-    subprocess.run(["tar", "-x", "-C", dest], stdin=archive.stdout, check=True)
-    if archive.wait() != 0:
-        sys.exit(f"no reference set named {name} on data/references")
+def references_root():
+    """Where reference captures live: on this Mac, outside the repository (they are re-captured, never committed).
+    SWIFTUI_SCREENSHOT_REFERENCES overrides it."""
+    return os.environ.get("SWIFTUI_SCREENSHOT_REFERENCES") or os.path.expanduser(
+        "~/Library/Application Support/swiftui-screenshot/references")
+
+def require_set(path, name, what):
+    if not os.path.exists(path):
+        sys.exit(f"no {what} for reference set {name} in {references_root()}; capture it with the scripts in scripts/mac/")
 
 SOURCES = {"TVFocus": "Examples/TVFocus.swift", "TVControls": "Examples/TVControls.swift"}
 DIRS = ["up", "down", "left", "right"]
@@ -165,9 +165,8 @@ def main():
     ap.add_argument("--json", default=None, help="write the per-preview results here")
     args = ap.parse_args()
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    base = os.path.join(root, "Tests", "Reference", args.set)
-    if not os.path.isdir(os.path.join(base, "focus")):
-        fetch_references(root, args.set)
+    base = os.path.join(references_root(), args.set)
+    require_set(os.path.join(base, "focus"), args.set, "focus recordings")
     out = os.path.join(root, args.out)
     os.makedirs(out, exist_ok=True)
     renderer = Renderer(root, out, args.device)

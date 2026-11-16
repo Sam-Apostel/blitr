@@ -1,5 +1,5 @@
 // Apple's VoiceOver labels for SF Symbols, read from the simulator's accessibility tree
-// (Tests/Reference/ios-27.0 and ios-26.5, mostly Examples/Symbols.swift).
+// (the ios-27.0 and ios-26.5 reference sets, mostly Examples/Symbols.swift).
 
 enum SymbolAccessibilityLabels {
     /// Symbol name to the label iOS gives an unlabelled `Image(systemName:)`. measured: iOS 27.0 simulator.

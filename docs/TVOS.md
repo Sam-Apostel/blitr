@@ -69,7 +69,7 @@ Every constant is in `TVMetrics` / `TVColors` and marked there as **measured** (
 
 ### Measured against the tvOS 26.5 simulator
 
-`Tests/Reference/tvos-26.5` (on the `data/references` branch) holds screenshots (3840 x 2160, 2 px/pt) and
+`<references>/tvos-26.5` (captured on the Mac; docs/REFERENCE.md) holds screenshots (3840 x 2160, 2 px/pt) and
 element frames of every preview of `Examples/TVControls.swift`, `Examples/TVControlsMore.swift`, `13_TVHome`
 and `14_TVSettings` on an Apple TV 4K, plus fourteen press variants. Compare with
 

@@ -61,9 +61,13 @@ expanded 44pt hit region; a lone control in a list row is hit across the whole r
 
 ## Comparing against references
 
-`compare` is the Linux half of a calibration loop: screenshots captured from the real iOS Simulator
+`compare` closes a calibration loop that runs on one Mac: screenshots captured from the real iOS Simulator
 (references) are compared with this tool's renders (candidates), so you can see where and by how much
 the render is off.
+
+References are captured with the scripts in `scripts/mac/` and kept on the Mac in `<references>`, which is
+`~/Library/Application Support/swiftui-screenshot/references` unless `SWIFTUI_SCREENSHOT_REFERENCES` names another folder. They are never committed:
+anything can be re-captured from the same runtime, and the measured constants carry their numbers in the code.
 
 ```
 swiftui-screenshot compare <reference> <candidate> [options]
@@ -71,7 +75,7 @@ swiftui-screenshot compare <reference> <candidate> [options]
 
 `<reference>` and `<candidate>` are two PNG files, or two directories compared by relative file name
 (files present on one side only are listed). The suggested layout for references is
-`Tests/Reference/<ios>/<device>/<scheme>/<name>.png` with an optional `<name>.json` of element frames; render
+`<references>/<ios>/<device>/<scheme>/<name>.png` with an optional `<name>.json` of element frames; render
 with `--accessibility-tree <name>.json` next to the candidate PNG and both trees are picked up automatically.
 `scripts/calibrate.py` does the whole loop for a reference set: it renders every captured preview at the set's
 OS version, device, scheme and time zone (`--time-zone`, from the manifest's `simulatorTimeZone`; Europe/Brussels

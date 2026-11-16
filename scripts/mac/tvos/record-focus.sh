@@ -6,7 +6,7 @@
 #                                    [--device "Apple TV 4K (3rd generation) (at 1080p)"] [--out <dir>]
 #                                    [--probe <presses>]
 #
-# Writes <out>/<screen>-<preview>.json (default out: Tests/Reference/tvos-<runtime>/focus) with, per
+# Writes <out>/<screen>-<preview>.json (default out: <references>/tvos-<runtime>/focus) with, per
 # focusable element, its label and frame in points, the press path that reaches it from launch, and the
 # element each of up/down/left/right moves to (null: focus stays). Uses XcodeGen for the project.
 #
@@ -46,7 +46,7 @@ import json, sys
 ds = [d for d in json.load(sys.stdin)["devices"].get(sys.argv[1], []) if d["name"] == sys.argv[2] and d["isAvailable"]]
 print(ds[0]["udid"] if ds else "")' "$RUNTIME_ID" "$DEVICE")"
 [[ -n "$UDID" ]] || { echo "No \"$DEVICE\" simulator on tvOS $RUNTIME_VERSION" >&2; exit 1; }
-OUT="${OUT:-$ROOT/Tests/Reference/tvos-$RUNTIME_VERSION/focus}"
+OUT="${OUT:-${SWIFTUI_SCREENSHOT_REFERENCES:-$HOME/Library/Application Support/swiftui-screenshot/references}/tvos-$RUNTIME_VERSION/focus}"
 BUILD="${TMPDIR:-/tmp}/swiftui-screenshot-focus-host"
 mkdir -p "$BUILD/src" "$BUILD/tests" "$OUT"
 echo "Simulator: $DEVICE, tvOS $RUNTIME_VERSION ($UDID)"

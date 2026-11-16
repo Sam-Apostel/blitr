@@ -110,8 +110,8 @@ centred bar item would return to the poster focused before instead of the poster
 ### Comparison with the real focus engine
 
 `scripts/compare-focus.py` renders each preview of `Examples/TVFocus.swift` with `--focus-map` and diffs it
-against the moves the tvOS 26.5 simulator recorded (`Tests/Reference/tvos-26.5/focus/`, on the
-`data/references` branch), matching elements by label. Where our press path to an element differs from
+against the moves the tvOS 26.5 simulator recorded (`<references>/tvos-26.5/focus/`, captured on
+the Mac; docs/REFERENCE.md), matching elements by label. Where our press path to an element differs from
 the recorded one, or a move disagrees, it replays the recorded path with `--press` so both sides start
 from the same history; it also replays the probes (longer press sequences). Mismatches (of initial focus,
 moves and probe steps):

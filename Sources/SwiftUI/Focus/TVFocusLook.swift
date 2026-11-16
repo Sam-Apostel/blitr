@@ -11,7 +11,7 @@
 // those of the unscaled layout (as on tvOS, where focus movement uses the unfocused frames).
 //
 // Sources for the numbers are in docs/TVOS.md. "measured" values come from the tvOS 26.5 simulator
-// (Tests/Reference/tvos-26.5, scripts/calibrate.py --platform tvos) or Apple's HIG where noted; "est." are
+// (the tvos-26.5 reference set, scripts/calibrate.py --platform tvos) or Apple's HIG where noted; "est." are
 // estimates (tvOS 18, and states the reference set does not show).
 
 enum TVMetrics {

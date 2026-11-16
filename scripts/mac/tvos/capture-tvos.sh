@@ -8,7 +8,7 @@
 # Default files: Examples/TVControls.swift, Examples/TVControlsMore.swift, Tests/Corpus/13_TVHome.swift,
 # Tests/Corpus/14_TVSettings.swift.
 # Writes <out>/<scheme>/<screen>-<preview>.png and .json (default out:
-# Tests/Reference/tvos-<runtime>/apple-tv-4k), plus <screen>-<preview>-<presses>.png/.json for the press
+# <references>/tvos-<runtime>/apple-tv-4k), plus <screen>-<preview>-<presses>.png/.json for the press
 # variants below, and <out>/../manifest.json. Uses XcodeGen for the UI test that drives the remote.
 set -euo pipefail
 
@@ -62,7 +62,7 @@ ds = [d for d in json.load(sys.stdin)["devices"].get(sys.argv[1], []) if d["name
 print(ds[0]["udid"] if ds else "")' "$RUNTIME_ID" "$DEVICE")"
 [[ -n "$UDID" ]] || { echo "No \"$DEVICE\" simulator on tvOS $RUNTIME_VERSION" >&2; exit 1; }
 SLUG="$(echo "$DEVICE" | sed -E 's/ \(3rd generation\)//; s/ \(at 1080p\)/ hd/' | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-|-$//g')"
-OUT="${OUT:-$ROOT/Tests/Reference/tvos-$RUNTIME_VERSION/$SLUG}"
+OUT="${OUT:-${SWIFTUI_SCREENSHOT_REFERENCES:-$HOME/Library/Application Support/swiftui-screenshot/references}/tvos-$RUNTIME_VERSION/$SLUG}"
 BUILD="${TMPDIR:-/tmp}/swiftui-screenshot-tvos-capture"
 BUNDLE_ID="dev.swiftui-screenshot.reference-host"
 echo "Simulator: $DEVICE, tvOS $RUNTIME_VERSION ($UDID)"

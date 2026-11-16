@@ -9,7 +9,7 @@
 #   --schemes "<list>"    Color schemes (default: "light dark")
 #   --only <key>          Only screens whose key matches this grep pattern (e.g. 01_Settings)
 #   --corpus-only         Skip Examples
-#   --out <dir>           Output root (default: Tests/Reference)
+#   --out <dir>           Output root (default: ~/Library/Application Support/swiftui-screenshot/references, or SWIFTUI_SCREENSHOT_REFERENCES)
 #   --settle <seconds>    Wait after the view appears before capturing (default: 1.0)
 #
 # Writes <out>/ios-<runtime>/<device-slug>/<scheme>/<screen>-<preview>.png and .json, plus
@@ -23,7 +23,7 @@ DEVICE="iPhone 16"
 SCHEMES="light dark"
 ONLY=""
 CORPUS_ONLY=0
-OUT="$ROOT/Tests/Reference"
+OUT="${SWIFTUI_SCREENSHOT_REFERENCES:-$HOME/Library/Application Support/swiftui-screenshot/references}"
 SETTLE="1.0"
 BUNDLE_ID="dev.swiftui-screenshot.reference-host"
 
