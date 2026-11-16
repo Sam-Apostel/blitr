@@ -194,6 +194,9 @@ public enum _ScreenshotRunner {
         if config.platform == .watchOS, !deviceWasSet, let watch = DeviceProfile.lookup("apple-watch-series-10-46mm") { config.device = watch }
         if config.device.idiom == .tv { config.platform = .tvOS }
         if config.device.idiom == .watch { config.platform = .watchOS }
+        // watchOS has no light appearance: a watch app is dark whatever the scheme asked for, as the
+        // simulator draws it (measured: watchOS 26.5 simulator, light and dark captures are identical).
+        if config.platform == .watchOS { config.colorScheme = .dark }
 
         if listOnly {
             for (i, p) in previews.enumerated() { print("\(i)\t\(p.name ?? "")") }
