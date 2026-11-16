@@ -64,12 +64,12 @@ final class TVAlertCardNode: Node {
         let align: TextAlignment = .center
         let label = SystemColor.label.resolve(scheme), secondary = SystemColor.secondaryLabel.resolve(scheme)
         title = spec.title.flatMap { resolved(nodeResolver($0), "title", font: isGlass ? .system(size: 31, weight: .bold) : .system(size: 48, weight: .medium), color: label, align: align) }
-        message = resolved(spec.message, "message", font: isGlass ? .system(size: 25) : .system(size: 29), color: isGlass ? label : secondary, align: align)
+        message = resolved(spec.message, "message", font: isGlass ? .system(size: 25) : .system(size: 29), color: isGlass ? (scheme == .dark ? TVColors.glassAlertMessageDark : label) : secondary, align: align)
         actionHandlers = list.map(\.activate)
         isDestructive = list.map { $0.role == .destructive }
         actions = list.enumerated().map { i, action in
             let isFocused = i == focused
-            let color: RGBA = action.role == .destructive ? SystemColor.red.resolve(scheme) : (isFocused ? TVColors.focusedLabel : label)
+            let color: RGBA = action.role == .destructive ? SystemColor.red.resolve(scheme) : (isFocused ? TVColors.focusedLabel(glass: isGlass) : label)
             return text(action.title, font: isGlass ? .body : .system(size: 29, weight: .medium), color: color, align: .center, onPlatter: isFocused)
         }
         super.init(children: [title, message].compactMap { $0 } + actions)
@@ -200,7 +200,7 @@ extension PresentationHostNode {
         switch record.style {
         case .sheet:
             let ctx = record.ctx.child("sheet")
-            let layer = CoverLayerNode(content: content(ctx), env: ctx.env)
+            let layer = CoverLayerNode(content: content(ctx.with { $0.tvInSheet = true }), env: ctx.env)
             layer.tvSheet = true
             layer.tvGlassSheet = ctx.env.designLanguage.isGlass
             layer.backdrop = .dim(0)

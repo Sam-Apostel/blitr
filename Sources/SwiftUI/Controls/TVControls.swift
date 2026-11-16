@@ -11,7 +11,7 @@ extension TVLiftStyle {
         style.cornerRadius = cornerRadius
         style.lifted = focused
         if focused {
-            style.platter = design.isGlass ? .focusedGlass : .color(TVColors.focusedPlatter)
+            style.platter = .color(design.isGlass ? TVColors.glassFocusedPlatter(scheme) : TVColors.focusedPlatter)
             if design.isGlass { style.useGlassFocus() }
         } else {
             style.platter = .color(design.isGlass ? TVColors.glassPlatter(scheme) : TVColors.platter(scheme))
@@ -236,7 +236,7 @@ struct TVGlassSegment: View {
         var style = TVLiftStyle()
         style.cornerRadius = nil
         style.lifted = focused
-        if focused { style.platter = .focusedGlass; style.useGlassFocus(); style.growth = 0 }
+        if focused { style.platter = .color(TVColors.glassFocusedPlatter(scheme)); style.useGlassFocus(); style.growth = 0 }
         else if isSelected { style.platter = .color(TVColors.glassSelectedSegment(scheme)) }
         else { style.platter = .none }
         return _NodeView(focused ? onPlatter : node)
@@ -263,7 +263,7 @@ struct TVSegment: View {
         style.cornerRadius = cornerRadius
         style.lifted = focused
         style.scale = TVMetrics.smallLiftScale
-        if focused { style.platter = design.isGlass ? .focusedGlass : .color(TVColors.focusedPlatter) }
+        if focused { style.platter = .color(design.isGlass ? TVColors.glassFocusedPlatter(scheme) : TVColors.focusedPlatter) }
         else if isSelected { style.platter = .color(TVColors.selectedTab(scheme)) }
         else { style.platter = .none }
         return _NodeView(focused ? onPlatter : node)

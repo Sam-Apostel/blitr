@@ -48,9 +48,15 @@ extension TVMetrics {
 
 extension TVColors {
     /// tvOS 26 tab bar capsule (measured: light, white at about 80%; dark, black at about 13%) and the
-    /// selected tab's pill while focus is elsewhere (light, black at 10%; dark est.).
+    /// selected tab's pill while focus is elsewhere (light, black at 10%; dark, white at about 10% over the bar:
+    /// 43 -> 64.4). The focused tab is white in light and (234, 235, 235) in dark; a focused sidebar row stays white.
+    /// measured: tvOS 26.5 simulator
     static func glassTabBar(_ scheme: ColorScheme) -> RGBA { scheme == .dark ? RGBA(0, 0, 0, 0.13) : RGBA(1, 1, 1, 0.8) }
-    static func glassSelectedTab(_ scheme: ColorScheme) -> RGBA { scheme == .dark ? RGBA(1, 1, 1, 0.16) : RGBA(0, 0, 0, 0.1) }
+    static func glassSelectedTab(_ scheme: ColorScheme) -> RGBA { scheme == .dark ? RGBA(1, 1, 1, 0.14) : RGBA(0, 0, 0, 0.1) }
+    /// Unselected titles of the expanded tvOS 26 sidebar (measured: tvOS 26.5 simulator; light (86, 87, 90) over 213,
+    /// black at about 55%; dark (222, 223, 225) over 33, white at about 85%).
+    static func glassSidebarTitle(_ scheme: ColorScheme) -> RGBA { scheme == .dark ? RGBA(1, 1, 1, 0.85) : RGBA(0, 0, 0, 0.54) }
+    static func glassFocusedTab(_ scheme: ColorScheme) -> RGBA { scheme == .dark ? RGBA(234 / 255.0, 235 / 255.0, 235 / 255.0, 1) : RGBA(1, 1, 1, 1) }
 }
 
 extension TabViewNode {
@@ -63,8 +69,9 @@ extension TabViewNode {
             let isSelected = i == selected
             let color: RGBA
             let glass = env.designLanguage.isGlass
-            if isFocused { color = TVColors.focusedLabel }
-            else if isSelected || (glass && !layout.isSidebar) { color = scheme == .dark ? .white : TVColors.focusedLabel }
+            if isFocused { color = TVColors.focusedLabel(glass: glass) }
+            else if isSelected || (glass && !layout.isSidebar) { color = scheme == .dark ? .white : TVColors.focusedLabel(glass: glass) }
+            else if glass && layout.isSidebar { color = TVColors.glassSidebarTitle(scheme) }
             else { color = SystemColor.secondaryLabel.resolve(scheme) }
             func adjust(_ font: Font) -> (inout EnvironmentValues) -> Void {
                 { e in
@@ -254,7 +261,7 @@ extension TabViewNode {
                 p.saveLayer(.init(imageFilter: Painter.blurFilter(radius: TVMetrics.glassShadowRadius, scale: p.scale)))
                 p.fill(Path(roundedRect: shadow, cornerRadius: r, style: .continuous), with: .color(RGBA(0, 0, 0, TVMetrics.glassShadowOpacity)), in: shadow)
                 p.restore()
-                p.fill(Path(roundedRect: plate, cornerRadius: r, style: .continuous), with: .color(TVColors.focusedPlatter), in: plate)
+                p.fill(Path(roundedRect: plate, cornerRadius: r, style: .continuous), with: .color(layout.isSidebar ? TVColors.focusedPlatter : TVColors.glassFocusedTab(scheme)), in: plate)
                 item.icon?.draw(p); item.title?.draw(p)
                 continue
             }
