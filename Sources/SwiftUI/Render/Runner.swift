@@ -25,7 +25,23 @@ public struct _PreviewEntry {
 public enum _ScreenshotRunner {
     /// Parses the runner's arguments, renders the selected preview, prints a JSON result line.
     public static func run(_ previews: [_PreviewEntry]) -> Never {
+        applyLocale()
         MainActor.assumeIsolated { runOnMain(previews) }
+    }
+
+    /// On macOS, Locale.current is the Mac's own region and language, so number, currency and date formats
+    /// would follow whoever runs the render. The runner formats as en_US instead, as the simulator references
+    /// and a Linux host do (`SWIFTUI_SCREENSHOT_LOCALE` overrides it). It must run before anything reads
+    /// Locale.current.
+    static func applyLocale() {
+        #if canImport(Darwin)
+        let identifier = ProcessInfo.processInfo.environment["SWIFTUI_SCREENSHOT_LOCALE"] ?? "en_US"
+        let language = identifier.split(whereSeparator: { $0 == "_" || $0 == "-" }).first.map(String.init) ?? "en"
+        var domain = UserDefaults.standard.volatileDomain(forName: UserDefaults.argumentDomain)
+        domain["AppleLocale"] = identifier
+        domain["AppleLanguages"] = [language]
+        UserDefaults.standard.setVolatileDomain(domain, forName: UserDefaults.argumentDomain)
+        #endif
     }
 
     /// Makes `identifier` the process's time zone: TimeZone.current, the C library and the formatters.

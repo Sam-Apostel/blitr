@@ -132,22 +132,16 @@ extension AttributedString {
 
     /// Inline Markdown: the markers of strong, emphasis, code and strikethrough are removed and their runs get an
     /// `inlinePresentationIntent` (stronglyEmphasized, emphasized, code, strikethrough), and links get their `link`
-    /// attribute (with `baseURL` for relative ones). With `.full`, block markers (headings, list bullets, quotes) are
-    /// removed, paragraphs joined by newlines, and each line's run gets its `presentationIntent`.
+    /// attribute (with `baseURL` for relative ones). The inline-only syntaxes keep the text's whitespace, as Apple's
+    /// parser does. With `.full`, block markers are removed and blocks run together with no separator: the block
+    /// structure is only in each run's `presentationIntent`. Within a paragraph a line break becomes a space
+    /// (`softBreak`), or a newline after two trailing spaces (`lineBreak`).
     public init(markdown: String, options: MarkdownParsingOptions = MarkdownParsingOptions(), baseURL: URL? = nil) throws {
-        var source = markdown
         if options.interpretedSyntax == .full {
-            source = markdown.components(separatedBy: "\n").map { line -> String in
-                var l = Substring(line)
-                while l.first == " " { l = l.dropFirst() }
-                for marker in ["###### ", "##### ", "#### ", "### ", "## ", "# ", "> ", "- ", "* ", "+ "] where l.hasPrefix(marker) { return String(l.dropFirst(marker.count)) }
-                return String(l)
-            }.joined(separator: "\n")
-        } else if options.interpretedSyntax == .inlineOnly {
-            source = source.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+            self = MarkdownInline.parseBlocks(markdown, baseURL: baseURL)
+        } else {
+            self = MarkdownInline.parse(markdown, baseURL: baseURL)
         }
-        self = MarkdownInline.parse(source, baseURL: baseURL)
-        if options.interpretedSyntax == .full { MarkdownInline.applyBlocks(markdown, to: &self) }
     }
     public init<S: AttributeScope>(markdown: String, including scope: KeyPath<AttributeScopes, S.Type>,
                                    options: MarkdownParsingOptions = MarkdownParsingOptions(), baseURL: URL? = nil) throws {
@@ -225,51 +219,64 @@ enum MarkdownInline {
         return result
     }
 
-    /// Block intents for `.full` Markdown: the n-th line of the parsed text came from the n-th source line.
-    static func applyBlocks(_ markdown: String, to result: inout AttributedString) {
-        var kinds: [PresentationIntent?] = []
+    /// `.full` Markdown: each block parsed inline and appended with its `presentationIntent`.
+    static func parseBlocks(_ markdown: String, baseURL: URL?) -> AttributedString {
+        var result = AttributedString()
         var identity = 0
-        var paragraph: PresentationIntent?, list: PresentationIntent?
-        var ordinal = 0
         func next() -> Int { identity += 1; return identity }
-        for line in markdown.components(separatedBy: "\n") {
-            let l = line.drop(while: { $0 == " " })
-            if l.isEmpty { paragraph = nil; list = nil; kinds.append(nil); continue }
-            if let level = ["# ", "## ", "### ", "#### ", "##### ", "###### "].firstIndex(where: { l.hasPrefix($0) }) {
-                kinds.append(PresentationIntent(.header(level: level + 1), identity: next()))
+        var paragraph: PresentationIntent?, list: PresentationIntent?, listIsOrdered = false, listMarker = ""
+        var ordinal = 0
+        var lineEnd: AttributedString?
+        for raw in markdown.components(separatedBy: "\n") {
+            let line = raw.drop(while: { $0 == " " || $0 == "\t" })
+            if line.allSatisfy({ $0.isWhitespace }) { paragraph = nil; list = nil; lineEnd = nil; continue }
+            var text = line
+            let intent: PresentationIntent
+            var continues = false
+            if let level = ["# ", "## ", "### ", "#### ", "##### ", "###### "].firstIndex(where: { line.hasPrefix($0) }) {
+                text = line.dropFirst(level + 2)
+                intent = PresentationIntent(.header(level: level + 1), identity: next())
                 paragraph = nil; list = nil
-            } else if ["- ", "* ", "+ "].contains(where: { l.hasPrefix($0) }) {
-                if list == nil { list = PresentationIntent(.unorderedList, identity: next()); ordinal = 0 }
+            } else if let marker = ["- ", "* ", "+ "].first(where: { line.hasPrefix($0) }) {
+                text = line.dropFirst(marker.count)
+                // A different bullet character starts a new list, as in CommonMark.
+                if list == nil || listIsOrdered || marker != listMarker {
+                    list = PresentationIntent(.unorderedList, identity: next()); listIsOrdered = false; listMarker = marker; ordinal = 0
+                }
                 ordinal += 1
-                let item = PresentationIntent(.listItem(ordinal: ordinal), identity: next(), parent: list)
-                kinds.append(PresentationIntent(.paragraph, identity: next(), parent: item))
+                intent = PresentationIntent(.paragraph, identity: next(), parent: PresentationIntent(.listItem(ordinal: ordinal), identity: next(), parent: list))
                 paragraph = nil
-            } else if l.hasPrefix("> ") {
-                let quote = PresentationIntent(.blockQuote, identity: next())
-                kinds.append(PresentationIntent(.paragraph, identity: next(), parent: quote))
+            } else if let dot = line.firstIndex(where: { $0 == "." || $0 == ")" }), dot > line.startIndex,
+                      line[line.startIndex..<dot].allSatisfy(\.isNumber), line[dot...].dropFirst().first == " " {
+                text = line[line.index(dot, offsetBy: 2)...]
+                if list == nil || !listIsOrdered { list = PresentationIntent(.orderedList, identity: next()); listIsOrdered = true; ordinal = 0 }
+                ordinal += 1
+                intent = PresentationIntent(.paragraph, identity: next(), parent: PresentationIntent(.listItem(ordinal: ordinal), identity: next(), parent: list))
+                paragraph = nil
+            } else if line.hasPrefix(">") {
+                text = line.dropFirst().drop(while: { $0 == " " })
+                intent = PresentationIntent(.paragraph, identity: next(), parent: PresentationIntent(.blockQuote, identity: next()))
                 paragraph = nil; list = nil
             } else {
-                if paragraph == nil { paragraph = PresentationIntent(.paragraph, identity: next()) }
-                kinds.append(paragraph)
+                if let paragraph { intent = paragraph; continues = true } else {
+                    let started = PresentationIntent(.paragraph, identity: next())
+                    paragraph = started; intent = started
+                }
                 list = nil
             }
-        }
-        var line = 0
-        var start = result.startIndex
-        var index = result.startIndex
-        func apply(_ end: AttributedString.Index) {
-            if line < kinds.count, let intent = kinds[line], start < end { result[start..<end].presentationIntent = intent }
-        }
-        while index < result.endIndex {
-            let after = result.characters.index(after: index)
-            if result.characters[index] == "\n" {
-                apply(after)
-                line += 1
-                start = after
+            if continues, var separator = lineEnd {
+                separator.presentationIntent = intent
+                result += separator
             }
-            index = after
+            let hardBreak = raw.hasSuffix("  ")
+            var piece = parse(String(text.reversed().drop(while: { $0 == " " }).reversed()), baseURL: baseURL)
+            piece.presentationIntent = intent
+            result += piece
+            var end = AttributedString(hardBreak ? "\n" : " ")
+            end.inlinePresentationIntent = hardBreak ? .lineBreak : .softBreak
+            lineEnd = end
         }
-        apply(result.endIndex)
+        return result
     }
 }
 
