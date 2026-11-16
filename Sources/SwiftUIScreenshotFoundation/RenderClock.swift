@@ -180,7 +180,7 @@ public enum _RenderNetwork {
         // `URLSession.shared` (and sessions whose configuration lists registered protocols) fail with
         // `URLError(.notConnectedToInternet)`.
         URLProtocol.registerClass(OfflineURLProtocol.self)
-        #if canImport(ObjectiveC)
+        #if canImport(Darwin)
         // On Darwin a session with its own configuration consults only that configuration's protocols, and
         // ignores the proxy variables: every `.default` and `.ephemeral` configuration gets the offline
         // protocol first.
@@ -211,7 +211,7 @@ final class OfflineURLProtocol: URLProtocol {
     override func stopLoading() {}
 }
 
-#if canImport(ObjectiveC)
+#if canImport(Darwin)
 import ObjectiveC
 
 enum OfflineConfigurations {
