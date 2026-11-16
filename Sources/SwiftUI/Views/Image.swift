@@ -424,6 +424,21 @@ final class SymbolLibrary {
                 if let glyph = AppleSymbols.shared.glyph(named: candidate, weight: font.weight, pointSize: font.size * factor, imageBounds: imageBounds) { return glyph }
             }
         }
+        // The open artwork on iOS 26+: each symbol takes the frame iOS gives it (SymbolFrames, measured).
+        let config = _currentConfiguration()
+        if provider == nil, imageBounds, !AppleSymbols.shared.isAvailable, config.platform == .iOS, config.osVersion >= 26 {
+            for candidate in candidates where !SymbolFrames.missingOnIOS.contains(candidate) {
+                guard let art = lookup(candidate),
+                      let frame = SymbolFrames.frame(named: candidate, weight: font.weight, scale: scale, pointSize: font.size)
+                else { continue }
+                return SymbolGlyph.fitted(art.viewBox, art.layers, frame: frame, pointSize: font.size, scale: scale)
+            }
+            // iOS has no symbol by this name: `Image(systemName:)` lays out at 0x0 there.
+            if SymbolFrames.missingOnIOS.contains(name), !candidates.contains(where: SymbolFrames.contains) {
+                Runtime.current?.warn("SF Symbol \"\(name)\" does not exist on iOS; it draws nothing there, so it is not drawn")
+                return SymbolGlyph(size: .zero, viewBox: .zero, layers: [])
+            }
+        }
         for candidate in candidates {
             guard let art = lookup(candidate) else { continue }
             // SF Symbols are drawn roughly 1.2x the point size tall at medium scale.
