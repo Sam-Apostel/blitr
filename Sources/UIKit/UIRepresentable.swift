@@ -4,7 +4,13 @@
 // colour, corner radius and alpha of any view. Plain containers (a UIView or UIScrollView, or an app's own
 // subclass of one) show the SwiftUI they host through a hosting controller's view; one with nothing in it
 // and no drawing of its own (a probe that only reaches the window or installs a gesture recognizer) shows
-// nothing. Anything else is a placeholder of the proposed size, with one warning naming the wrapped class.
+// nothing. A view that draws itself (`draw(_:)`, sublayers) or arranges stock UIKit views is laid out and
+// drawn as a view tree (UIKitViewTree.swift). Anything else is a placeholder of the proposed size, with one
+// warning naming the class that cannot be drawn.
+//
+// Sizing: `sizeThatFits(_:uiView:context:)` (or `uiViewController:`) when it returns a size; otherwise a
+// view tree follows the view's intrinsicContentSize and layout priorities, as SwiftUI does (see
+// `_RepresentableLayout`), and the other kinds size as their SwiftUI equivalent does.
 
 import Foundation
 import SwiftUI
@@ -30,7 +36,9 @@ extension UIViewRepresentable {
         let context = Context(coordinator: makeCoordinator())
         let view = makeUIView(context: context)
         updateUIView(view, context: context)
-        return _UIKitRepresentableBody(view: view, representable: String(describing: Self.self))
+        return _UIKitRepresentableBody(view: view, representable: String(describing: Self.self)) { proposal in
+            self.sizeThatFits(proposal, uiView: view, context: context)
+        }
     }
     public static func dismantleUIView(_ uiView: UIViewType, coordinator: Coordinator) {}
     public func sizeThatFits(_ proposal: ProposedViewSize, uiView: UIViewType, context: Context) -> CGSize? { nil }
@@ -60,7 +68,9 @@ extension UIViewControllerRepresentable {
         let context = Context(coordinator: makeCoordinator())
         let controller = makeUIViewController(context: context)
         updateUIViewController(controller, context: context)
-        return _UIKitRepresentableBody(controller: controller, representable: String(describing: Self.self))
+        return _UIKitRepresentableBody(controller: controller, representable: String(describing: Self.self)) { proposal in
+            self.sizeThatFits(proposal, uiViewController: controller, context: context)
+        }
     }
     public static func dismantleUIViewController(_ uiViewController: UIViewControllerType, coordinator: Coordinator) {}
     public func sizeThatFits(_ proposal: ProposedViewSize, uiViewController: UIViewControllerType, context: Context) -> CGSize? { nil }
@@ -73,15 +83,16 @@ extension UIViewControllerRepresentable where Coordinator == Void {
 public struct _UIKitRepresentableBody: View {
     let content: AnyView
 
-    @MainActor init(view: UIView, representable: String) {
-        content = _UIKitRepresentableBody.draw(view, representable: representable) ?? AnyView(
-            _RepresentablePlaceholder(typeName: representable, wrapping: String(describing: type(of: view))))
+    @MainActor init(view: UIView, representable: String, sizeThatFits: @escaping @MainActor (ProposedViewSize) -> CGSize?) {
+        content = _UIKitRepresentableBody.show(view, representable: representable, wrapping: String(describing: type(of: view)),
+                                               sizeThatFits: sizeThatFits)
     }
-    @MainActor init(controller: UIViewController, representable: String) {
+    @MainActor init(controller: UIViewController, representable: String, sizeThatFits: @escaping @MainActor (ProposedViewSize) -> CGSize?) {
         if let hosting = controller as? _AnyHostingController {
-            content = hosting.anyRootView
-        } else if let view = controller.viewIfLoaded, let drawn = _UIKitRepresentableBody.draw(view, representable: representable) {
-            content = drawn
+            content = AnyView(_RepresentableLayout(sizeThatFits: sizeThatFits, intrinsic: nil) { hosting.anyRootView })
+        } else if let view = controller.viewIfLoaded {
+            content = _UIKitRepresentableBody.show(view, representable: representable, wrapping: String(describing: type(of: controller)),
+                                                   sizeThatFits: sizeThatFits)
         } else {
             content = AnyView(_RepresentablePlaceholder(typeName: representable, wrapping: String(describing: type(of: controller))))
         }
@@ -89,73 +100,34 @@ public struct _UIKitRepresentableBody: View {
 
     public var body: some View { content }
 
+    /// The view drawn as its SwiftUI equivalent, else as a view tree, else a placeholder naming what cannot be drawn.
+    @MainActor private static func show(_ view: UIView, representable: String, wrapping: String,
+                                        sizeThatFits: @escaping @MainActor (ProposedViewSize) -> CGSize?) -> AnyView {
+        if let drawn = draw(view, representable: representable) {
+            return AnyView(_RepresentableLayout(sizeThatFits: sizeThatFits, intrinsic: nil) { drawn })
+        }
+        switch _UIKitViewTree.check(view) {
+        case .drawable:
+            return AnyView(_RepresentableLayout(sizeThatFits: sizeThatFits, intrinsic: view) { _UIKitViewTreeView(root: view) })
+        case .unsupported(let reason):
+            let name = reason == String(describing: type(of: view)) ? wrapping : "\(wrapping) (\(reason))"
+            return AnyView(_RepresentablePlaceholder(typeName: representable, wrapping: name))
+        }
+    }
+
     private static func color(_ c: UIColor?) -> Color? { c.map { Color(uiColor: $0) } }
 
-    /// The SwiftUI equivalent of a UIKit view, or nil when it cannot be drawn.
+    /// The SwiftUI equivalent of a UIKit view, or nil when it has none (see `content(of:)`).
     @MainActor static func draw(_ view: UIView, representable: String) -> AnyView? {
         if view.isHidden || view.alpha <= 0.01 { return AnyView(Color.clear) }
-        var inner: AnyView?
-        switch view {
-        case let hosting as _HostingControllerView:
-            // A hosting controller's view, added to a container: its SwiftUI content.
-            inner = hosting.content
-        case let hosting as _AnyHostingView:
-            inner = hosting.anyRootView
-        case let drawable as _SwiftUIDrawableView:
-            inner = drawable._swiftUIRepresentation
-        case let imageView as UIImageView:
-            if let image = imageView.isHighlighted ? (imageView.highlightedImage ?? imageView.image) : imageView.image {
-                let base = Image(uiImage: image)
-                switch imageView.contentMode {
-                case .scaleAspectFit: inner = AnyView(base.resizable().aspectRatio(contentMode: .fit))
-                case .scaleAspectFill: inner = AnyView(base.resizable().aspectRatio(contentMode: .fill).clipped())
-                case .scaleToFill, .redraw: inner = AnyView(base.resizable())
-                default: inner = AnyView(base)
-                }
-                if let tint = imageView.tintColor, image.renderingMode == .alwaysTemplate || image.isSymbolImage {
-                    inner = AnyView(inner!.foregroundStyle(Color(uiColor: tint)))
-                }
-            } else {
-                inner = AnyView(Color.clear)
-            }
-        case let label as UILabel:
-            let text = label.attributedText?.string ?? label.text ?? ""
-            let alignment: TextAlignment = label.textAlignment == .center ? .center : label.textAlignment == .right ? .trailing : .leading
-            inner = AnyView(Text(text)
-                .font(Font(label.font ?? .systemFont(ofSize: 17)))
-                .foregroundStyle(color(label.textColor) ?? .primary)
-                .multilineTextAlignment(alignment)
-                .lineLimit(label.numberOfLines == 0 ? nil : label.numberOfLines)
-                .minimumScaleFactor(label.adjustsFontSizeToFitWidth ? max(label.minimumScaleFactor, 0.01) : 1)
-                .frame(maxWidth: .infinity, alignment: alignment == .center ? .center : alignment == .trailing ? .trailing : .leading))
-        case let spinner as UIActivityIndicatorView:
-            if !spinner.isAnimating && spinner.hidesWhenStopped {
-                inner = AnyView(Color.clear)
-            } else {
-                inner = AnyView(ProgressView().controlSize(spinner.style == .large ? .large : .regular).tint(color(spinner.color)))
-            }
-        case let effectView as UIVisualEffectView:
-            let material: Material
-            if let blur = effectView.effect as? UIBlurEffect {
-                switch blur.style {
-                case .systemUltraThinMaterial, .systemUltraThinMaterialLight, .systemUltraThinMaterialDark: material = .ultraThinMaterial
-                case .systemThinMaterial, .systemThinMaterialLight, .systemThinMaterialDark, .light, .extraLight: material = .thinMaterial
-                case .systemThickMaterial, .systemThickMaterialLight, .systemThickMaterialDark, .prominent: material = .thickMaterial
-                case .systemChromeMaterial, .systemChromeMaterialLight, .systemChromeMaterialDark: material = .bar
-                default: material = .regularMaterial
-                }
-            } else {
-                material = .ultraThinMaterial
-            }
-            inner = AnyView(Rectangle().fill(material))
-            if !effectView.contentView.subviews.isEmpty {
-                ShimDiagnostics.warn("\(representable): the subviews of a UIVisualEffectView are not drawn, only its material")
-            }
-        default:
+        let inner: AnyView
+        if let content = content(of: view, representable: representable) {
+            inner = content
+        } else {
             guard let contents = drawContainer(view, representable: representable) else { return nil }
             inner = contents
         }
-        var result = inner!
+        var result = inner
         if let background = color(view.backgroundColor) { result = AnyView(result.background(background)) }
         if view.layer.cornerRadius > 0 {
             let shape = RoundedRectangle(cornerRadius: view.layer.cornerRadius, style: view.layer.cornerCurve == .continuous ? .continuous : .circular)
@@ -170,6 +142,68 @@ public struct _UIKitRepresentableBody: View {
         if let width = view.fixedDimension(.width) { result = AnyView(result.frame(width: width)) }
         if let height = view.fixedDimension(.height) { result = AnyView(result.frame(height: height)) }
         return result
+    }
+
+    /// What a stock view shows, as SwiftUI: hosted SwiftUI, an image view's image, a label's text, an activity
+    /// indicator, a blur or glass view's material. Nil for any other view (its background and corners aside).
+    @MainActor static func content(of view: UIView, representable: String) -> AnyView? {
+        switch view {
+        case let hosting as _HostingControllerView:
+            // A hosting controller's view, added to a container: its SwiftUI content.
+            return hosting.content
+        case let hosting as _AnyHostingView:
+            return hosting.anyRootView
+        case let drawable as _SwiftUIDrawableView:
+            return drawable._swiftUIRepresentation
+        case let imageView as UIImageView:
+            guard let image = imageView.isHighlighted ? (imageView.highlightedImage ?? imageView.image) : imageView.image else {
+                return AnyView(Color.clear)
+            }
+            let base = Image(uiImage: image)
+            var inner: AnyView
+            switch imageView.contentMode {
+            case .scaleAspectFit: inner = AnyView(base.resizable().aspectRatio(contentMode: .fit))
+            case .scaleAspectFill: inner = AnyView(base.resizable().aspectRatio(contentMode: .fill).clipped())
+            case .scaleToFill, .redraw: inner = AnyView(base.resizable())
+            default: inner = AnyView(base)
+            }
+            if let tint = imageView.tintColor, image.renderingMode == .alwaysTemplate || image.isSymbolImage {
+                inner = AnyView(inner.foregroundStyle(Color(uiColor: tint)))
+            }
+            return inner
+        case let label as UILabel:
+            let text = label.attributedText?.string ?? label.text ?? ""
+            let alignment: TextAlignment = label.textAlignment == .center ? .center : label.textAlignment == .right ? .trailing : .leading
+            return AnyView(Text(text)
+                .font(Font(label.font ?? .systemFont(ofSize: 17)))
+                .foregroundStyle(color(label.textColor) ?? .primary)
+                .multilineTextAlignment(alignment)
+                .lineLimit(label.numberOfLines == 0 ? nil : label.numberOfLines)
+                .minimumScaleFactor(label.adjustsFontSizeToFitWidth ? max(label.minimumScaleFactor, 0.01) : 1)
+                .frame(maxWidth: .infinity, alignment: alignment == .center ? .center : alignment == .trailing ? .trailing : .leading))
+        case let spinner as UIActivityIndicatorView:
+            if !spinner.isAnimating && spinner.hidesWhenStopped { return AnyView(Color.clear) }
+            return AnyView(ProgressView().controlSize(spinner.style == .large ? .large : .regular).tint(color(spinner.color)))
+        case let effectView as UIVisualEffectView:
+            let material: Material
+            if let blur = effectView.effect as? UIBlurEffect {
+                switch blur.style {
+                case .systemUltraThinMaterial, .systemUltraThinMaterialLight, .systemUltraThinMaterialDark: material = .ultraThinMaterial
+                case .systemThinMaterial, .systemThinMaterialLight, .systemThinMaterialDark, .light, .extraLight: material = .thinMaterial
+                case .systemThickMaterial, .systemThickMaterialLight, .systemThickMaterialDark, .prominent: material = .thickMaterial
+                case .systemChromeMaterial, .systemChromeMaterialLight, .systemChromeMaterialDark: material = .bar
+                default: material = .regularMaterial
+                }
+            } else {
+                material = .ultraThinMaterial
+            }
+            if !effectView.contentView.subviews.isEmpty {
+                ShimDiagnostics.warn("\(representable): the subviews of a UIVisualEffectView are not drawn, only its material")
+            }
+            return AnyView(Rectangle().fill(material))
+        default:
+            return nil
+        }
     }
 }
 
@@ -213,7 +247,7 @@ extension _UIKitRepresentableBody {
 
     /// The nearest class in the view's ancestry that comes from a framework (the view's own class when it
     /// is UIKit's): UIView for an app's own subclass of it.
-    private static func uiKitClass(of cls: AnyClass) -> AnyClass {
+    static func uiKitClass(of cls: AnyClass) -> AnyClass {
         var current: AnyClass? = cls
         while let c = current {
             let name = String(reflecting: c)
@@ -224,7 +258,7 @@ extension _UIKitRepresentableBody {
     }
 
     /// Whether a subclass draws itself in `draw(_:)`: UIView's own implementation records being reached.
-    @MainActor private static func overridesDraw(_ view: UIView) -> Bool {
+    @MainActor static func overridesDraw(_ view: UIView) -> Bool {
         UIView._baseDrawReached = false
         _ = UIGraphicsImageRenderer(size: CGSize(width: 1, height: 1)).image { _ in view.draw(CGRect(x: 0, y: 0, width: 1, height: 1)) }
         return !UIView._baseDrawReached
