@@ -22,12 +22,16 @@ extension TVMetrics {
     static let pageDotScale: CGFloat = 2                                // est.
 
     // tvOS 26 top tab bar (measured: tvOS 26.5). A light glass capsule, 68 pt high, 46 pt from the top; each
-    // tab is its icon and a semibold title; tab contents 62 pt apart, 39 pt from the capsule's ends; the selected
+    // tab is its icon and a bold 25 pt title; tab contents 72 pt apart, 43 pt from the capsule's ends; the selected
     // or focused pill reaches 27 pt beyond the content and 14 pt inside the capsule's top and bottom.
-    static let glassTabTitleFont = Font.system(size: 29, weight: .semibold)
+    // The title: "Search" inks 79.5 pt wide with a 17.5 pt cap height (29 pt semibold inks 89.5 and 20); the
+    // capsule spans 528.5 to 1391.5, the inks of neighbouring tabs 74 to 74.5 pt apart, 42.5 and 44 pt from its ends.
+    static let glassTabTitleFont = Font.system(size: 25, weight: .bold)
+    /// The tab icons keep the 29 pt semibold size ("Search"'s magnifier inks 28 pt wide).
+    static let glassTabIconFont = Font.system(size: 29, weight: .semibold)
     static let glassTabIconSpacing: CGFloat = 12
-    static let glassTabContentSpacing: CGFloat = 62
-    static let glassTabEndPadding: CGFloat = 39
+    static let glassTabContentSpacing: CGFloat = 72
+    static let glassTabEndPadding: CGFloat = 43
     static let glassTabPillPadding: CGFloat = 27
     static let glassTabPillInset: CGFloat = 14
     /// From the bottom of the bar to the top of the content's safe area (measured: 157 - 114).
@@ -111,7 +115,7 @@ extension TabViewNode {
                 }
             } else if glass {
                 // tvOS 26: icon and title (measured).
-                item.icon = label(adjust(TVMetrics.glassTabTitleFont)).lazy.compactMap { $0.firstDescendant(ImageNode.self) }.first
+                item.icon = label(adjust(TVMetrics.glassTabIconFont)).lazy.compactMap { $0.firstDescendant(ImageNode.self) }.first
                 item.title = label(adjust(TVMetrics.glassTabTitleFont)).lazy.compactMap { $0.firstDescendant(TextNode.self) }.first
             } else {
                 item.title = label(adjust(TVMetrics.tabTitleFont)).lazy.compactMap { $0.firstDescendant(TextNode.self) }.first
