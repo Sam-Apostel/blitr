@@ -62,6 +62,18 @@ enum HostPlatform {
         #endif
     }()
 
+    /// Runners format numbers, currencies and dates as en_US (or `SWIFTUI_SCREENSHOT_LOCALE`), whatever the host's
+    /// settings. Foundation on Linux reads Locale.current from the POSIX locale variables once, as the process
+    /// starts, so they are set here and every runner inherits them; on macOS the runner sets its own defaults
+    /// (`_ScreenshotRunner.applyLocale`).
+    static func setRenderLocale() {
+        #if !canImport(Darwin)
+        let identifier = ProcessInfo.processInfo.environment["SWIFTUI_SCREENSHOT_LOCALE"] ?? "en_US"
+        setenv("LC_ALL", identifier + ".UTF-8", 1)
+        setenv("LANG", identifier + ".UTF-8", 1)
+        #endif
+    }
+
     /// The running executable, with symbolic links resolved (an installed tool is usually reached through
     /// a link in a bin directory, and the SDK is found next to the real file).
     static var executablePath: String {
