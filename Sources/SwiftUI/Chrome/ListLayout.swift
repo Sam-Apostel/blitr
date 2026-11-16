@@ -178,7 +178,7 @@ final class ListNode: Node {
         listSectionSpacing = env.listSectionSpacing
         tv = env.renderPlatform == .tvOS
         usesGlassGeometry = !tv && !watch && env.designLanguage.isGlass && style == .insetGrouped
-        let design = tv ? ListMetrics.forTV() : watch ? ListMetrics.forWatch() : ListMetrics.forDesign(env.designLanguage, style: style)
+        let design = tv ? ListMetrics.forTV(glass: env.designLanguage.isGlass) : watch ? ListMetrics.forWatch() : ListMetrics.forDesign(env.designLanguage, style: style)
         self.design = design
         if let colors = design.separatorColors {
             separatorColor = env.colorScheme == .dark ? colors.dark : colors.light

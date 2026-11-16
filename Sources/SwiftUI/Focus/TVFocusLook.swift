@@ -113,6 +113,11 @@ enum TVMetrics {
     /// From the last row to the footer.
     static let footerTopGap: CGFloat = 20
     static let chevronSize = CGSize(width: 12, height: 22) // est.
+    /// tvOS 26 rows that open something: the chevron's tip 3 pt further in than the row's text inset, the trailing
+    /// value ending 81 pt before that inset (measured: tvOS 26.5 simulator, "12" ends at 1739, the tip at 1817.5,
+    /// in a row whose text runs to 1820).
+    static let glassChevronInset: CGFloat = 3
+    static let glassChevronReserve: CGFloat = 81
     /// Headers: uppercase on tvOS 26, 29 pt (35 pt line), the dimmed title color; footers 29 pt secondary.
     static let headerFontSize: CGFloat = 29
     static let footerFontSize: CGFloat = 29
