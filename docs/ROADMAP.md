@@ -8,7 +8,7 @@ Where the renderer stands, what is open (in priority order), and which items nee
 - **Platforms:** iPhone, iPad, Apple TV, Apple Watch, widgets and Live Activities.
 - **Project mode** (`docs/PROJECTS.md`): XcodeGen, `.pbxproj` and SwiftPM projects, cached per-module builds, asset and string catalogs, and `--locale`. A real app's iPhone, TV, widget and Watch targets compile and render from unmodified source.
 - **Framework shims** (`docs/FRAMEWORKS.md`): about 40 Apple frameworks, each its own module, all compiled into the one engine library.
-- **tvOS focus** (`docs/FOCUS.md`): `--press`, `--focus`, `--focus-map` and `--focus-overlay`. Checked against tvOS 26.5 recordings: 18 of 465 moves still differ.
+- **tvOS focus** (`docs/FOCUS.md`): `--press`, `--focus`, `--focus-map` and `--focus-overlay`. Checked against tvOS 26.5 recordings: 1 of 471 moves still differs; an app's own press sequences are recorded and compared with `scripts/mac/tvos/record-app.sh` and `scripts/compare-app-paths.py`.
 - **Interaction capture** (`docs/INTERACTION.md`): scripted taps, typing and scrolling. Outputs are frames, filmstrips, GIF, APNG, WebP and MP4, plus full-content captures.
 - **Time and network:** `Task.sleep` runs on a virtual clock and renders are offline by default.
 - **Maps** (`docs/MAPS.md`): markers, annotations and overlays on a placeholder surface, or on offline tiles the user
