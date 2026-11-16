@@ -370,6 +370,8 @@ public struct ProgressView<Label: View, CurrentValueLabel: View>: View {
     @Environment(\.progressStyleBox) private var styleBox
     /// tvOS draws larger indicators (est.: a 60pt spinner, an 8pt bar).
     @Environment(\.renderPlatform) private var platform
+    @Environment(\.designLanguage) private var design
+    @Environment(\.colorScheme) private var scheme
 
     init(fraction: Double?, label: AnyView?, currentValueLabel: AnyView?) {
         self.fraction = fraction
@@ -398,9 +400,10 @@ public struct ProgressView<Label: View, CurrentValueLabel: View>: View {
         } else {
             switch styleBox.kind {
             case .linear: linear
-            case .circular: if platform == .tvOS { circular } else { circularIOS }
+            case .circular: if tvGlass { circularTVGlass } else if platform == .tvOS { circular } else { circularIOS }
             case .automatic:
-                if fraction != nil { linear } else if platform == .tvOS { circular } else { circularIOS }
+                if fraction != nil { if tvGlass { linearTVGlass } else { linear } }
+                else if tvGlass { circularTVGlass } else if platform == .tvOS { circular } else { circularIOS }
             }
         }
     }
@@ -431,6 +434,41 @@ public struct ProgressView<Label: View, CurrentValueLabel: View>: View {
                 Spinner(size: platform == .tvOS ? 60 : 20)
             }
             if let label { label.font(.footnote).foregroundStyle(.secondary) }
+        }
+    }
+
+    private var tvGlass: Bool { platform == .tvOS && design.isGlass }
+
+    /// tvOS 26 (measured: tvOS 26.5 simulator): a 10 pt bar with square ends and a soft shadow below it; the fill
+    /// (242, 243, 243) light, (205, 205, 205) dark; the track clear in light, (17, 18, 17) in dark.
+    private var linearTVGlass: some View {
+        let dark = scheme == .dark
+        let f = clamp01(fraction ?? 0.3)
+        let fill = dark ? Color(red: 205 / 255.0, green: 205 / 255.0, blue: 205 / 255.0) : Color(red: 242 / 255.0, green: 243 / 255.0, blue: 243 / 255.0)
+        let track = dark ? Color(red: 17 / 255.0, green: 18 / 255.0, blue: 17 / 255.0) : Color.clear
+        return VStack(alignment: .leading, spacing: 6) {
+            if let label { label }
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Rectangle().fill(track).frame(width: proxy.size.width, height: 10)
+                    Rectangle().fill(fill).frame(width: proxy.size.width * f, height: 10)
+                }
+                .frame(width: proxy.size.width, height: 10, alignment: .leading)
+                .shadow(color: .black.opacity(dark ? 0.35 : 0.25), radius: 3, y: 3)
+            }
+            .frame(height: 10)
+            if let currentValueLabel {
+                currentValueLabel.font(.footnote).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// tvOS 26 (measured: tvOS 26.5 simulator): a 40 pt spinner; a label sits 10.5 pt below it in the secondary
+    /// colour, at the inherited font.
+    private var circularTVGlass: some View {
+        VStack(spacing: 10.5) {
+            Spinner(size: 40)
+            if let label { label.foregroundStyle(.secondary) }
         }
     }
 
