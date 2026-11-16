@@ -73,7 +73,7 @@ struct _TVButtonVisual: View {
         let disabledLabel = Color(SystemColor.tertiaryLabel)
         var content = label
         if let font = TVMetrics.buttonFont(size) { content = AnyView(content.font(userFont ?? font)) }
-        content = AnyView(content.lineLimit(1))
+        content = AnyView(content.lineLimit(1).env { $0.tvInButtonPlatter = true })
         // tvOS 26 draws a prominent button like a bordered one (measured: grey platter, primary label).
         let accentPlatter = prominent && !design.isGlass
 

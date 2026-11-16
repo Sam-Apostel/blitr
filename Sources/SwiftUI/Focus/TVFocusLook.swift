@@ -238,6 +238,20 @@ enum TVColors {
     static func dimmedTitle(_ scheme: ColorScheme) -> RGBA {
         scheme == .dark ? RGBA(1, 1, 1, 0.3) : RGBA(0, 0, 0, 0.42)
     }
+    /// The value of a toggle outside a list (measured: tvOS 26.5 simulator; "Off" (49, 53, 63) over a (204, 208,
+    /// 219) platter, black at about 76%; dark (199, 202, 206) over 70, white at about 70%).
+    static func controlValue(_ scheme: ColorScheme) -> RGBA {
+        scheme == .dark ? RGBA(1, 1, 1, 0.7) : RGBA(0, 0, 0, 0.76)
+    }
+    /// A `.navigationLink` picker outside a list: no chevron, a dimmed label and a strong value (measured: tvOS
+    /// 26.5 simulator; light: label (89, 87, 86) and value (33, 27, 21) over 193; dark: label 142 and value 191
+    /// over 65).
+    static func outsidePickerLabel(_ scheme: ColorScheme) -> RGBA {
+        scheme == .dark ? RGBA(1, 1, 1, 0.4) : RGBA(0, 0, 0, 0.54)
+    }
+    static func outsidePickerValue(_ scheme: ColorScheme) -> RGBA {
+        scheme == .dark ? RGBA(1, 1, 1, 0.66) : RGBA(0, 0, 0, 0.83)
+    }
     /// Trailing values of rows (measured: black at about 57%, white at about 55%).
     static func rowValue(_ scheme: ColorScheme) -> RGBA {
         scheme == .dark ? RGBA(1, 1, 1, 0.55) : RGBA(0, 0, 0, 0.57)
@@ -271,6 +285,8 @@ enum TVOnFocusedPlatterKey: EnvironmentKey { static let defaultValue = false }
 enum TVInFormKey: EnvironmentKey { static let defaultValue = false }
 /// Content of a tvOS sheet.
 enum TVInSheetKey: EnvironmentKey { static let defaultValue = false }
+/// Content of a tvOS bordered button's platter.
+enum TVInButtonPlatterKey: EnvironmentKey { static let defaultValue = false }
 /// `.hoverEffect(_:)` written on a view.
 enum TVHoverEffectKey: EnvironmentKey { static let defaultValue: HoverEffect? = nil }
 
@@ -279,6 +295,10 @@ extension EnvironmentValues {
     var tvInSheet: Bool {
         get { self[TVInSheetKey.self] }
         set { self[TVInSheetKey.self] = newValue }
+    }
+    var tvInButtonPlatter: Bool {
+        get { self[TVInButtonPlatterKey.self] }
+        set { self[TVInButtonPlatterKey.self] = newValue }
     }
     var tvOnFocusedPlatter: Bool {
         get { self[TVOnFocusedPlatterKey.self] }

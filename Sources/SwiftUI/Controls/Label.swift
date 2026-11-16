@@ -49,6 +49,9 @@ struct _DefaultLabelLayout: View {
     /// the icon than with a 6pt gap (heart, star.fill, globe, apple.logo labels in
     /// ControlsButtons and 04_Login).
     static let glassSpacing: CGFloat = 8.33
+    /// tvOS 26: the title starts 19.5 pt after the icon (measured: tvOS 26.5 simulator, checkmark.circle
+    /// "Downloaded": icon 1002.5 to 1031.5, the title's stem at 1056.5 with its 5 pt side bearing).
+    static let tvGlassSpacing: CGFloat = 19.5
     /// In a list row the icon sits in a column, so the titles of rows line up whatever their icons:
     /// the icon is centred `listIconCenter` from the label's leading edge at the large image scale, and
     /// the title starts `listTitleInset` from it (where the row's separator starts).
@@ -62,6 +65,7 @@ struct _DefaultLabelLayout: View {
     static let watchListIconCenter: CGFloat = 9
     static let watchListTitleInset: CGFloat = 26
     @Environment(\.isInListRow) private var inListRow
+    @Environment(\.tvInButtonPlatter) private var inTVButton
     var body: some View {
         if platform == .watchOS && inListRow {
             title.padding(.leading, Self.watchListTitleInset)
@@ -71,7 +75,8 @@ struct _DefaultLabelLayout: View {
             title.padding(.leading, Self.listTitleInset)
                 .overlay(alignment: .leading) { icon.imageScale(.large).frame(width: Self.listIconCenter * 2) }
         } else {
-            HStack(spacing: design.isGlass && platform != .tvOS ? Self.glassSpacing : 6) { icon; title }
+            // A tvOS button's label keeps the 6 pt gap (its icon and title spacing are not measured yet).
+            HStack(spacing: !design.isGlass || inTVButton ? 6 : platform == .tvOS ? Self.tvGlassSpacing : Self.glassSpacing) { icon; title }
         }
     }
 }

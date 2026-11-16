@@ -125,17 +125,28 @@ extension Picker {
                 })
             resolveView(view, ctx.child("picker"), into: &out)
         case .menu, .navigationLink:
-            let secondary: (inout EnvironmentValues) -> Void = { $0.foregroundStyle = AnyShapeStyle(Color(SystemColor.secondaryLabel)) }
+            // tvOS 26: a navigation-link picker outside a list has no chevron, a dimmed label and a strong value
+            // (measured: tvOS 26.5 simulator).
+            let outside = kind == .navigationLink && env.designLanguage.isGlass && !env.isInListRow
+            let secondary: (inout EnvironmentValues) -> Void = {
+                $0.foregroundStyle = AnyShapeStyle(outside ? Color(TVColors.outsidePickerValue($0.colorScheme)) : Color(SystemColor.secondaryLabel))
+            }
+            let labelNodes = outside
+                ? resolveNodes(label, ctx.child("label").with { $0.foregroundStyle = AnyShapeStyle(Color(TVColors.outsidePickerLabel(env.colorScheme))) })
+                : labelNodes
             let normal = options("value", secondary)
-            let dark = options("value") { secondary(&$0); onPlatter(&$0) }
+            let dark = options("value") { onPlatter(&$0); secondary(&$0) }
             let sel = selectedIndex(normal)
             let valueText = sel.map { axText([normal[$0]]) }
-            let value = HStack(spacing: 14) {
+            // tvOS 26: the value ends as far before the chevron as in a list row that opens something (measured).
+            let glassChevron = env.designLanguage.isGlass && kind == .navigationLink && !outside
+            let chevronGap = glassChevron ? TVMetrics.glassChevronReserve - TVMetrics.glassChevronInset - TVMetrics.chevronSize.width : 14
+            let value = HStack(spacing: chevronGap) {
                 if let sel { _TVFocusVariant(normal: normal[sel], onPlatter: dark[sel]) }
                 if kind == .menu {
                     UpDownChevron(color: AnyShapeStyle(Color(SystemColor.tertiaryLabel))).scaleEffect(1.8)
-                } else {
-                    _TVChevron()
+                } else if !outside {
+                    _TVChevron().padding(.trailing, glassChevron ? TVMetrics.glassChevronInset : 0)
                 }
             }
             let view = _TVRowControl(label: AnyView(_TVFocusVariant(normal: labelNodes, onPlatter: labelOnPlatter)), trailing: AnyView(value))

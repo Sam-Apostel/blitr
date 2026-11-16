@@ -46,7 +46,9 @@ struct _TVRowControl: View {
             Spacer(minLength: 16)
             if let trailing { trailing }
         }
-        .foregroundStyle(isEnabled ? Color(SystemColor.label) : Color(SystemColor.tertiaryLabel))
+        // tvOS 26 keeps a disabled control's label in the primary color (measured: tvOS 26.5 simulator, a disabled
+        // Toggle outside a list looks like an enabled one).
+        .foregroundStyle(isEnabled || design.isGlass ? Color(SystemColor.label) : Color(SystemColor.tertiaryLabel))
         .tvOnWhitePlatter(focused)
         if inRow && !standalone { return AnyView(row) }
         if standalone {
@@ -73,8 +75,10 @@ struct _TVValue: View {
     let content: AnyView
     @Environment(\.designLanguage) private var design
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.isInListRow) private var inRow
     var body: some View {
-        content.foregroundStyle(design.isGlass ? Color(TVColors.rowValue(scheme)) : Color(SystemColor.secondaryLabel))
+        let glass = inRow ? TVColors.rowValue(scheme) : TVColors.controlValue(scheme)
+        return content.foregroundStyle(design.isGlass ? Color(glass) : Color(SystemColor.secondaryLabel))
     }
 }
 
@@ -210,7 +214,6 @@ struct TVSegmentedBody: View {
                     .focusElement(role: "segment", activate: { [select] in select(pair.offset) })
             }
         }
-        .padding(TVMetrics.segmentInset)
         .frame(maxWidth: .infinity)
         .modifier(TVLiftModifier(style: { var s = TVLiftStyle(); s.cornerRadius = nil; s.lifted = false
                                           s.platter = .color(TVColors.glassSegmentTrack(scheme)); return s }()))
@@ -218,9 +221,11 @@ struct TVSegmentedBody: View {
 }
 
 extension TVMetrics {
-    /// tvOS 26 segmented control: 84 pt high overall (measured), the pills 8 pt inside the track (est.).
+    /// tvOS 26 segmented control: 84 pt high, the segments share the whole track and their pills sit 9.5 pt
+    /// inside them (measured: tvOS 26.5 simulator, segments 253 x 84 at 160, 413, 666; the selected pill 422.5 to
+    /// 656.5 by 783.5 to 848.5).
     static let segmentedHeight: CGFloat = 84
-    static let segmentInset: CGFloat = 8
+    static let segmentInset: CGFloat = 9.5
 }
 
 struct TVGlassSegment: View {
@@ -236,13 +241,15 @@ struct TVGlassSegment: View {
         var style = TVLiftStyle()
         style.cornerRadius = nil
         style.lifted = focused
+        let inset = TVMetrics.segmentInset
+        style.outset = EdgeInsets(top: -inset, leading: -inset, bottom: -inset, trailing: -inset)
         if focused { style.platter = .color(TVColors.glassFocusedPlatter(scheme)); style.useGlassFocus(); style.growth = 0 }
         else if isSelected { style.platter = .color(TVColors.glassSelectedSegment(scheme)) }
         else { style.platter = .none }
         return _NodeView(focused ? onPlatter : node)
             .lineLimit(1)
             .fontWeight(.semibold)
-            .frame(maxWidth: .infinity, minHeight: TVMetrics.segmentedHeight - TVMetrics.segmentInset * 2)
+            .frame(maxWidth: .infinity, minHeight: TVMetrics.segmentedHeight)
             .modifier(TVLiftModifier(style: style))
     }
 }
