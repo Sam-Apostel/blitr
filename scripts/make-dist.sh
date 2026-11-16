@@ -6,7 +6,7 @@
 #   blitr/
 #     bin/blitr
 #     lib/blitr/   SwiftUI and shim modules, the engine library, libSkiaSharp, fonts/
-#     share/blitr/ fetch-apple-fonts.sh, THIRD-PARTY-NOTICES, VERSION
+#     share/blitr/ fetch-apple-fonts.sh, LICENSE, THIRD-PARTY-NOTICES, VERSION
 #
 # Usage: scripts/make-dist.sh [VERSION]     (default: git describe --tags --always)
 # Needs Vendor/ (scripts/bootstrap.sh), the Swift toolchain on PATH, and patchelf
@@ -174,6 +174,7 @@ fi
   cat Sources/SwiftUI/Symbols/LICENSE-phosphor-icons.txt
 } > "$share/THIRD-PARTY-NOTICES"
 cp "$share/THIRD-PARTY-NOTICES" "$lib/fonts/LICENSES.txt"
+cp LICENSE "$share/LICENSE"
 
 cp scripts/fetch-apple-fonts.sh "$share/"
 chmod 755 "$share/fetch-apple-fonts.sh"

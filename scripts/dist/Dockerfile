@@ -18,6 +18,7 @@ RUN set -eu; \
     rm -rf /tmp/assets
 
 LABEL org.opencontainers.image.source="https://github.com/Sam-Apostel/blitr" \
+      org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.description="Render SwiftUI previews to PNG without a simulator"
 
 # Apple's fonts are not redistributable: mount your own copy and point the tool at it with

@@ -224,7 +224,9 @@ jobs:
 
       - name: Set the version
         working-directory: npm
-        run: npm pkg set version="${DIST_VERSION#v}"
+        run: |
+          npm pkg set version="${DIST_VERSION#v}"
+          cp ../LICENSE LICENSE
 
       - uses: actions/download-artifact@v4
         with:
