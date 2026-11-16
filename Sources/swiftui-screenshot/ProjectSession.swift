@@ -343,6 +343,13 @@ struct ProjectBuild {
             setenv("SWIFTUI_SCREENSHOT_STRINGS", path, 1)
         }
         setenv("SWIFTUI_SCREENSHOT_LOCALE", language, 1)
+        // Bundle.main of the compiled preview is the runner's directory, and its localizations are the `.lproj`
+        // folders in it: one per language the project has strings for, as in the app bundle, so app code that
+        // checks `Bundle.main.localizations` or `preferredLocalizations` sees the app's languages.
+        let runnerDirectory = (runner.path as NSString).deletingLastPathComponent
+        for lproj in Set(available + [target.developmentLanguage ?? context.project.developmentLanguage ?? "en"]) {
+            try? FileManager.default.createDirectory(atPath: runnerDirectory + "/\(lproj).lproj", withIntermediateDirectories: true)
+        }
         for dir in fontDirectories { runnerArguments += ["--fonts", dir] }
         var seen: Set<String> = []
         for dir in assetDirectories where seen.insert(dir).inserted { runnerArguments += ["--assets", dir] }
