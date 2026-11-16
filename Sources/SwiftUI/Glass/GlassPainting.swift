@@ -9,11 +9,15 @@ struct GlassAppearance {
     /// Blur applied to the backdrop, in points (SwiftUI blur radius, about twice the gaussian sigma).
     var blurRadius: CGFloat
     /// Saturation of the result (1 = unchanged), applied after the tint and `brightness`.
-    var saturation: Float
+    var saturation: Float { didSet { response = nil } }
     /// Flat color laid over the blurred backdrop.
-    var tint: RGBA
+    var tint: RGBA { didSet { response = nil } }
     /// Added to every channel after the tint (0...1): dark glass lifts what is behind it.
-    var brightness: Float = 0
+    var brightness: Float = 0 { didSet { response = nil } }
+    /// iOS 27 system glass: a nonlinear response to the blurred backdrop, used instead of the tint, `brightness`
+    /// and `saturation` where the backdrop can be read (those stay as the closest linear fallback). Changing
+    /// any of them (prominent, tinted and clear glass, sheets and alerts with their own look) drops it.
+    var response: GlassResponse? = nil
     /// tvOS: saturate the backdrop before the tint (the earlier model) instead of the result.
     var saturatesBeforeTint = false
     /// Width of the zone along the rim where the backdrop is bent, and how far (points).
@@ -54,6 +58,16 @@ struct GlassAppearance {
             highlight: dark ? (0.3, 0.1) : (0.85, 0.3),
             edge: dark ? RGBA(0, 0, 0, 0.25) : is26 ? .clear : RGBA(0, 0, 0, 0.12),
             shadow: dark ? (.clear, 0, 0) : is26 ? (RGBA(0, 0, 0, 0.07), 24, 2) : (RGBA(0, 0, 0, 0.035), 12, 6))
+        if design == .liquidGlass27 {
+            if dark {
+                a.response = .dark27
+            } else {
+                // The closest linear fit (the fallback): 57% of a 250 gray, then saturation 2.0.
+                a.tint = RGBA(0.98, 0.98, 0.98, 0.567)
+                a.saturation = 2.0
+                a.response = .light27
+            }
+        }
         if variant == .clear {
             a.blurRadius = 4
             a.tint = a.tint.opacity(0.3)
@@ -62,6 +76,25 @@ struct GlassAppearance {
         }
         return a
     }
+}
+
+/// How iOS 27 system glass answers its blurred backdrop: the luma of the result is a curve of the backdrop's
+/// luma (`luma.0 + luma.1 * l + luma.2 * l * l`, 0...1), and the colour around it is the backdrop's, scaled by
+/// `chroma.0 + chroma.1 * l`. Fitted per pixel against the plain glass of every iOS 27.0 reference screen
+/// (bars, bar items, tab bars, sheets and glass buttons, with labels, rims and misplaced content left out).
+struct GlassResponse {
+    var luma: (Float, Float, Float)
+    var chroma: (Float, Float)
+
+    /// Light glass lifts everything towards white and keeps most of the colour: white turns into 252, gray 241
+    /// into 246, the dimmed 202 behind a sheet into 229. measured: iOS 27.0 simulator
+    static let light27 = GlassResponse(luma: (0.5868, 0.3386, 0.0642), chroma: (0.8544, 0.0303))
+    /// Dark glass lifts dark backdrops (black turns into 32, 17 into 48) but barely touches bright, colourful ones
+    /// (a 171,150,236 card stays near 153,133,220), and adds colour over dark ones. measured: iOS 27.0 simulator
+    /// (fit: luma 0.1248 + 0.9741 l - 0.382 l², colour 1.1309 - 0.2249 l). Kept 20% of the way towards the
+    /// earlier linear model (76% + 33 levels, saturation 1.32): over blurred text near the rim, which our lens
+    /// smears more than the system's, the full fit made NavigationTabs-Tabs worse.
+    static let dark27 = GlassResponse(luma: (0.1256, 0.9313, -0.3056), chroma: (1.1053, -0.1799))
 }
 
 extension GlassAppearance {
@@ -117,6 +150,8 @@ extension Painter {
     uniform float4 tint;     // straight-alpha color mixed over the backdrop
     uniform float4 origin;   // xy: where the backdrop image's (0,0) sits in device space
     uniform float4 adjust;   // x: brightness added after the tint, y: saturation of the result
+    uniform float4 curve;    // xyz: luma response (constant, linear, quadratic), w: 1 when used instead of tint
+    uniform float4 chroma;   // xy: colour scale (constant, per unit of luma)
 
     half4 main(float2 p) {
         float2 center = (rect.xy + rect.zw) * 0.5;
@@ -133,10 +168,17 @@ extension Painter {
         float bend = t * t * t;
         float2 src = p - n * bend * shape.z;
         half4 color = backdrop.eval(src - origin.xy);
-        color.rgb = mix(color.rgb, half3(tint.rgb), half(tint.a)) + half(adjust.x);
-        if (adjust.y != 1.0) {
-            half luma = dot(color.rgb, half3(0.2126, 0.7152, 0.0722));
-            color.rgb = clamp(mix(half3(luma), color.rgb, half(adjust.y)), 0.0, 1.0);
+        if (curve.w > 0.5) {
+            float l = dot(float3(color.rgb), float3(0.2126, 0.7152, 0.0722));
+            float lr = curve.x + curve.y * l + curve.z * l * l;
+            float s = chroma.x + chroma.y * l;
+            color.rgb = half3(clamp(lr + s * (float3(color.rgb) - l), 0.0, 1.0));
+        } else {
+            color.rgb = mix(color.rgb, half3(tint.rgb), half(tint.a)) + half(adjust.x);
+            if (adjust.y != 1.0) {
+                half luma = dot(color.rgb, half3(0.2126, 0.7152, 0.0722));
+                color.rgb = clamp(mix(half3(luma), color.rgb, half(adjust.y)), 0.0, 1.0);
+            }
         }
         // The bent rim catches a little extra light.
         color.rgb += half3(bend * 0.06);
@@ -231,6 +273,39 @@ extension Painter {
         }
     }
 
+    /// Draws `body` in one solid color, keeping its coverage (a vibrant label over glass).
+    func drawRecolored(_ color: RGBA, _ body: () -> Void) {
+        let (r, g, b) = (Float(color.r), Float(color.g), Float(color.b))
+        let matrix: [Float] = [0, 0, 0, 0, r,  0, 0, 0, 0, g,  0, 0, 0, 0, b,  0, 0, 0, 1, 0]
+        saveLayer(LayerOptions(colorFilter: sk_colorfilter_new_color_matrix(matrix)))
+        body()
+        restore()
+    }
+
+    /// The average color already drawn in a rectangle (local coordinates), read back from the surface.
+    /// Nil when it cannot be read (inside a layer, transformed, or no surface).
+    func averageDrawnColor(in rect: CGRect) -> RGBA? {
+        guard let surface, !isInsideLayer else { return nil }
+        var matrix = sk_matrix44_t()
+        sk_canvas_get_matrix(canvas, &matrix)
+        guard matrix.m01 == 0, matrix.m10 == 0, matrix.m03 == 0, matrix.m13 == 0, matrix.m00 > 0, matrix.m11 > 0 else { return nil }
+        let device = CGRect(x: rect.minX * CGFloat(matrix.m00) + CGFloat(matrix.m30), y: rect.minY * CGFloat(matrix.m11) + CGFloat(matrix.m31),
+                            width: rect.width * CGFloat(matrix.m00), height: rect.height * CGFloat(matrix.m11)).integral
+        let w = Int(device.width), h = Int(device.height)
+        guard w > 0, h > 0, device.minX >= 0, device.minY >= 0 else { return nil }
+        var info = sk_imageinfo_t(colorspace: nil, width: Int32(w), height: Int32(h),
+                                  colorType: RGBA_8888_SK_COLORTYPE, alphaType: UNPREMUL_SK_ALPHATYPE)
+        var pixels = [UInt8](repeating: 0, count: w * h * 4)
+        let ok = pixels.withUnsafeMutableBytes { sk_surface_read_pixels(surface, &info, $0.baseAddress, w * 4, Int32(device.minX), Int32(device.minY)) }
+        guard ok else { return nil }
+        var sum = (0.0, 0.0, 0.0)
+        for i in stride(from: 0, to: pixels.count, by: 4) {
+            sum.0 += Double(pixels[i]); sum.1 += Double(pixels[i + 1]); sum.2 += Double(pixels[i + 2])
+        }
+        let n = Double(w * h) * 255
+        return RGBA(sum.0 / n, sum.1 / n, sum.2 / n, 1)
+    }
+
     private func drawLens(snapshot: OpaquePointer, effect: OpaquePointer, rect: CGRect, radius: CGFloat,
                           matrix: sk_matrix44_t, appearance a: GlassAppearance) -> Bool {
         let (sx, sy, tx, ty) = (CGFloat(matrix.m00), CGFloat(matrix.m11), CGFloat(matrix.m30), CGFloat(matrix.m31))
@@ -272,6 +347,8 @@ extension Painter {
             Float(a.tint.r), Float(a.tint.g), Float(a.tint.b), Float(a.tint.a),
             Float(region.minX), Float(region.minY), 0, 0,
             a.finish.brightness, a.finish.saturation, 0, 0,
+            a.response?.luma.0 ?? 0, a.response?.luma.1 ?? 0, a.response?.luma.2 ?? 0, a.response == nil ? 0 : 1,
+            a.response?.chroma.0 ?? 0, a.response?.chroma.1 ?? 0, 0, 0,
         ]
         let data = uniforms.withUnsafeBytes { sk_data_new_with_copy($0.baseAddress, $0.count) }
         defer { sk_data_unref(data) }
