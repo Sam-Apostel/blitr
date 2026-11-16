@@ -66,6 +66,10 @@ enum SheetMetrics {
         /// iOS 27 dark: the system glass with a deeper black tint, so colours behind it come through darker
         /// (black still turns into 32). measured: iOS 27.0 simulator (GlassTabsAndSheets cards under the sheet)
         var tint27Dark = RGBA(0, 0, 0, 0.18)
+        /// iOS 27 dark: the sheet's response to the blurred backdrop (the tint above stays as the linear fallback):
+        /// like a bar's, it keeps bright, colourful content close to its own brightness while lifting black to 32.
+        /// measured: iOS 27.0 simulator (per-pixel fit of the plain sheet of GlassTabsAndSheets-2 and 10_Agenda-1)
+        var response27Dark = GlassResponse(luma: (0.1259, 0.9342, -0.5285), chroma: (1.0663, -0.0893))
 
         /// Radius of a floating card: the display radius less the inset.
         func floatingCornerRadius() -> CGFloat {
@@ -77,6 +81,7 @@ enum SheetMetrics {
                 a.tint = scheme == .dark ? tintDark : tintLight
             } else if scheme == .dark {
                 a.tint = tint27Dark
+                if design == .liquidGlass27 { a.response = response27Dark }
             }
             return a
         }
@@ -159,6 +164,15 @@ enum AlertMetrics {
         /// cards of GlassTabsAndSheets-5 disappear under it). measured: iOS 27.0 simulator (best of 14...60pt
         /// over GlassTabsAndSheets-3/4/5 and 11_Profile, both schemes)
         var blurRadius27: CGFloat = 40
+        /// iOS 27: the card's response to the blurred backdrop (the tint and saturation above stay as the linear
+        /// fallback). Dark lifts the dimmed black to 30 but keeps bright, colourful cards close to their own
+        /// brightness, which no single tint and saturation can do (GlassTabsAndSheets-5); light lifts towards
+        /// white a little more than a bar. measured: iOS 27.0 simulator (per-pixel fit of the plain card of
+        /// GlassTabsAndSheets-3/4/5 and 11_Profile-1; dark fit: luma 0.119 + 0.9318 l - 0.5603 l², colour
+        /// 1.2016 - 0.5777 l). Dark is kept halfway to the linear model: the full fit brightened the rims and
+        /// the misaligned button edges of GlassTabsAndSheets-4 enough to make it worse overall.
+        var response27Light = GlassResponse(luma: (0.5648, 0.459, 0.0045), chroma: (0.9581, -0.1076))
+        var response27Dark = GlassResponse(luma: (0.132, 0.766, -0.28), chroma: (1.2008, -0.289))
 
         func appearance(_ scheme: ColorScheme, design: DesignLanguage) -> GlassAppearance {
             var a = GlassAppearance.system(.regular, scheme: scheme, design: design)
@@ -167,6 +181,7 @@ enum AlertMetrics {
                 a.tint = scheme == .dark ? tint27Dark : tint27Light
                 a.saturation = scheme == .dark ? saturation27Dark : saturation27Light
                 a.blurRadius = blurRadius27
+                a.response = scheme == .dark ? response27Dark : response27Light
             }
             return a
         }
