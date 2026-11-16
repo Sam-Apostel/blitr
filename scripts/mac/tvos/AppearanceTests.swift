@@ -1,7 +1,7 @@
 import XCTest
 
-// Sets the Apple TV simulator's system appearance (Settings > General > Appearance), which simctl
-// cannot do for tvOS. TEST_RUNNER_APPEARANCE_STYLE is "Light" or "Dark".
+// Sets the Apple TV simulator's system appearance (Settings > General > Appearance), which
+// `simctl ui appearance` refuses on tvOS 26.5. TEST_RUNNER_APPEARANCE_STYLE is "Light" or "Dark".
 
 final class AppearanceTests: XCTestCase {
     private func focusedLabel(_ app: XCUIApplication) -> String {
@@ -25,8 +25,12 @@ final class AppearanceTests: XCTestCase {
         XCTFail("could not focus \(label); last focused: \(focusedLabel(app))")
     }
 
-    func testSetAppearance() {
-        let style = ProcessInfo.processInfo.environment["APPEARANCE_STYLE"] ?? "Light"
+    func testSetAppearance() throws {
+        // Without a style this is a stray run (test-without-building with no -only-testing); leave the
+        // appearance alone instead of switching the simulator to Light behind the capture's back.
+        guard let style = ProcessInfo.processInfo.environment["APPEARANCE_STYLE"] else {
+            throw XCTSkip("TEST_RUNNER_APPEARANCE_STYLE is not set")
+        }
         let settings = XCUIApplication(bundleIdentifier: "com.apple.TVSettings")
         settings.terminate()
         settings.launch()
