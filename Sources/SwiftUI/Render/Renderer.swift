@@ -131,6 +131,7 @@ enum Renderer {
                 continue
             }
             session?.passDidLayout(root)
+            runtime.layoutRoot = root
             if runtime.focus.afterLayout(root, screen: container, runtime: runtime) { runtime.needsAnotherPass = true }
             let postLayout = runtime.postLayoutActions
             runtime.postLayoutActions = []

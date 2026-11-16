@@ -197,6 +197,9 @@ final class FocusEngine {
     var automaticInitialFocus = false
     /// Per scroll view / list: the content offset, keyed by identity.
     var scrollOffsets: [IdentityPath: CGPoint] = [:]
+    /// The focused element when code last scrolled (`ScrollViewProxy.scrollTo`): while it keeps focus the
+    /// engine does not scroll it back into its margins, as tvOS only scrolls to an element when focus moves.
+    var scrolledByCodeAt: IdentityPath?
     /// TabViews without a selection binding: the tab chosen by `select`.
     var tabSelections: [IdentityPath: Int] = [:]
     /// Screens pushed onto a navigation stack by `select` on a NavigationLink.
@@ -298,7 +301,8 @@ final class FocusEngine {
                 changed = true
             }
         }
-        if let f = focusedIndex, scrollIntoView(snap.elements[f]) { changed = true }
+        if scrolledByCodeAt != nil, focusedIndex.map({ snap.elements[$0].path }) != scrolledByCodeAt { scrolledByCodeAt = nil }
+        if let f = focusedIndex, snap.elements[f].path != scrolledByCodeAt, scrollIntoView(snap.elements[f]) { changed = true }
         if next != focusedPath {
             setFocus(next)
             changed = true

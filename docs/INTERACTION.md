@@ -216,8 +216,8 @@ within `--task-timeout` of real time, as in a still render, with `Task.sleep` on
   realizing rows as they come into view; whatever the engine draws at an offset (pinned section headers,
   scroll edge effects as far as the still renderer draws them).
 - **not modelled**: rubber-banding, scroll indicators, large navigation titles collapsing to inline (the
-  title keeps its still-frame layout), `scrollTargetBehavior` paging, `ScrollViewReader.scrollTo` and
-  `scrollPosition` from code.
+  title keeps its still-frame layout), `scrollTargetBehavior` paging, animating
+  `ScrollViewReader.scrollTo` and `scrollPosition` from code (both jump to the end position).
 
 `--full-content <file.png>` captures the first vertical scroll view at successive offsets and stacks the
 visible slices; what is above the scroll view (status and navigation bar) is taken from the first capture

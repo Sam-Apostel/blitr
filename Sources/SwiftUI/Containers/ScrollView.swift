@@ -122,7 +122,62 @@ public struct ScrollView<Content: View>: View, PrimitiveView {
 /// Scrolls programmatically in an interactive app; inert in a still frame.
 public struct ScrollViewProxy {
     init() {}
-    public func scrollTo<ID: Hashable>(_ id: ID, anchor: UnitPoint? = nil) {}
+    /// Scrolls the scroll views around the view with this id (`.id(_:)`) so it shows: with an anchor, that
+    /// point of the view goes to the same point of the scroll view; without one, by the least amount. Takes
+    /// effect from the next pass, so call it from an action (`onChange`, a button, `onAppear`). The scroll is
+    /// not animated in a still frame; captures show the end state.
+    public func scrollTo<ID: Hashable>(_ id: ID, anchor: UnitPoint? = nil) {
+        let target = AnyHashable(id)
+        MainActor.assumeIsolated {
+            guard let runtime = Runtime.current else { return }
+            guard let root = runtime.layoutRoot, let (node, scrolls) = Self.find(target, in: root, scrolls: []) else {
+                runtime.warn("ScrollViewProxy.scrollTo: no view with id \(id) on screen")
+                return
+            }
+            var moved = false
+            for scroll in scrolls.reversed() {
+                guard let identity = scroll.identity else { continue }
+                let content = scroll.content
+                let frame = CGRect(x: node.absoluteOrigin.x - content.absoluteOrigin.x, y: node.absoluteOrigin.y - content.absoluteOrigin.y,
+                                   width: node.frame.width, height: node.frame.height)
+                let visible = CGSize(width: scroll.frame.width - scroll.margins.horizontal, height: scroll.frame.height - scroll.margins.vertical)
+                let old = runtime.focus.scrollOffsets[identity] ?? .zero
+                func axis(_ minE: CGFloat, _ size: CGFloat, _ view: CGFloat, _ content: CGFloat, _ current: CGFloat, _ unit: CGFloat?) -> CGFloat {
+                    var next: CGFloat
+                    if let unit { next = minE + size * unit - view * unit }
+                    else if minE < current || size > view { next = minE }
+                    else if minE + size > current + view { next = minE + size - view }
+                    else { next = current }
+                    return min(max(0, next), max(0, content - view))
+                }
+                var offset = old
+                if scroll.axes.contains(.vertical) {
+                    offset.y = axis(frame.minY, frame.height, visible.height, content.frame.height, old.y, anchor?.y)
+                }
+                if scroll.axes.contains(.horizontal) {
+                    offset.x = axis(frame.minX, frame.width, visible.width, content.frame.width, old.x, anchor?.x)
+                }
+                if offset != old {
+                    runtime.focus.scrollOffsets[identity] = offset
+                    moved = true
+                }
+            }
+            if moved {
+                runtime.focus.scrolledByCodeAt = runtime.focus.focusedPath
+                runtime.needsAnotherPass = true
+            }
+        }
+    }
+
+    @MainActor
+    private static func find(_ id: AnyHashable, in node: Node, scrolls: [ScrollNode]) -> (Node, [ScrollNode])? {
+        if node.traits[IDTraitKey.self] == id { return (node, scrolls) }
+        let inner = (node as? ScrollNode).map { scrolls + [$0] } ?? scrolls
+        for child in node.children {
+            if let found = find(id, in: child, scrolls: inner) { return found }
+        }
+        return nil
+    }
 }
 
 public struct ScrollViewReader<Content: View>: View {
