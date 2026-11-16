@@ -4,7 +4,7 @@ See what your SwiftUI code looks like without Xcode's simulator. Point it at a S
 and it writes PNGs of your previews, on Linux or on a Mac.
 
 ```
-npx blitr render ProfileView.swift --scheme both --out-dir shots
+npx @apostel/blitr render ProfileView.swift --scheme both --out-dir shots
 ```
 
 ![Screens rendered by blitr](https://raw.githubusercontent.com/Sam-Apostel/blitr/main/docs/images/screens-1.png)
@@ -12,7 +12,7 @@ npx blitr render ProfileView.swift --scheme both --out-dir shots
 ## Install
 
 ```
-npm install -g blitr
+npm install -g @apostel/blitr
 ```
 
 The package is a small launcher. Its first run downloads the blitr release for your platform into

@@ -1,5 +1,5 @@
 {
-  "name": "blitr",
+  "name": "@apostel/blitr",
   "version": "0.0.0",
   "description": "Render SwiftUI previews to PNG without Xcode's simulator, on macOS and Linux",
   "keywords": ["swiftui", "screenshot", "preview", "ios", "render", "png", "snapshot"],

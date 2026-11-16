@@ -44,7 +44,7 @@ From npm, on a Mac or on Linux. The first run downloads the release for your pla
 toolchain it needs (about 1 GB, once, into `~/.cache/blitr`):
 
 ```
-npm install -g blitr          # or: npx blitr render MyView.swift -o shot.png
+npm install -g @apostel/blitr   # or: npx @apostel/blitr render MyView.swift -o shot.png
 ```
 
 On Linux, for a setup script (installs into `/opt/blitr`, with the Swift toolchain in `/opt/swift`):
