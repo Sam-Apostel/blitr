@@ -11,7 +11,7 @@ public struct AppStorage<Value>: DynamicProperty {
     }
 
     public var wrappedValue: Value {
-        get { (CompatStore.shared.defaults[key] as? Value) ?? defaultValue }
+        get { storedValue(CompatStore.shared.defaults[key], defaultValue) }
         nonmutating set {
             CompatStore.shared.defaults[key] = newValue
             CompatStore.markChanged()
@@ -19,9 +19,25 @@ public struct AppStorage<Value>: DynamicProperty {
     }
     public var projectedValue: Binding<Value> {
         let key = self.key, fallback = defaultValue
-        return Binding(get: { (CompatStore.shared.defaults[key] as? Value) ?? fallback },
+        return Binding(get: { storedValue(CompatStore.shared.defaults[key], fallback) },
                        set: { CompatStore.shared.defaults[key] = $0; CompatStore.markChanged() })
     }
+}
+
+/// A stored value as `Value`. Values from the launch arguments are strings, read as UserDefaults reads them:
+/// "YES"/"true"/"1" for a Bool, numbers for Int and Double, a URL string for URL.
+func storedValue<Value>(_ raw: Any?, _ fallback: Value) -> Value {
+    if let value = raw as? Value { return value }
+    guard let text = raw as? String else { return fallback }
+    let converted: Any?
+    switch fallback {
+    case is Bool, is Bool?: converted = ["yes", "true", "1"].contains(text.lowercased())
+    case is Int, is Int?: converted = Int(text)
+    case is Double, is Double?: converted = Double(text)
+    case is URL, is URL?: converted = URL(string: text)
+    default: converted = nil
+    }
+    return (converted as? Value) ?? fallback
 }
 
 extension AppStorage {

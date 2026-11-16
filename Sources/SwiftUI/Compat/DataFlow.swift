@@ -4,7 +4,26 @@
 /// subscriptions that must outlive the resolve pass that created them).
 final class CompatStore {
     nonisolated(unsafe) static let shared = CompatStore()
-    var defaults: [String: Any] = [:]
+    /// `@AppStorage` and `@SceneStorage` values. They start empty, never from the host's defaults, so a render
+    /// does not depend on the machine it runs on; but the launch arguments' `-key value` pairs are there, as
+    /// UserDefaults' argument domain puts them on iOS (`--arg -onboarded --arg YES`).
+    var defaults: [String: Any] = CompatStore.argumentDomain(Array(CommandLine.arguments.dropFirst()))
+
+    /// `-key value` pairs, as UserDefaults reads them from the launch arguments.
+    static func argumentDomain(_ arguments: [String]) -> [String: Any] {
+        var domain: [String: Any] = [:]
+        var i = 0
+        while i + 1 < arguments.count {
+            let key = arguments[i]
+            if key.count > 1, key.hasPrefix("-"), !key.hasPrefix("--") {
+                domain[String(key.dropFirst())] = arguments[i + 1]
+                i += 2
+            } else {
+                i += 1
+            }
+        }
+        return domain
+    }
     var retained: [AnyObject] = []
     var hookInstalled = false
 
