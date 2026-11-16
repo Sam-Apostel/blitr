@@ -113,9 +113,9 @@ package struct DeviceProfile {
     /// An Apple Watch: watchOS apps are portrait only, and the same insets apply in both orientations.
     /// The top inset is the band the time sits in; the bottom one keeps content off the rounded corners.
     private static func watch(_ id: String, _ name: String, _ width: CGFloat, _ height: CGFloat, top: CGFloat, bottom: CGFloat,
-                              radius: CGFloat, aliases: [String]) -> DeviceProfile {
+                              side: CGFloat, radius: CGFloat, aliases: [String]) -> DeviceProfile {
         DeviceProfile(id: id, name: name, idiom: .watch, portraitSize: CGSize(width: width, height: height), scale: 2,
-                      portraitSafeArea: edges(top, 0, bottom, 0), landscapeSafeArea: edges(top, 0, bottom, 0),
+                      portraitSafeArea: edges(top, side, bottom, side), landscapeSafeArea: edges(top, side, bottom, side),
                       cornerRadius: radius, housing: .none, aliases: aliases)
     }
 
@@ -178,13 +178,15 @@ package struct DeviceProfile {
         phone("iphone-air", "iPhone Air", 420, 912, top: 68, radius: 62, housing: .dynamicIsland(size: CGSize(width: 125, height: 37), top: 20),
               aliases: ["iphone-17-air"]),
 
-        // Apple Watch. Screen sizes are Apple's (416x496, 374x446 and 410x502 pixels at 2x). The safe-area
-        // insets and the display corner radii are estimates scaled from the 41/45mm generation.
-        watch("apple-watch-series-10-46mm", "Apple Watch Series 10 (46mm)", 208, 248, top: 37, bottom: 10, radius: 52,
+        // Apple Watch. Screen sizes are Apple's (416x496, 374x446 and 410x502 pixels at 2x). The display
+        // corner radii are estimates scaled from the 41/45mm generation.
+        // measured: watchOS 26.5 simulator: the safe-area insets (a full-screen app's first text at x 2 and at
+        // the top inset; a VStack centred between the top and bottom insets).
+        watch("apple-watch-series-10-46mm", "Apple Watch Series 10 (46mm)", 208, 248, top: 53, bottom: 36, side: 2, radius: 52,
               aliases: ["apple-watch", "watch", "apple-watch-46mm", "apple-watch-series-11-46mm"]),
-        watch("apple-watch-series-10-42mm", "Apple Watch Series 10 (42mm)", 187, 223, top: 33, bottom: 9, radius: 46,
+        watch("apple-watch-series-10-42mm", "Apple Watch Series 10 (42mm)", 187, 223, top: 48, bottom: 31, side: 2, radius: 46,
               aliases: ["apple-watch-42mm", "apple-watch-series-11-42mm"]),
-        watch("apple-watch-ultra-2", "Apple Watch Ultra 2 (49mm)", 205, 251, top: 37, bottom: 10, radius: 48,
+        watch("apple-watch-ultra-2", "Apple Watch Ultra 2 (49mm)", 205, 251, top: 55, bottom: 39, side: 2, radius: 48,
               aliases: ["apple-watch-ultra", "apple-watch-ultra-49mm"]),
 
         // iPads. Corner radii are approximations (18pt for the 11/13-inch, 21.5 for the mini).
