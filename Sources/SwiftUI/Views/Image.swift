@@ -291,7 +291,9 @@ extension Image {
             _ = side
             return .missing(name)
         case .file(let path):
-            guard let bitmap = Bitmap(path: path, scale: 1) else { return .missing(path) }
+            // `name@2x.png` is 2 pixels per point, as for assets.
+            let pixelsPerPoint: CGFloat = path.contains("@3x.") ? 3 : path.contains("@2x.") ? 2 : 1
+            guard let bitmap = Bitmap(path: path, scale: pixelsPerPoint) else { return .missing(path) }
             return .bitmap(bitmap, template: renderingMode == .template ? foreground : nil)
         case .rendered(let rendered):
             return .bitmap(rendered.bitmap, template: renderingMode == .template ? foreground : nil)

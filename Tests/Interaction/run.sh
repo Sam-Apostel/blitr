@@ -36,6 +36,33 @@ grep -q 'state changed, 15 frames' "$out/a/card.log" && echo "ok    card step lo
 # The settled end of the animation is the plain render of the end state.
 cmp -s "$out/a/card.png" "$out/a/card-apng.png" && echo "ok    end frames agree" || fail "card PNGs differ between runs with different outputs"
 
+# Device state from the command line: --locale sets formats and the currency, --location grants access and reports it.
+mkdir -p "$out/state"
+"$bin" render Examples/DeviceState.swift --open-fonts --layout fit -o "$out/state/us.png" --accessibility-tree "$out/state/us.json" >/dev/null 2>&1 || fail "device state render"
+"$bin" render Examples/DeviceState.swift --open-fonts --layout fit --locale nl_BE --location 51.0543,3.7174 -o "$out/state/be.png" --accessibility-tree "$out/state/be.json" >/dev/null 2>&1 || fail "device state render with flags"
+grep -q '1,234.50' "$out/state/us.json" && grep -q 'not determined' "$out/state/us.json" && echo "ok    default device state" || fail "default device state: $(grep -o '"label": "[^"]*"' "$out/state/us.json" | head -4)"
+grep -q '1.234,50' "$out/state/be.json" && grep -q '51.0543, 3.7174' "$out/state/be.json" && echo "ok    --locale and --location" || fail "--locale/--location: $(grep -o '"label": "[^"]*"' "$out/state/be.json" | head -4)"
+
+# --crop: one part of the screen, by rectangle in points or by an element's label, at the device's scale.
+"$bin" render Tests/Corpus/01_Settings.swift --open-fonts -o "$out/state/crop-rect.png" --crop 0,180,393,200 >"$out/state/crop.log" 2>&1 || fail "crop render"
+grep -q "crop-rect.png  1179x600" "$out/state/crop.log" && echo "ok    --crop by rectangle" || fail "--crop by rectangle: $(cat "$out/state/crop.log")"
+"$bin" render Tests/Corpus/01_Settings.swift --open-fonts -o "$out/state/crop-label.png" --crop "Airplane Mode" --crop-padding 4 >"$out/state/crop2.log" 2>&1 && echo "ok    --crop by label" || fail "--crop by label: $(cat "$out/state/crop2.log")"
+
+# AsyncImage of a file URL draws the image, at its scale (the network is not needed).
+cat > "$out/state/async.swift" <<SWIFT
+import SwiftUI
+struct AsyncFile: View {
+    var body: some View {
+        AsyncImage(url: URL(fileURLWithPath: "$PWD/docs/images/screens-1.png"), scale: 2)
+            .accessibilityIdentifier("photo")
+    }
+}
+#Preview { AsyncFile() }
+SWIFT
+"$bin" render "$out/state/async.swift" --open-fonts --layout fit --scale 1 -o "$out/state/async.png" >"$out/state/async.log" 2>&1 || fail "AsyncImage render: $(cat "$out/state/async.log")"
+half=$(python3 -c "import struct;d=open('docs/images/screens-1.png','rb').read(24);w,h=struct.unpack('>II',d[16:24]);print(f'{w//2}x')")
+grep -q "async.png  $half" "$out/state/async.log" && echo "ok    AsyncImage draws a file URL at its scale" || fail "AsyncImage file URL: expected $half, got $(cat "$out/state/async.log")"
+
 # Task.sleep on the virtual clock: delays within the settle time pass at once, no task is reported as
 # unfinished, and a `wait` step wakes the 5 s slideshow timer (a different frame).
 mkdir -p "$out/tasks"

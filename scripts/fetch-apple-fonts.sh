@@ -14,7 +14,7 @@
 # https://developer.apple.com/fonts/ (the licence is also shown by each installer package).
 # Passing --accept-apple-font-license (or ACCEPT_APPLE_FONT_LICENSE=1) states that you accept them.
 #
-# Requires: curl, 7z (apt-get install 7zip).
+# Requires: curl and, except on a Mac, 7z (apt-get install 7zip).
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -d "$here/../../lib/swiftui-screenshot/SwiftUI.swiftmodule" ]; then
@@ -45,8 +45,10 @@ MSG
   exit 1
 fi
 
+# On a Mac the disk images and installers are opened with hdiutil and pkgutil; elsewhere with 7z.
+darwin=0; [ "$(uname -s)" = Darwin ] && darwin=1
 sevenzip="$(command -v 7z || command -v 7zz || true)"
-[ -n "$sevenzip" ] || { echo "7z not found. Install it with: apt-get install -y 7zip" >&2; exit 1; }
+[ "$darwin" = 1 ] || [ -n "$sevenzip" ] || { echo "7z not found. Install it with: apt-get install -y 7zip" >&2; exit 1; }
 
 base="https://devimages-cdn.apple.com/design/resources/download"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
@@ -58,6 +60,17 @@ unpack() { # name
   mkdir -p "$work/dmg" "$work/pkg" "$work/payload"
   echo "Fetching $name.dmg from Apple"
   curl -fsSL --retry 3 -o "$work/$name.dmg" "$base/$name.dmg"
+  if [ "$darwin" = 1 ]; then
+    hdiutil attach -quiet -nobrowse -readonly -mountpoint "$work/dmg" "$work/$name.dmg"
+    local mounted; mounted="$(find "$work/dmg" -maxdepth 2 -name '*.pkg' | head -n 1)"
+    [ -n "$mounted" ] || { hdiutil detach -quiet "$work/dmg"; echo "no installer package found in $name.dmg" >&2; exit 1; }
+    rm -rf "$work/pkg"
+    pkgutil --expand-full "$mounted" "$work/pkg"
+    hdiutil detach -quiet "$work/dmg"
+    find "$work/pkg" -type d -name Payload -exec cp -R {}/. "$work/payload/" \;
+    sha256sum "$work/$name.dmg" | sed "s|$work/||" >> "$dest/SOURCES.txt"
+    return
+  fi
   "$sevenzip" x -y -o"$work/dmg" "$work/$name.dmg" >/dev/null
   local pkg; pkg="$(find "$work/dmg" -name '*.pkg' | head -n 1)"
   [ -n "$pkg" ] || { echo "no installer package found in $name.dmg" >&2; exit 1; }

@@ -7,7 +7,7 @@
 # Default devices: Apple Watch Series 10 (46mm), Series 10 (42mm) and Ultra 2 (49mm), the renderer's
 # apple-watch-series-10-46mm, apple-watch-series-10-42mm and apple-watch-ultra-2. Default files:
 # Examples/Watch.swift and Examples/WatchList.swift. Writes <out>/<device-slug>/<scheme>/<screen>-<preview>.png
-# and .json, plus <out>/manifest.json (default out: Tests/Reference/watchos-<runtime>). Uses an existing
+# and .json, plus <out>/manifest.json (default out: <references>/watchos-<runtime>). Uses an existing
 # simulator of each device type on the newest watchOS runtime (it creates none) and shuts down the ones it
 # booted. Uses XcodeGen for the UI test that drives the app and reads its accessibility hierarchy.
 set -euo pipefail
@@ -39,7 +39,7 @@ rts = [r for r in json.load(sys.stdin)["runtimes"] if r["platform"] == "watchOS"
 if not rts: sys.exit("no watchOS simulator runtime installed")
 r = sorted(rts, key=lambda r: [int(x) for x in r["version"].split(".")])[-1]
 print(r["identifier"], r["version"], r["buildversion"])')
-OUT="${OUT:-$ROOT/Tests/Reference/watchos-$RUNTIME_VERSION}"
+OUT="${OUT:-${SWIFTUI_SCREENSHOT_REFERENCES:-$HOME/Library/Application Support/swiftui-screenshot/references}/watchos-$RUNTIME_VERSION}"
 BUILD="${TMPDIR:-/tmp}/swiftui-screenshot-watchos-capture"
 BUNDLE_ID="dev.swiftui-screenshot.reference-host"
 

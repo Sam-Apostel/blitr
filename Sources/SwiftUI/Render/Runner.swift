@@ -35,7 +35,9 @@ public enum _ScreenshotRunner {
     /// formats with the environment's locale on every host (`Text.Storage.formatted`).
     static func applyLocale() {
         #if canImport(Darwin)
-        let identifier = ProcessInfo.processInfo.environment["SWIFTUI_SCREENSHOT_LOCALE"] ?? "en_US"
+        let arguments = CommandLine.arguments
+        let flag = arguments.firstIndex(of: "--locale").flatMap { $0 + 1 < arguments.count ? arguments[$0 + 1] : nil }
+        let identifier = flag ?? ProcessInfo.processInfo.environment["SWIFTUI_SCREENSHOT_LOCALE"] ?? "en_US"
         let language = identifier.split(whereSeparator: { $0 == "_" || $0 == "-" }).first.map(String.init) ?? "en"
         var domain = UserDefaults.standard.volatileDomain(forName: UserDefaults.argumentDomain)
         domain["AppleLocale"] = identifier
@@ -147,6 +149,20 @@ public enum _ScreenshotRunner {
                     fail("unknown time zone \"\(timeZone)\"; --time-zone takes an IANA name such as Europe/Brussels or UTC")
                 }
             case "--allow-network": config.allowsNetwork = true
+            case "--crop": config.crop = value(flag)
+            case "--crop-padding": config.cropPadding = CGFloat(Double(value(flag)) ?? 0)
+            case "--locale":
+                let identifier = value(flag)
+                guard identifier.range(of: #"^[A-Za-z]{2,3}([_-][A-Za-z0-9]{2,8})*$"#, options: .regularExpression) != nil else {
+                    fail("--locale takes a language and region such as en_US or nl_BE, not \"\(identifier)\"")
+                }
+                config.locale = identifier
+            case "--location":
+                // Read by CoreLocation itself (CLLocationManager), which does not depend on SwiftUI.
+                let raw = value(flag)
+                guard _DeviceLocation.parse(raw) != nil else {
+                    fail("--location takes a latitude and longitude such as 50.85,4.35, not \"\(raw)\"")
+                }
             case "--map-tiles": config.mapTileDirectory = value(flag)
             case "--fonts": config.fontDirectories.append(value(flag))
             case "--assets": config.assetDirectories.append(value(flag))

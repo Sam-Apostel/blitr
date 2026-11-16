@@ -75,6 +75,7 @@ swiftui-screenshot version
 | `--ios 18\|26\|27\|latest` | Which iOS design to draw. Default `latest` (27, Liquid Glass). 26 is the first Liquid Glass; 18 is the flat, pre-glass look. |
 | `--device iphone-16` | Screen size, scale, safe areas and status bar of a device. Names are forgiving (`iphone-16-pro`, `"iPhone 16 Pro"`, `iphone16pro`). See `devices`. |
 | `--orientation portrait\|landscape` | Also `landscape-left` / `landscape-right`. Swaps the size and uses landscape insets; iPhones hide the status bar. `#Preview(traits: .landscapeLeft / .sizeThatFitsLayout / .fixedLayout(...))` set the defaults per preview; flags override them. |
+| `--crop <part>` | Only one part of the screen, at the device's scale and with no device chrome around it: a view's `.accessibilityIdentifier` (containers too), an element's label, or `x,y,w,h` in points. `--crop-padding <pt>` keeps a margin. To render a component on its own instead, use `--view "MyCard()" --layout fit`. |
 | `--rounded-corners` | Clip to the device's rounded display, corners transparent. |
 | `--show-island` | Draw the Dynamic Island or notch on top (simulator screenshots do not show it). |
 | `--frame` | Draw the device around the screen: glass border, band, side buttons, Dynamic Island or notch. See [Device frames](#device-frames). |
@@ -91,8 +92,10 @@ swiftui-screenshot version
 | `--task-timeout <s>` | Real seconds `.task` closures may run before the frame is taken (default 0.5; `--task-budget` is the old name). |
 | `--settle-time <s>` | Virtual seconds that pass before the frame is taken (default 2): `Task.sleep` runs on a virtual clock, so a sleep that ends within them returns at once and one that ends later waits past the frame. |
 | `--time-zone <tz>` | The device's time zone, an IANA name such as `Europe/Brussels` (default `UTC`, whatever the host's): `TimeZone.current`, `Date.formatted`, `Text(date, style:)` and the date pickers use it. |
+| `--locale <id>` | The device's language and region, such as `nl_BE` (default `en_US`): number, currency and date formats, and in project mode the string catalogs' language. `Text` follows it on every host; `Locale.current` in your own code follows it on macOS. |
+| `--location <lat>,<lon>` | The device's position: location access is granted and `CLLocationManager` and `CLLocationUpdate.liveUpdates()` report it (default: access not determined, no position, as on a fresh install). |
 | `--date <ISO 8601>` | "Now" for `TimelineView` and interaction captures, such as `2026-06-01T09:41:00Z` (default: the real time; `Date()` in your own code always is). |
-| `--allow-network` | Let the code reach the network. By default a render is offline: requests fail at once with `URLError(.notConnectedToInternet)`. |
+| `--allow-network` | Let the code reach the network, so remote images (`AsyncImage` and an app's own loaders) and API calls load while the frame settles; raise `--task-timeout` for slow servers. By default a render is offline: requests fail at once with `URLError(.notConnectedToInternet)`. |
 | `--map-tiles <dir>` | Draw `Map`s on your own offline raster tiles, `<dir>/<z>/<x>/<y>.png` in the usual web map layout, instead of a plain surface. No tiles are bundled; their licence and attribution are yours to follow. See [docs/MAPS.md](docs/MAPS.md#offline-tiles). |
 | `--accessibility-tree f.json`, `--tap-targets f.png`, `--accessibility-outline` | Accessibility outputs, below. |
 | `--json` | One JSON object per image with path, size and warnings. |
@@ -291,7 +294,7 @@ HarfBuzz at run time.
   recognisable but not Apple's artwork. Multicolor and hierarchical rendering fall back to a single colour.
 - **tvOS focus** follows tvOS 26.5 recordings for all but 18 of 465 moves (docs/FOCUS.md).
 - **Interaction is scripted, not live.** Taps, typing and scrolling come from `--steps` (docs/INTERACTION.md).
-  Renders are offline by default and remote images (`AsyncImage`) show their placeholder.
+  Renders are offline by default, so remote images (`AsyncImage`) show their placeholder; `--allow-network` loads them.
 - **About 40 Apple frameworks beyond SwiftUI are shimmed** (docs/FRAMEWORKS.md). Others, such as Charts,
   SwiftData and WebKit, are reported as missing; a `UIViewRepresentable` draws a labelled placeholder.
 - **API coverage is broad but not complete.** An API this module lacks is a compile error naming it, never a

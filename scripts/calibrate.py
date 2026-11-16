@@ -5,7 +5,7 @@
     scripts/calibrate.py --platform tvos --device apple-tv-4k --set tvos-26.5 [--scheme dark]
     scripts/calibrate.py --platform watchos --device apple-watch-ultra-2 --set watchos-26.5
 
-Reads Tests/Reference/<set>/manifest.json (written by scripts/mac/capture-references.sh; the set is
+Reads <references>/<set>/manifest.json (written by scripts/mac/capture-references.sh; the set is
 ios-<version> by default), renders each listed preview with the renderer at the same OS version, device
 and scheme, then runs `swiftui-screenshot compare` on the two directories. For tvOS sets the manifest's
 press variants (`<screen>-<preview>-<presses>.png`, the state after those Siri Remote presses) are rendered
@@ -15,8 +15,8 @@ images are 2 px/pt too, and the watch's clock is masked: the simulator draws the
 watchOS refuses the status bar override. Prints one line per screen, worst first, and
 leaves heatmaps, side-by-side images and report.json under <out>/<scheme>/compare.
 
-The reference captures live on the `data/references` branch, not on `main`, so clones and CI stay small.
-The first run for a set fetches it (`git fetch --depth 1 origin data/references`) into Tests/Reference/.
+Reference captures live on this Mac, outside the repository (references_root(), default
+~/Library/Application Support/swiftui-screenshot/references); they are re-captured, never committed.
 
 Renders use the time zone the set was captured in (dates and times on screen): the device's
 `simulatorTimeZone` in the manifest, else a manifest-level `timeZone`, else Europe/Brussels, where the sets
@@ -27,16 +27,15 @@ so that font and symbol differences do not drown out layout differences.
 """
 import argparse, concurrent.futures, json, os, re, subprocess, sys
 
-def fetch_references(root, name):
-    """Extracts one reference set from the data/references branch into Tests/Reference/<name>."""
-    print(f"fetching reference set {name} from origin/data/references ...", file=sys.stderr)
-    subprocess.run(["git", "fetch", "--depth", "1", "origin", "data/references"], cwd=root, check=True)
-    dest = os.path.join(root, "Tests", "Reference")
-    os.makedirs(dest, exist_ok=True)
-    archive = subprocess.Popen(["git", "archive", "FETCH_HEAD", name], cwd=root, stdout=subprocess.PIPE)
-    subprocess.run(["tar", "-x", "-C", dest], stdin=archive.stdout, check=True)
-    if archive.wait() != 0:
-        sys.exit(f"no reference set named {name} on data/references")
+def references_root():
+    """Where reference captures live: on this Mac, outside the repository (they are re-captured, never committed).
+    SWIFTUI_SCREENSHOT_REFERENCES overrides it."""
+    return os.environ.get("SWIFTUI_SCREENSHOT_REFERENCES") or os.path.expanduser(
+        "~/Library/Application Support/swiftui-screenshot/references")
+
+def require_set(path, name, what):
+    if not os.path.exists(path):
+        sys.exit(f"no {what} for reference set {name} in {references_root()}; capture it with the scripts in scripts/mac/")
 
 # Time zone of reference sets that record none (scripts/mac/*capture* write `simulatorTimeZone` per device).
 DEFAULT_TIME_ZONE = "Europe/Brussels"
@@ -68,9 +67,8 @@ def main():
     if args.ios is None:
         args.ios = args.set.split("-", 1)[1]
     scale = "2" if tvos or watchos else "3"
-    ref_root = os.path.join(root, "Tests", "Reference", args.set)
-    if not os.path.exists(os.path.join(ref_root, "manifest.json")):
-        fetch_references(root, args.set)
+    ref_root = os.path.join(references_root(), args.set)
+    require_set(os.path.join(ref_root, "manifest.json"), args.set, "manifest.json")
     manifest = json.load(open(os.path.join(ref_root, "manifest.json")))
     ref_dir = os.path.join(ref_root, args.device, args.scheme)
     bin_dir = subprocess.check_output(["swift", "build", "--show-bin-path"], cwd=root, text=True).strip()

@@ -76,7 +76,7 @@ struct MapSurface: View {
                 Runtime.current?.warn("Map: \(cover.missing) of \(cover.tiles.count + cover.missing) visible tiles are not in --map-tiles \(source.directory) at this zoom or a lower one; the placeholder surface shows there.")
             }
         } else {
-            Runtime.current?.warn("Map: map tiles are not drawn (no map data on Linux; --map-tiles <dir> draws offline tiles); the app's markers, annotations and overlays are drawn on a placeholder surface.")
+            Runtime.current?.warn("Map: map tiles are not drawn (there is no map data offline; --map-tiles <dir> draws tiles you supply); the app's markers, annotations and overlays are drawn on a placeholder surface.")
         }
         let palette = MapPalette.resolve(style, scheme)
         let pins = MapPins.build(elements, projection: projection, selection: config.selection, palette: palette, scale: markerScale)

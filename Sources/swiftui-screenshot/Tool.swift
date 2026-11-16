@@ -57,6 +57,13 @@ Render options:
       --settle-time <s>  Virtual seconds that pass before the frame is taken: Task.sleep calls that end within
                          them return at once (default 2). Sleeps that end later wait past the frame
       --time-zone <tz>   The device's time zone, an IANA name such as Europe/Brussels (default UTC)
+      --crop <part>      Only one part of the screen: a view's accessibility identifier, an element's
+                         label, or x,y,w,h in points. --crop-padding <pt> keeps a margin around it
+      --locale <id>      The device's language and region, such as nl_BE: number, currency and date
+                         formats and Locale.current (default en_US)
+      --location <lat>,<lon>
+                         The device's location: location access is granted and this position is
+                         reported (default: access not determined, no position)
       --allow-network    Let the code reach the network; by default requests fail at once (offline)
       --map-tiles <dir>  Draw maps with offline raster tiles from <dir>/<z>/<x>/<y>.png (the usual web map
                          scheme, also .jpg or .webp); without it maps are a placeholder surface. See docs/MAPS.md
@@ -301,7 +308,7 @@ func parse(_ arguments: [String]) -> Options {
         case "--assets": options.userAssetDirectories.append(value(arg))
         case "--fonts": options.userFontDirectories.append(value(arg))
         case "--device", "--layout", "--width", "--height", "--scale", "--padding", "--background", "--dynamic-type", "--task-budget", "--task-timeout",
-             "--settle-time", "--ios", "--time-zone":
+             "--settle-time", "--ios", "--time-zone", "--locale", "--location", "--crop", "--crop-padding":
             options.runnerArguments += [arg, value(arg)]
         case "--os": options.runnerArguments += ["--ios", value(arg)]
         case "--no-chrome", "--show-tips", "--allow-network": options.runnerArguments.append(arg)
