@@ -441,6 +441,9 @@ final class NavigationStackNode: Node {
 
     // Computed in layout (local coordinates).
     var barTop: CGFloat = 0
+    /// iPhone Duo: the bar sits in the band at the top of the screen; `column` when the status bar is a column
+    /// beside it (portrait), so titles, large ones included, sit in the bar at the leading margin.
+    private var ringBand: (on: Bool, column: Bool, titleCenterY: CGFloat) = (false, false, 0)
     var barRegionBottom: CGFloat = 0
     private var backgroundTop: CGFloat = 0
     /// Bars extend under the side safe areas (a landscape iPhone), like the container does.
@@ -570,7 +573,14 @@ final class NavigationStackNode: Node {
             ?? NavigationBarMetrics.inlineTitleFont
         if let title = chrome.title, !title.plain.isEmpty || principal == nil {
             if showsLargeTitle {
-                largeTitle = title.make { titleAdjust(&$0); $0.font = NavigationBarMetrics.largeTitleFont }
+                // iPhone Duo beside its status column: the large title sits in the bar, smaller (measured: iOS 27.2
+                // simulator, "Settings" ink 108.33 x 26pt, as 28pt bold draws it; 34pt draws 131 x 31.67).
+                let device = _currentConfiguration().device
+                let inBar = glass != nil && device.ringStatusBar != nil && !device.orientation.isLandscape
+                largeTitle = title.make {
+                    titleAdjust(&$0)
+                    $0.font = inBar ? NavigationGlass.ringDeviceLargeTitleFont : NavigationBarMetrics.largeTitleFont
+                }
                 inlineTitle = nil
             } else {
                 // tvOS 26 titles are dimmed (measured: tvOS 26.5, the section header color).
@@ -914,6 +924,17 @@ extension NavigationStackNode {
         barTop = max(0, ctx.safeRect.minY - ctx.origin.y)
         // At the top edge of a sheet (no status bar above it) the bar's items sit lower.
         if inSheet && ctx.safeRect.minY - ctx.container.minY < 0.5 { barTop += g.sheetBarTopInset }
+        // iPhone Duo: a stack at the top of the screen puts its bar in the band beside the status bar (in its
+        // row on the open display turned), whatever the top inset. measured: iOS 27.2 simulator, all three
+        // layouts: titles centred on y 48, an inset-grouped list's first header at y 82; with the status column a
+        // large title takes the inline title's place and adds no region of its own.
+        let device = _currentConfiguration().device
+        ringBand = (false, false, 0)
+        if !inSheet, device.ringStatusBar != nil, device.showsStatusBar, ctx.container.minY < 0.5, ctx.origin.y < device.safeArea.top + 0.5 {
+            // Local coordinates: the stack itself may start at the top inset.
+            barTop = NavigationGlass.ringDeviceBarTop - ctx.origin.y
+            ringBand = (true, !device.orientation.isLandscape, NavigationGlass.ringDeviceTitleCenterY - ctx.origin.y)
+        }
         backgroundTop = ctx.container.minY - ctx.origin.y
         backgroundX = ctx.container.minX - ctx.origin.x
         backgroundWidth = ctx.container.width
@@ -935,7 +956,7 @@ extension NavigationStackNode {
         var y = barTop
         if barVisible {
             y += g.barHeight + g.barBottomPadding
-            if showsLargeTitle { y += largeTitleRegion }
+            if showsLargeTitle && !ringBand.column { y += largeTitleRegion }
             if searchStyle == .drawer { y += g.drawerSearchRegion }
         }
         barRegionBottom = y
@@ -1033,7 +1054,8 @@ extension NavigationStackNode {
             let (cx, s) = centred(principal)
             principal.place(at: CGPoint(x: cx, y: barTop + (h - s.height) / 2), size: s, ctx)
         } else if let inlineTitle {
-            let t = centred(inlineTitle)
+            var t = centred(inlineTitle)
+            if ringBand.column, subtitle == nil, leading.isEmpty { t.x = margin }
             if let subtitle {
                 let st = centred(subtitle)
                 let stack = t.size.height + g.inlineSubtitleSpacing + st.size.height
@@ -1041,11 +1063,17 @@ extension NavigationStackNode {
                 inlineTitle.place(at: CGPoint(x: t.x, y: top), size: t.size, ctx)
                 subtitle.place(at: CGPoint(x: st.x, y: top + t.size.height + g.inlineSubtitleSpacing), size: st.size, ctx)
             } else {
-                inlineTitle.place(at: CGPoint(x: t.x, y: barTop + (h - t.size.height) / 2), size: t.size, ctx)
+                let y = ringBand.on ? ringBand.titleCenterY - t.size.height / 2 : barTop + (h - t.size.height) / 2
+                inlineTitle.place(at: CGPoint(x: t.x, y: y), size: t.size, ctx)
             }
         }
 
-        if let largeTitle {
+        if let largeTitle, ringBand.column, subtitle == nil {
+            let width = size.width - margin * 2
+            let s = largeTitle.sizeThatFits(ProposedViewSize(width: width, height: nil))
+            largeTitle.place(at: CGPoint(x: margin, y: ringBand.titleCenterY - s.height / 2),
+                             size: CGSize(width: min(s.width, width), height: s.height), ctx)
+        } else if let largeTitle {
             let width = size.width - margin * 2
             let s = largeTitle.sizeThatFits(ProposedViewSize(width: width, height: nil))
             let baseline = largeTitle.explicitAlignment(VerticalAlignment.firstTextBaseline.key, size: s) ?? s.height

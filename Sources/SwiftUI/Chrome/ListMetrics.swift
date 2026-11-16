@@ -147,6 +147,12 @@ extension ListMetrics {
         m.chevronSize = CGSize(width: 5, height: 10)               // measured: 7x12 with the 2pt stroke
         m.chevronTrailingPad = 3.33                                // measured: chevron ink ends 18.33 from the card edge
         m.chevronReserve = 22                                      // measured: trailing value ends 22 before the row inset
+        // iPhone Duo: rows and headers inset 20pt from the card on both displays. measured: iOS 27.2 simulator
+        // (Devices: header and row text from x 41 on a card at 20, trailing values ending 20.67 before its end).
+        if _currentConfiguration().device.ringStatusBar != nil {
+            m.rowInsetHorizontal = 20
+            m.headerInset = 20
+        }
         return m
     }
 

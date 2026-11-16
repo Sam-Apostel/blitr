@@ -37,6 +37,8 @@ enum ChromeMetrics {
     static func layoutMargin(forWidth width: CGFloat) -> CGFloat {
         // A landscape iPhone is wider than any phone is in portrait but keeps the margin of its portrait width.
         let config = _currentConfiguration()
+        // iPhone Duo: 20pt on both displays, also beside the cover display's status column (measured: iOS 27.2 simulator).
+        if config.device.ringStatusBar != nil, config.width == nil { return 20 }
         if width >= 700, config.device.idiom == .phone, config.device.orientation.isLandscape, config.width == nil {
             return config.device.portraitSize.width >= 414 ? 20 : 16
         }
