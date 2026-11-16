@@ -1,6 +1,7 @@
-// Auto Layout as record keeping: constraints can be created, activated and inspected, and nothing
-// solves them. The representable host reads the simple ones (a constant width or height) when it
-// draws a UIKit view; everything else is laid out by SwiftUI around the view.
+// Auto Layout: constraints can be created, activated and inspected. UIView's `layoutSubviews` solves
+// the simple ones (UIKitLayout.swift) when a representable's view tree is drawn: equalities between a
+// view's subviews, its layout guides and itself, and inequalities that bound an edge. The visual format
+// language is not parsed.
 
 import Foundation
 import SwiftUI
@@ -38,7 +39,8 @@ open class NSLayoutConstraint: NSObject {
     public var shouldBeArchived = false
     public var isActive = false {
         didSet {
-            guard isActive != oldValue, let view = firstItem as? UIView else { return }
+            // Kept on the first item's view (a layout guide's owning view for a guide).
+            guard isActive != oldValue, let view = (firstItem as? UIView) ?? (firstItem as? UILayoutGuide)?.owningView else { return }
             if isActive { view.constraints.append(self) } else { view.constraints.removeAll { $0 === self } }
         }
     }
@@ -145,11 +147,24 @@ extension _UILayoutAnchored {
 
 @preconcurrency @MainActor
 open class UILayoutGuide: NSObject, _UILayoutAnchored {
+    /// Which of a view's guides this is: an app's own guide (added with `addLayoutGuide`) is `.own`.
+    enum Kind { case own, safeArea, margins, readableContent, keyboard, scrollContent, scrollFrame }
     public var identifier = ""
     public internal(set) weak var owningView: UIView?
-    public var layoutFrame: CGRect { owningView?.bounds ?? .zero }
-    public override init() { super.init() }
-    init(owner: UIView) { owningView = owner; super.init() }
+    let kind: Kind
+    /// An app's own guide's frame, set when its owning view lays out its subviews.
+    var solvedFrame: CGRect?
+    public var layoutFrame: CGRect {
+        guard let owner = owningView else { return .zero }
+        switch kind {
+        case .own: return solvedFrame ?? .zero
+        case .margins, .readableContent: return owner.bounds.inset(by: owner._effectiveLayoutMargins)
+        case .keyboard: return CGRect(x: 0, y: owner.bounds.maxY, width: owner.bounds.width, height: 0)
+        case .safeArea, .scrollContent, .scrollFrame: return owner.bounds
+        }
+    }
+    public override init() { kind = .own; super.init() }
+    init(owner: UIView, kind: Kind) { owningView = owner; self.kind = kind; super.init() }
 }
 open class UITrackingLayoutGuide: UILayoutGuide {}
 open class UIKeyboardLayoutGuide: UITrackingLayoutGuide {

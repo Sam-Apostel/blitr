@@ -96,6 +96,51 @@ func hex<S: Sequence>(_ bytes: S) -> String where S.Element == UInt8 { bytes.map
     // Implicitly unwrapped on Apple platforms; the tool drops the `?` / `!` for Linux Foundation.
     check("DateFormatter symbols as on Apple", monthFormatter.shortStandaloneMonthSymbols?[0] == "Jan" && monthFormatter.amSymbol! == "AM")
     check("Markdown inline presentation intents", intents == "2,0,1,0,4,0,32,0,0L")
+
+    // UIKit layout of a representable's view tree.
+    let first = UIView(), second = UIView(), third = UIView()
+    let equal = UIStackView(arrangedSubviews: [first, second, third])
+    equal.distribution = .fillEqually
+    equal.spacing = 10
+    equal.frame = CGRect(x: 0, y: 0, width: 320, height: 40)
+    equal.layoutIfNeeded()
+    check("UIStackView fillEqually", second.frame == CGRect(x: 110, y: 0, width: 100, height: 40))
+    let fixed = UIView()
+    fixed.translatesAutoresizingMaskIntoConstraints = false
+    fixed.widthAnchor.constraint(equalToConstant: 30).isActive = true
+    let stretch = UIView()
+    let row = UIStackView(arrangedSubviews: [fixed, stretch])
+    row.spacing = 8
+    row.frame = CGRect(x: 0, y: 0, width: 200, height: 20)
+    row.layoutIfNeeded()
+    check("UIStackView fill gives the rest to the view without a size", stretch.frame == CGRect(x: 38, y: 0, width: 162, height: 20))
+    let container = UIView(frame: CGRect(x: 0, y: 0, width: 300, height: 100))
+    let pinned = UIView(), centred = UIView()
+    for view in [pinned, centred] { view.translatesAutoresizingMaskIntoConstraints = false; container.addSubview(view) }
+    NSLayoutConstraint.activate([
+        pinned.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
+        container.trailingAnchor.constraint(equalTo: pinned.trailingAnchor, constant: 16),
+        pinned.topAnchor.constraint(equalTo: container.topAnchor, constant: 8),
+        pinned.heightAnchor.constraint(equalToConstant: 20),
+        centred.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+        centred.topAnchor.constraint(equalTo: pinned.bottomAnchor, constant: 4),
+        centred.widthAnchor.constraint(equalTo: pinned.widthAnchor, multiplier: 0.5),
+        centred.bottomAnchor.constraint(equalTo: container.layoutMarginsGuide.bottomAnchor),
+    ])
+    container.layoutIfNeeded()
+    check("Auto Layout edges and constants", pinned.frame == CGRect(x: 16, y: 8, width: 268, height: 20))
+    check("Auto Layout siblings, multipliers and margins", centred.frame == CGRect(x: 83, y: 32, width: 134, height: 60))
+    let resized = UIView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
+    let flexible = UIView(frame: CGRect(x: 10, y: 10, width: 80, height: 80))
+    flexible.autoresizingMask = [.flexibleWidth, .flexibleBottomMargin]
+    resized.addSubview(flexible)
+    resized.frame.size = CGSize(width: 200, height: 150)
+    check("Autoresizing mask", flexible.frame == CGRect(x: 10, y: 10, width: 180, height: 80))
+    let wrapping = UILabel()
+    wrapping.text = "A label long enough to wrap onto more than one line"
+    wrapping.numberOfLines = 0
+    let oneLine = wrapping.sizeThatFits(CGSize(width: 0, height: 0)), wrapped = wrapping.sizeThatFits(CGSize(width: 120, height: 0))
+    check("UILabel sizeThatFits wraps at the width", wrapped.width <= 120 && wrapped.height > oneLine.height * 2)
     return result
 }
 

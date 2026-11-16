@@ -29,6 +29,16 @@ open class UILabel: UIView {
                                                     height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin], context: nil).size
         return CGSize(width: size.width.rounded(.up), height: size.height.rounded(.up))
     }
+    /// The text's size wrapped at `size.width` (one line when `numberOfLines` is 1), at most `numberOfLines` lines.
+    open override func sizeThatFits(_ size: CGSize) -> CGSize {
+        let string = attributedText ?? NSAttributedString(string: text ?? "", attributes: [.font: font as Any])
+        guard string.length > 0 else { return .zero }
+        let wraps = numberOfLines != 1 && size.width > 0 && size.width < 1e6
+        var fitted = string.boundingRect(with: CGSize(width: wraps ? size.width : .greatestFiniteMagnitude, height: .greatestFiniteMagnitude),
+                                         options: [.usesLineFragmentOrigin], context: nil).size
+        if numberOfLines > 0, let font { fitted.height = min(fitted.height, font.lineHeight * CGFloat(numberOfLines)) }
+        return CGSize(width: fitted.width.rounded(.up), height: fitted.height.rounded(.up))
+    }
 }
 
 open class UIImageView: UIView {
@@ -310,6 +320,8 @@ open class UIButton: UIControl {
     open var currentTitle: String? { configuration?.title ?? title(for: state) }
     open var currentImage: UIImage? { configuration?.image ?? image(for: state) }
     open var currentTitleColor: UIColor { configuration?.baseForegroundColor ?? titleColor(for: state) ?? (buttonType == .custom ? .white : tintColor) }
+    /// The title and image with the content insets (UIKitLayout.swift).
+    open override var intrinsicContentSize: CGSize { _contentSize }
     open func setNeedsUpdateConfiguration() { configurationUpdateHandler?(self) }
     open func updateConfiguration() {}
 }
@@ -640,7 +652,13 @@ open class UIStackView: UIView {
     open func insertArrangedSubview(_ view: UIView, at stackIndex: Int) {
         arrangedSubviews.removeAll { $0 === view }
         arrangedSubviews.insert(view, at: max(0, min(stackIndex, arrangedSubviews.count)))
+        view.translatesAutoresizingMaskIntoConstraints = false
         if view.superview !== self { addSubview(view) }
+    }
+    /// Arranges the visible arranged subviews along the axis (UIKitLayout.swift), then the other subviews.
+    open override func layoutSubviews() {
+        super.layoutSubviews()
+        _arrangeSubviews()
     }
     open func removeArrangedSubview(_ view: UIView) { arrangedSubviews.removeAll { $0 === view } }
     open override func willRemoveSubview(_ subview: UIView) { arrangedSubviews.removeAll { $0 === subview } }
@@ -696,8 +714,8 @@ open class UIScrollView: UIView {
     open var isZoomBouncing: Bool { false }
     public let panGestureRecognizer = UIPanGestureRecognizer()
     public let pinchGestureRecognizer: UIPinchGestureRecognizer? = UIPinchGestureRecognizer()
-    public private(set) lazy var contentLayoutGuide = UILayoutGuide(owner: self)
-    public private(set) lazy var frameLayoutGuide = UILayoutGuide(owner: self)
+    public private(set) lazy var contentLayoutGuide = UILayoutGuide(owner: self, kind: .scrollContent)
+    public private(set) lazy var frameLayoutGuide = UILayoutGuide(owner: self, kind: .scrollFrame)
 
     open func setContentOffset(_ contentOffset: CGPoint, animated: Bool) { self.contentOffset = contentOffset }
     open func scrollRectToVisible(_ rect: CGRect, animated: Bool) {}

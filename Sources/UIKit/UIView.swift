@@ -1,6 +1,6 @@
-// UIView and gesture recognizers. Views are a tree of property stores: nothing lays them out or
-// draws them on their own. A view wrapped in a UIViewRepresentable is drawn by the representable
-// host (UIRepresentable.swift) from these properties.
+// UIView and gesture recognizers. Views are a tree of property stores that nothing draws on its own.
+// A view wrapped in a UIViewRepresentable is laid out (UIKitLayout.swift) and drawn by the representable
+// host (UIRepresentable.swift, UIKitViewTree.swift) from these properties.
 
 import Foundation
 import SwiftUI
@@ -46,7 +46,10 @@ open class UIView: UIResponder, _UILayoutAnchored, UITraitEnvironment, UICoordin
     public static let layoutFittingCompressedSize = CGSize.zero
     public static let layoutFittingExpandedSize = CGSize(width: 10000, height: 10000)
 
-    open var frame: CGRect = .zero
+    /// A new size moves and resizes the subviews by their autoresizing masks, as UIKit does.
+    open var frame: CGRect = .zero {
+        didSet { if frame.size != oldValue.size { _autoresizeSubviews(from: oldValue.size) } }
+    }
     open var bounds: CGRect {
         get { CGRect(origin: .zero, size: frame.size) }
         set { frame.size = newValue.size }
@@ -172,10 +175,11 @@ open class UIView: UIResponder, _UILayoutAnchored, UITraitEnvironment, UICoordin
     // MARK: Layout
 
     open var safeAreaInsets: UIEdgeInsets { _currentSafeInsets() }
-    public var safeAreaLayoutGuide: UILayoutGuide { UILayoutGuide(owner: self) }
-    public var layoutMarginsGuide: UILayoutGuide { UILayoutGuide(owner: self) }
-    public var readableContentGuide: UILayoutGuide { UILayoutGuide(owner: self) }
-    public var keyboardLayoutGuide: UIKeyboardLayoutGuide { UIKeyboardLayoutGuide(owner: self) }
+    // Kept by the view (constraints hold their items weakly), as on iOS.
+    public private(set) lazy var safeAreaLayoutGuide = UILayoutGuide(owner: self, kind: .safeArea)
+    public private(set) lazy var layoutMarginsGuide = UILayoutGuide(owner: self, kind: .margins)
+    public private(set) lazy var readableContentGuide = UILayoutGuide(owner: self, kind: .readableContent)
+    public private(set) lazy var keyboardLayoutGuide = UIKeyboardLayoutGuide(owner: self, kind: .keyboard)
     public var firstBaselineAnchor: NSLayoutYAxisAnchor { NSLayoutYAxisAnchor(item: self, attribute: .firstBaseline) }
     public var lastBaselineAnchor: NSLayoutYAxisAnchor { NSLayoutYAxisAnchor(item: self, attribute: .lastBaseline) }
     open var intrinsicContentSize: CGSize { CGSize(width: UIView.noIntrinsicMetric, height: UIView.noIntrinsicMetric) }
@@ -191,9 +195,11 @@ open class UIView: UIResponder, _UILayoutAnchored, UITraitEnvironment, UICoordin
     open func addConstraints(_ constraints: [NSLayoutConstraint]) { NSLayoutConstraint.activate(constraints) }
     open func removeConstraint(_ constraint: NSLayoutConstraint) { constraint.isActive = false }
     open func removeConstraints(_ constraints: [NSLayoutConstraint]) { NSLayoutConstraint.deactivate(constraints) }
-    open func layoutSubviews() {}
+    /// Places the subviews that use Auto Layout (UIKitLayout.swift); subclasses call it through `super`.
+    open func layoutSubviews() { _solveConstraints() }
     open func setNeedsLayout() {}
-    open func layoutIfNeeded() {}
+    /// Lays out this view's subtree at once.
+    open func layoutIfNeeded() { _layoutTree() }
     open func layoutMarginsDidChange() {}
     open func safeAreaInsetsDidChange() {}
     open func updateConstraints() {}
@@ -215,7 +221,7 @@ open class UIView: UIResponder, _UILayoutAnchored, UITraitEnvironment, UICoordin
 
     /// A width or height pinned by an active constant constraint.
     func fixedDimension(_ attribute: NSLayoutConstraint.Attribute) -> CGFloat? {
-        constraints.last { $0.firstAttribute == attribute && $0.secondItem == nil && $0.relation == .equal }?.constant
+        constraints.last { $0.firstItem === self && $0.firstAttribute == attribute && $0.secondItem == nil && $0.relation == .equal }?.constant
     }
 
     // MARK: Geometry
