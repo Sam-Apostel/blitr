@@ -51,9 +51,11 @@ extension TabViewStyle where Self == VerticalPageTabViewStyle {
 
 enum TabViewVerticalPageKey: EnvironmentKey { static let defaultValue = false }
 
-/// watchOS buttons: `automatic` and `bordered` are full-width capsules on a translucent gray platter,
-/// `borderedProminent` fills the capsule with the accent. Estimates from watchOS 10/11 screenshots:
-/// 44pt tall on the 42mm screen, 48pt on the bigger ones; the label in the body font, centred.
+/// watchOS buttons: `automatic` and `bordered` are capsules on a translucent gray platter,
+/// `borderedProminent` fills the capsule with the accent; the label in the body font, centred.
+/// watchOS 26 (measured: watchOS 26.5 simulator): 52.5pt tall and at most 178pt wide on the 46mm screen,
+/// 48 x 161 on the 42mm one, 54 x 174 on the Ultra 2 (`WatchMetrics`). Earlier versions (estimates from
+/// watchOS 10/11 screenshots): full width, 44pt tall on the 42mm screen, 48pt on the bigger ones.
 struct _WatchButtonVisual: View {
     let kind: _ButtonVisual.Kind
     let label: AnyView
@@ -70,7 +72,8 @@ struct _WatchButtonVisual: View {
             return AnyView(label.foregroundStyle(role == .destructive ? Color.red : Color.accentColor).opacity(isEnabled ? 1 : 0.3))
         case .automatic, .bordered, .glass, .prominent, .glassProminent:
             let prominent = kind == .prominent || kind == .glassProminent
-            let height: CGFloat = RenderedPlatform.watchTextIsExtraLarge ? 48 : 44
+            let measured = RenderedPlatform.current >= 26 ? WatchMetrics.current : nil
+            let height: CGFloat = measured?.buttonHeight ?? (RenderedPlatform.watchTextIsExtraLarge ? 48 : 44)
             let fill: Color = prominent ? Color.accentColor
                 : role == .destructive ? Color.red.opacity(0.25)
                 : explicitAccent != nil ? Color.accentColor.opacity(0.25) : Color.white.opacity(0.14)
@@ -83,7 +86,7 @@ struct _WatchButtonVisual: View {
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 12)
-                    .frame(maxWidth: .infinity, minHeight: height)
+                    .frame(maxWidth: measured?.buttonMaxWidth ?? .infinity, minHeight: height)
                     .background(fill, in: Capsule())
                     .opacity(isEnabled ? 1 : 0.4))
         }
