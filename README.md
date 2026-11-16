@@ -34,19 +34,45 @@ pixel for pixel: see [Accuracy](#accuracy).
 
 ## Install
 
-From source, on a Mac (macOS 15 or later, Xcode with Swift 6.4.2) or on Linux (Swift 6.4.2):
+On a Mac with Xcode (or the Command Line Tools):
+
+```
+brew install sam-apostel/blitr/blitr
+```
+
+From npm, on a Mac or on Linux. The first run downloads the release for your platform, and on Linux the Swift
+toolchain it needs (about 1 GB, once, into `~/.cache/blitr`):
+
+```
+npm install -g blitr          # or: npx blitr render MyView.swift -o shot.png
+```
+
+On Linux, for a setup script (installs into `/opt/blitr`, with the Swift toolchain in `/opt/swift`):
+
+```
+curl -fsSL https://github.com/Sam-Apostel/blitr/releases/latest/download/install.sh | bash
+```
+
+In a container, with everything inside:
+
+```
+docker run --rm -v "$PWD:/work" ghcr.io/sam-apostel/blitr render MyView.swift -o shot.png
+```
+
+`blitr doctor` checks the installation. On Linux, renders compile your code with the exact Swift version
+blitr was built with, which every route above installs for you; on a Mac, Xcode's own compiler is used.
+
+### From source
 
 ```
 git clone https://github.com/Sam-Apostel/blitr && cd blitr
 brew install harfbuzz pkg-config        # on Linux: apt-get install libharfbuzz-dev
-scripts/bootstrap.sh                    # pinned Skia and open fonts into Vendor/, checksummed
+scripts/bootstrap.sh                    # pinned Skia, HarfBuzz and open fonts into Vendor/, checksummed
 swift build -c release
 "$(swift build -c release --show-bin-path)/blitr" doctor
 ```
 
-The tool compiles your code at render time, so it needs the exact Swift version it was built with; `doctor`
-checks that and the fonts. `scripts/make-dist.sh` builds a relocatable tarball, and the `Dockerfile` an image
-with the toolchain inside.
+`scripts/make-dist.sh` builds a relocatable release tarball, and the `Dockerfile` an image built from source.
 
 ## Everyday use
 
@@ -135,7 +161,7 @@ Keep the images out of the repository.
 
 [`integrations/claude-skill/blitr`](integrations/claude-skill/blitr) is a Claude Code
 skill with the same instructions in more depth: copy it into the project's `.claude/skills/`. In a cloud
-environment, build the tool in the setup script with the commands under [Install](#install).
+environment, install it in the setup script with the `install.sh` line under [Install](#install).
 
 ## Fonts and symbols
 
@@ -170,7 +196,8 @@ Known limits:
 - About 40 Apple frameworks beyond SwiftUI are provided ([docs/FRAMEWORKS.md](docs/FRAMEWORKS.md)). Others,
   such as Charts, SwiftData and WebKit, are reported as missing. UIKit views inside SwiftUI are drawn when they
   draw themselves or are built from standard UIKit views; other UIKit controls show a labelled placeholder.
-- The Swift toolchain must be the exact version the tool was built with.
+- On Linux, the Swift toolchain must be the exact version the tool was built with (the installers fetch it); on a
+  Mac, Xcode with that Swift version or newer.
 
 ## How it works
 
