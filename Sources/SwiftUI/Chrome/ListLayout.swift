@@ -266,7 +266,10 @@ final class ListNode: Node {
     private func underLargeTitle(_ ctx: PlaceContext) -> Bool {
         guard underNavigationBar else { return false }
         var depth = ctx.safeRect.minY - ctx.container.minY
-        if ctx.container.minY < 1 { depth -= _currentConfiguration().device.safeArea.top }
+        // On the iPhone Duo the bar sits in the band at the top of the screen whatever the top inset (see
+        // NavigationStack), so the depth counts from the screen's top.
+        let device = _currentConfiguration().device
+        if ctx.container.minY < 1, device.ringStatusBar == nil { depth -= device.safeArea.top }
         return depth > ListMetrics.largeTitleDepthThreshold
     }
 
@@ -293,8 +296,18 @@ final class ListNode: Node {
         axHeaderBoxes = [:]
         axFooterBoxes = [:]
         let margin = ChromeMetrics.layoutMargin(forWidth: size.width)
-        let cardX: CGFloat = (style == .insetGrouped || style == .inset) ? ChromeMetrics.insetListMargin(forWidth: size.width) : 0
-        let cardW = max(0, size.width - cardX * 2)
+        var cardX: CGFloat = (style == .insetGrouped || style == .inset) ? ChromeMetrics.insetListMargin(forWidth: size.width) : 0
+        var cardW = max(0, size.width - cardX * 2)
+        // iPhone Duo: a card keeps its margin from the screen edge, so beside the 84pt status column it reaches
+        // the safe-area edge (measured: iOS 27.2 simulator, cover and inner display: cards 20pt from the
+        // leading edge, ending at x 382 of 466 and 867 of 951).
+        if cardX > 0, _currentConfiguration().device.ringStatusBar != nil, _currentConfiguration().width == nil {
+            let screenWidth = _currentCanvasSize().width
+            let leading = max(0, cardX - ctx.origin.x)
+            let trailing = max(0, cardX - (screenWidth - (ctx.origin.x + size.width)))
+            cardX = leading
+            cardW = max(0, size.width - leading - trailing)
+        }
         let radius: CGFloat = style == .insetGrouped ? design.cardCornerRadius : 0
         let plainInset = margin + design.plainExtraInset
         for section in sections {

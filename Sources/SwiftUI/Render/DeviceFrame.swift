@@ -80,7 +80,9 @@ final class DeviceFrame {
             p.scale(scale, scale)
             geometry.drawBehind(p)
             p.save()
-            if geometry.screenRadius > 0 {
+            if let radii = geometry.screenRadii {
+                p.clip(Path(roundedRect: geometry.screenRect, cornerRadii: radii, style: .continuous))
+            } else if geometry.screenRadius > 0 {
                 p.clip(Path(roundedRect: geometry.screenRect, cornerRadius: geometry.screenRadius, style: .continuous))
             }
             var dst = Painter.skRect(geometry.screenRect)
@@ -184,6 +186,10 @@ struct FrameGeometry {
     /// The screen in portrait (phones, iPads) or as rendered (watch, TV).
     let screenSize: CGSize
     let screenRadius: CGFloat
+    /// Per-corner radii of the screen in the output orientation, when its corners differ (the iPhone Duo's cover).
+    let screenRadii: RectangleCornerRadii?
+    /// The portrait screen's leading-corner radius when it differs from `screenRadius`.
+    let leadingScreenRadius: CGFloat?
     /// Black glass between the screen and the band, per edge of the portrait device.
     let border: EdgeInsets
     /// The metal band seen from the front.
@@ -207,6 +213,10 @@ struct FrameGeometry {
         orientation = rotates ? device.orientation : .portrait
         screenSize = rotates ? device.portraitSize : device.size
         screenRadius = device.cornerRadius
+        leadingScreenRadius = rotates ? device.leadingCornerRadius : nil
+        var rotated = device
+        rotated.orientation = orientation
+        screenRadii = leadingScreenRadius == nil ? nil : rotated.displayCornerRadii
         var buttons: [Button] = []
         var strap: CGFloat = 0
         var padCamera: Side?
@@ -219,6 +229,9 @@ struct FrameGeometry {
             switch device.housing {
             case .dynamicIsland(_, let top) where top >= 14: (glass, metal) = (9, 5)
             case .dynamicIsland: (glass, metal) = (12, 6)
+            // iPhone Duo, both displays: thin borders like the 17 family (estimate).
+            case .punchHole: (glass, metal) = (9, 5)
+            case .none where device.ringStatusBar != nil: (glass, metal) = (9, 5)
             case .notch: (glass, metal) = device.scale < 3 ? (24, 7) : (14, 6)
             case .homeButton, .none: (glass, metal) = (22, 5)
             }
@@ -347,15 +360,21 @@ struct FrameGeometry {
                                                       start: .top, end: .bottom)), in: lower)
         }
         for button in buttons { drawButton(p, button, body: body) }
-        let outline = Path(roundedRect: body, cornerRadius: bodyRadius, style: .continuous)
-        p.fill(outline, with: Self.metal(body), in: body)
+        // The body follows the display's corners; along a near-square hinge edge it stays near-square too.
+        func outline(_ rect: CGRect, _ radius: CGFloat) -> Path {
+            guard let leading = leadingScreenRadius else { return Path(roundedRect: rect, cornerRadius: radius, style: .continuous) }
+            let l = max(0, radius - (screenRadius - leading))
+            return Path(roundedRect: rect, cornerRadii: RectangleCornerRadii(topLeading: l, bottomLeading: l, bottomTrailing: radius,
+                                                                             topTrailing: radius), style: .continuous)
+        }
+        p.fill(outline(body, bodyRadius), with: Self.metal(body), in: body)
         // A polished edge: a dark hairline outside, a faint highlight where the band meets the glass.
-        p.stroke(Path(roundedRect: body.insetBy(dx: 0.25, dy: 0.25), cornerRadius: bodyRadius - 0.25, style: .continuous),
+        p.stroke(outline(body.insetBy(dx: 0.25, dy: 0.25), bodyRadius - 0.25),
                  with: .color(RGBA(0, 0, 0, 0.55)), style: StrokeStyle(lineWidth: 0.5), in: body)
         let front = body.insetBy(dx: band, dy: band)
         let frontRadius = max(0, bodyRadius - band)
-        p.fill(Path(roundedRect: front, cornerRadius: frontRadius, style: .continuous), with: .color(Self.glass), in: front)
-        p.stroke(Path(roundedRect: front.insetBy(dx: -0.25, dy: -0.25), cornerRadius: frontRadius + 0.25, style: .continuous),
+        p.fill(outline(front, frontRadius), with: .color(Self.glass), in: front)
+        p.stroke(outline(front.insetBy(dx: -0.25, dy: -0.25), frontRadius + 0.25),
                  with: .color(RGBA(1, 1, 1, 0.12)), style: StrokeStyle(lineWidth: 0.5), in: front)
         drawBezelDetails(p)
         p.restore()
@@ -377,6 +396,9 @@ struct FrameGeometry {
             p.fill(Path(roundedRect: notch, cornerRadius: 20, style: .continuous), with: .color(Self.glass), in: notch)
             let joint = CGRect(x: notch.minX, y: notch.minY, width: notch.width, height: border.top + 8)
             p.fill(Path(joint), with: .color(Self.glass), in: joint)
+        case .punchHole(let d, let offset):
+            let hole = CGRect(x: screen.maxX - offset.x - d / 2, y: screen.minY + offset.y - d / 2, width: d, height: d)
+            p.fill(Path(ellipseIn: hole), with: .color(.black), in: hole)
         default: break
         }
         p.restore()

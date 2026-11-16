@@ -15,7 +15,9 @@ enum DeviceChrome {
             p.fill(Path(roundedRect: bar, cornerRadius: 2.5, style: .circular),
                    with: .color(homeIndicatorScheme == .dark ? .white : .black), in: bar)
         }
-        if device.safeArea.top > 0, device.showsStatusBar {
+        if let ring = device.ringStatusBar {
+            if device.showsStatusBar { drawRingStatusBar(p, ring, device: device, size: size, scheme: scheme, color: color) }
+        } else if device.safeArea.top > 0, device.showsStatusBar {
             switch (device.idiom, device.housing) {
             case (.pad, _): drawPadStatusBar(p, size: size, scheme: scheme, color: color)
             case (.watch, _): drawWatchTime(p, device: device, size: size, scheme: scheme)
@@ -44,8 +46,8 @@ enum DeviceChrome {
 
     /// Draws `string` so its vertical centre is `centerY` and its horizontal anchor (leading, center or trailing) is `x`.
     private static func drawText(_ p: Painter, _ string: String, size fontSize: CGFloat, weight: Font.Weight, x: CGFloat, centerY: CGFloat,
-                                 anchor: HorizontalAlignment, canvas: CGSize, scheme: ColorScheme) {
-        let text = Text(string).font(.system(size: fontSize, weight: weight)).makeNode(statusEnv(scheme))
+                                 anchor: HorizontalAlignment, canvas: CGSize, scheme: ColorScheme, design: Font.Design = .default) {
+        let text = Text(string).font(.system(size: fontSize, weight: weight, design: design)).makeNode(statusEnv(scheme))
         let s = text.sizeThatFits(.unspecified)
         let originX = anchor == .leading ? x : anchor == .trailing ? x - s.width : x - s.width / 2
         let ctx = PlaceContext(origin: .zero, container: CGRect(origin: .zero, size: canvas), safeRect: CGRect(origin: .zero, size: canvas), scale: p.scale)
@@ -132,6 +134,83 @@ enum DeviceChrome {
         p.fill(Path(roundedRect: fill, cornerRadius: 2.6, style: .continuous), with: color, in: fill)
         let cap = CGRect(x: body.maxX + 0.5, y: body.midY - 2.2, width: 1.5, height: 4.4)
         p.fill(Path(roundedRect: cap, cornerRadius: 0.75, style: .circular), with: _Paint(.opacity(color.kind, 0.4)), in: cap)
+    }
+
+    /// iPhone Duo. measured: iOS 27.2 simulator, both displays: the ring is 41pt across (3.33pt line) with a
+    /// 120 degree gap at the bottom, centred 47.83pt from the trailing edge in the column (47.5 in the row);
+    /// the column's ring top is 23pt below the top of the time's digits. The Wi-Fi glyph is 18 x 13.33pt,
+    /// its top 6.83pt above the ring's centre, 3pt arcs; the cellular dots are 4pt, on the ring's centre line
+    /// at 10.5 and 31.5 degrees either side of straight down. The time is in rounded digits 12 x 32pt (16pt
+    /// SF Pro Rounded bold matches), centred 1.17pt left of the ring in the column; in the row centred 52.5pt
+    /// left of the ring (its ink ends 16pt before the ring), level with the ring's centre, 48.17pt from the top.
+    /// The offsets below are the text frame's, which with SF sits 0.83pt left of the ink's centre.
+    enum RingMetrics {
+        static let timeSize: CGFloat = 16
+        static let outerRadius: CGFloat = 20.5
+        static let line: CGFloat = 3.33
+        static let gapHalfAngle: Double = 60
+        static let columnFromRight: CGFloat = 47.83
+        static let rowFromRight: CGFloat = 47.5
+        static let rowCenterY: CGFloat = 48.17
+        static let columnRingBelowTime: CGFloat = 23
+        static let columnTimeOffsetX: CGFloat = -0.33
+        static let rowTimeOffsetX: CGFloat = -51.67
+        static let digitHeight: CGFloat = 12
+        static let wifiSize = CGSize(width: 18, height: 13.33)
+        static let wifiTopAboveCenter: CGFloat = 6.83
+        static let wifiLine: CGFloat = 3
+        static let dotDiameter: CGFloat = 4
+        static let dotAngles: [Double] = [58.5, 79.5, 100.5, 121.5]   // from +x, clockwise (y down)
+    }
+
+    private static func drawRingStatusBar(_ p: Painter, _ ring: DeviceProfile.RingStatusBar, device: DeviceProfile, size: CGSize,
+                                          scheme: ColorScheme, color: _Paint) {
+        let m = RingMetrics.self
+        let center: CGPoint
+        if device.orientation.isLandscape {
+            center = CGPoint(x: size.width - m.rowFromRight, y: m.rowCenterY)
+            drawDigits(p, x: center.x + m.rowTimeOffsetX, inkMidY: center.y - 0.17, canvas: size, scheme: scheme)
+        } else {
+            let ringTop = ring.columnTop + m.columnRingBelowTime
+            center = CGPoint(x: size.width - m.columnFromRight, y: ringTop + m.outerRadius)
+            drawDigits(p, x: center.x + m.columnTimeOffsetX, inkMidY: ring.columnTop + m.digitHeight / 2, canvas: size, scheme: scheme)
+        }
+        // The ring: open at the bottom, round ends.
+        var arc = Path()
+        let r = m.outerRadius - m.line / 2
+        arc.addArc(center: center, radius: r, startAngle: .degrees(90 + m.gapHalfAngle), endAngle: .degrees(90 - m.gapHalfAngle), clockwise: false)
+        p.stroke(arc, with: color, style: StrokeStyle(lineWidth: m.line, lineCap: .round), in: .zero)
+        // Cellular: four dots on the ring's centre line in the gap.
+        for angle in m.dotAngles {
+            let a = angle * .pi / 180
+            let c = CGPoint(x: center.x + r * CGFloat(cos(a)), y: center.y + r * CGFloat(sin(a)))
+            let dot = CGRect(x: c.x - m.dotDiameter / 2, y: c.y - m.dotDiameter / 2, width: m.dotDiameter, height: m.dotDiameter)
+            p.fill(Path(ellipseIn: dot), with: color, in: dot)
+        }
+        // Wi-Fi: two arcs and a wedge of one circle centred at the glyph's bottom.
+        let apex = CGPoint(x: center.x, y: center.y - m.wifiTopAboveCenter + m.wifiSize.height)
+        let outer = m.wifiSize.height
+        let half = asin(min(1, (m.wifiSize.width / 2) / outer)) * 180 / .pi
+        let start = Angle.degrees(-90 - half), end = Angle.degrees(-90 + half)
+        for (i, radius) in [outer, outer - 4.67, outer - 9.33].enumerated() {
+            if i == 2 {
+                var wedge = Path()
+                wedge.move(to: apex)
+                wedge.addArc(center: apex, radius: radius, startAngle: start, endAngle: end, clockwise: false)
+                wedge.closeSubpath()
+                p.fill(wedge, with: color, in: .zero)
+            } else {
+                var a = Path()
+                a.addArc(center: apex, radius: radius - m.wifiLine / 2, startAngle: start, endAngle: end, clockwise: false)
+                p.stroke(a, with: color, style: StrokeStyle(lineWidth: m.wifiLine, lineCap: .round), in: .zero)
+            }
+        }
+    }
+
+    /// "9:41" in the ring status bar's font, centred on x; with SF its digits' ink is centred on (x, inkMidY).
+    private static func drawDigits(_ p: Painter, x: CGFloat, inkMidY: CGFloat, canvas: CGSize, scheme: ColorScheme) {
+        drawText(p, "9:41", size: RingMetrics.timeSize, weight: .bold, x: x, centerY: inkMidY,
+                 anchor: .center, canvas: canvas, scheme: scheme, design: .rounded)
     }
 
     private static func drawPhoneStatusBar(_ p: Painter, device: DeviceProfile, size: CGSize, scheme: ColorScheme, color: _Paint, notchWidth: CGFloat?) {
@@ -230,6 +309,20 @@ enum DeviceChrome {
     /// The black pill or notch. In landscape it sits on the left (landscapeLeft) or right edge, rotated.
     private static func drawHousing(_ p: Painter, device: DeviceProfile, size: CGSize) {
         // (extent along the edge, depth into the screen, distance of the near side from the edge, corner radius)
+        if case .punchHole(let d, let offset) = device.housing {
+            // Placed on the portrait screen, then turned with the device.
+            let pw = device.portraitSize.width, ph = device.portraitSize.height
+            let c = CGPoint(x: pw - offset.x, y: offset.y)
+            let center: CGPoint
+            switch device.orientation {
+            case .portrait: center = c
+            case .landscapeLeft: center = CGPoint(x: c.y, y: pw - c.x)
+            case .landscapeRight: center = CGPoint(x: ph - c.y, y: c.x)
+            }
+            let rect = CGRect(x: center.x - d / 2, y: center.y - d / 2, width: d, height: d)
+            p.fill(Path(ellipseIn: rect), with: .color(.black), in: rect)
+            return
+        }
         let along: CGFloat, depth: CGFloat, inset: CGFloat, radius: CGFloat
         switch device.housing {
         case .dynamicIsland(let s, let top): (along, depth, inset, radius) = (s.width, s.height, top, s.height / 2)
@@ -256,6 +349,13 @@ enum DeviceChrome {
         guard device.cornerRadius > 0 else { return }
         let painter = Painter(canvas: canvas, scale: scale)
         let rect = CGRect(x: 0, y: 0, width: size.width * scale, height: size.height * scale)
-        painter.clip(Path(roundedRect: rect, cornerRadius: device.cornerRadius * scale, style: .continuous))
+        if device.leadingCornerRadius != nil {
+            let r = device.displayCornerRadii
+            painter.clip(Path(roundedRect: rect, cornerRadii: RectangleCornerRadii(
+                topLeading: r.topLeading * scale, bottomLeading: r.bottomLeading * scale,
+                bottomTrailing: r.bottomTrailing * scale, topTrailing: r.topTrailing * scale), style: .continuous))
+        } else {
+            painter.clip(Path(roundedRect: rect, cornerRadius: device.cornerRadius * scale, style: .continuous))
+        }
     }
 }

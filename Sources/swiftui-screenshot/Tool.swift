@@ -31,7 +31,7 @@ Render options:
       --device <name>    Device profile (default iphone-16); see `devices`. "iPhone 16 Pro", iphone-16-pro, iphone16pro all work
       --orientation <o>  portrait (default) | landscape (= landscape-left) | landscape-right
       --rounded-corners  Clip to the device's rounded display shape, corners transparent
-      --show-island     Draw the Dynamic Island / notch over the content (simulator screenshots do not show it)
+      --show-island     Draw the Dynamic Island / notch / camera cutout over the content (simulator screenshots do not show it)
       --frame            Draw generic device hardware around the screen: bezel, band, buttons, island or notch
       --frame-dir <dir>  Use your own frame images instead: <dir>/<device-id>.png with a transparent screen
                          (optionally <device-id>-landscape.png); devices without one get the generic frame

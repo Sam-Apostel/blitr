@@ -4,6 +4,14 @@ internal import CSkia
 // surroundings (is content under me, is a tab bar below me).
 
 enum NavigationGlass {
+    /// The top of a full-screen stack's bar on the iPhone Duo, whatever its top safe-area inset.
+    /// measured: iOS 27.2 simulator: an inset-grouped list's first header at y 82 (bar 44 + padding 10 below it).
+    static let ringDeviceBarTop: CGFloat = 28
+    /// The centre line of its titles (inline, and large ones beside the status column). measured: iOS 27.2 simulator.
+    static let ringDeviceTitleCenterY: CGFloat = 48
+    /// A large title in the bar beside the status column. measured: iOS 27.2 simulator.
+    static let ringDeviceLargeTitleFont = Font.system(size: 28, weight: .bold)
+
     /// Whether something (a tab bar) already occupies the bottom of the screen below a stack:
     /// its safe area ends well above the device's own bottom inset.
     @MainActor
