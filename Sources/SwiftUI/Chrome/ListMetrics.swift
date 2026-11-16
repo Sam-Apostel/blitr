@@ -181,11 +181,13 @@ extension ListMetrics {
     }
 
     /// tvOS rows: full-width platters without cards or separators (values in TVMetrics, est.).
-    static func forTV() -> ListDesignMetrics {
-        ListDesignMetrics(minRowHeight: TVMetrics.rowMinHeight, rowInsetVertical: TVMetrics.rowVerticalInset,
+    static func forTV(glass: Bool) -> ListDesignMetrics {
+        var m = ListDesignMetrics(minRowHeight: TVMetrics.rowMinHeight, rowInsetVertical: TVMetrics.rowVerticalInset,
                           rowInsetHorizontal: TVMetrics.rowHorizontalInset, cardCornerRadius: TVMetrics.rowCornerRadius,
                           separatorTrailingInset: 0, headerFontSize: TVMetrics.headerFontSize, headerWeight: .semibold,
                           headerUppercased: false, headerBaselineToCard: TVMetrics.headerBottomGap)
+        if glass { m.chevronReserve = TVMetrics.glassChevronReserve }
+        return m
     }
 
     /// watchOS rows: separate cards without separators (`WatchMetrics`).

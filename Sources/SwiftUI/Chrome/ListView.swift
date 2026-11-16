@@ -33,7 +33,9 @@ public struct List<SelectionValue: Hashable, Content: View>: View, PrimitiveView
             $0[TVInFormKey.self] = forcedStyle != nil
         }
         let nodes = resolveNodes(content, rowCtx)
-        let list = ListNode(items: nodes, style: style, env: ctx.env)
+        var listEnv = ctx.env
+        listEnv[TVInFormKey.self] = forcedStyle != nil
+        let list = ListNode(items: nodes, style: style, env: listEnv)
         list.scrollIdentity = ctx.path
         out.append(list)
     }

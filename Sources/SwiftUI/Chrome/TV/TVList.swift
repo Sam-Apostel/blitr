@@ -17,6 +17,13 @@ extension ListNode {
             guard elements.count == 1, let element = elements.first else { continue }
             row.tvSingleElement = true
             row.tvFocused = element.path == focused && element.isEnabled && !element.effectDisabled
+            if glass && row.tvFocused {
+                // tvOS 26: the content keeps its inset from the grown platter, so the label moves 4 pt out to the
+                // leading side and the value and chevron 4 pt to the trailing side (measured: tvOS 26.5 simulator,
+                // "Account" focused starts at 96.5 against 100.5 unfocused, its chevron 4 pt further right).
+                row.insets.leading -= TVMetrics.glassFocusGrowth
+                row.insets.trailing -= TVMetrics.glassFocusGrowth
+            }
         }
     }
 
@@ -88,7 +95,7 @@ extension ListRowNode {
         drawChildren(p)
         if hasChevron {
             let w = TVMetrics.chevronSize.width, h = TVMetrics.chevronSize.height
-            let right = frame.width - insets.trailing
+            let right = frame.width - insets.trailing - (tvGlass ? TVMetrics.glassChevronInset : 0)
             var path = Path()
             path.move(to: CGPoint(x: right - w, y: bounds.midY - h / 2))
             path.addLine(to: CGPoint(x: right, y: bounds.midY))

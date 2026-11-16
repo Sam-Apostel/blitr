@@ -8,6 +8,13 @@ extension TVMetrics {
     static func navigationTitleFont(glass: Bool) -> Font { .system(size: glass ? 57 : 48, weight: .medium) }
     /// tvOS 26: the title's top sits 4 pt below the safe area's top (measured).
     static let navigationTitleTop: CGFloat = 4
+    /// tvOS 26 toolbar items beside the title: capsules 56 pt high, 8 pt below the safe area's top, headline
+    /// labels 36 pt in, white in both appearances, on a film of black 7.5% (light) or white 10.5% (dark)
+    /// (measured: tvOS 26.5 simulator, "Help": 1690 to 1840 by 68 to 124, (230, 231, 241) -> (214, 212, 222)
+    /// light, (55, 55, 59) -> (76, 76, 80) dark, the H 27 pt high).
+    static let glassToolbarItemTop: CGFloat = 8
+    static let glassToolbarItemHeight: CGFloat = 56
+    static let glassToolbarItemPadding: CGFloat = 36
     static let searchFont = Font.system(size: 38, weight: .medium)            // est. (HIG search screen image)
 
     // tvOS 26 search screen (measured: tvOS 26.5). No field platter: a large magnifier and the prompt in bold,
@@ -100,7 +107,7 @@ extension NavigationStackNode {
         var x = safe.minX
         for item in leading {
             let s = item.sizeThatFits(proposal)
-            item.place(at: CGPoint(x: x, y: barTop + (barHeight - s.height) / 2), size: s, ctx)
+            item.place(at: CGPoint(x: x, y: tvGlassBar ? barTop + TVMetrics.glassToolbarItemTop : barTop + (barHeight - s.height) / 2), size: s, ctx)
             x += s.width + TVMetrics.toolbarItemSpacing
         }
         let leadingEnd = x
@@ -108,7 +115,7 @@ extension NavigationStackNode {
         var tx = safe.maxX - sizes.reduce(0) { $0 + $1.width } - CGFloat(max(0, trailing.count - 1)) * TVMetrics.toolbarItemSpacing
         let trailingStart = tx
         for (item, s) in zip(trailing, sizes) {
-            item.place(at: CGPoint(x: tx, y: barTop + (barHeight - s.height) / 2), size: s, ctx)
+            item.place(at: CGPoint(x: tx, y: tvGlassBar ? barTop + TVMetrics.glassToolbarItemTop : barTop + (barHeight - s.height) / 2), size: s, ctx)
             tx += s.width + TVMetrics.toolbarItemSpacing
         }
         if let center = principal ?? inlineTitle {

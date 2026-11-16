@@ -18,7 +18,7 @@ Where the renderer stands, what is open (in priority order), and which items nee
 | Set | Typical screen difference |
 |---|---|
 | iOS 27.0 | under 1.5% |
-| tvOS 26.5 light | under 1.6% |
+| tvOS 26.5 light, dark | under 1.6%, under 1.4% |
 | watchOS 26.5 (46mm, 42mm, Ultra 2) | under 0.9%, the clock masked |
 
 The iOS 27 sum over all screens is 26.6% in light and 30.5% in dark.
@@ -33,7 +33,7 @@ The iOS 27 sum over all screens is 26.6% in light and 30.5% in dark.
 | [#24](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/24) | watchOS chrome: safe areas, lists, titles, buttons and page dots are measured; toolbar items, the back button and bounded (scrolling) screens are open. | captures for the rest |
 | [#22](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/22) | Liquid Glass: the light glass model and the selected tab's vibrancy | no |
 | [#21](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/21) | SF Symbol frames, per glyph | measuring on a Mac helps |
-| [#23](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/23) | tvOS: one focus move, List toggle rows, tvOS 18 | tvOS 18 needs captures |
+| [#23](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/23) | tvOS: one focus move, tvOS 18, the few looks the set does not show (docs/TVOS.md checklist) | tvOS 18 needs captures |
 | [#25](https://github.com/Sam-Apostel/swift-ui-screenshot/issues/25) | Smaller gaps found on real apps: map tiles, LazyVStack text spacing, clock gaps, representables | no |
 
 #2 and #3 are the umbrella issues for the Mac reference work.

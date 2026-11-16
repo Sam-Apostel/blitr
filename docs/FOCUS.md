@@ -134,7 +134,11 @@ moves and probe steps):
 
 What still differs: one move, in both Shelves and Top Bar. Down from "Movie 21" (250 pt wide, 160 to
 410) lands on "Movie 42" (400 to 600) on tvOS, though "Movie 41" (160 to 360) lies under it and overlaps
-the beam far more; no geometric rule found explains it. The other 16 mismatches follow from it: "Movie 42"
+the beam far more; no geometric rule found explains it. One candidate: a remembered column. Focus came down to
+"Movie 21" from "Movie 1" (160 to 640, centre 400), and down again lands on the poster under that centre,
+"Movie 42" (400 to 600); down from "Movie 23", reached from "Movie 2" (centre 920), lands on "Movie 44" (880
+to 1080), which plain geometry also picks. The 21 -> 42 case rests on 400 being exactly the left edge of
+"Movie 42", so it is not modelled. The other 16 mismatches follow from it: "Movie 42"
 and "Movie 43" are reached by recorded paths through that move, so our replay ends one item to the left.
 
 ## Presses

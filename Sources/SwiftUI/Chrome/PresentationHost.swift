@@ -556,7 +556,7 @@ final class CoverLayerNode: PresentationLayerNode {
     override func drawContent(_ p: Painter) {
         let rect = CGRect(origin: .zero, size: frame.size)
         if tvGlassSheet {
-            p.fill(Path(rect), with: .color(RGBA(0, 0, 0, TVMetrics.glassSheetDim)), in: rect)
+            p.fill(Path(rect), with: .color(RGBA(0, 0, 0, TVMetrics.glassSheetDim(scheme))), in: rect)
             let card = content.frame.insetBy(dx: 0, dy: -TVMetrics.glassSheetVerticalPadding)
             p.fillGlass(.roundedRect(card, radius: TVMetrics.glassAlertCornerRadius), appearance: TVColors.glassCard(scheme, design: design))
         } else if tvSheet {

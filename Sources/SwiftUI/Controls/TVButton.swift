@@ -34,6 +34,8 @@ struct _TVButtonVisual: View {
     @Environment(\.isInListRow) private var inRow
     @Environment(\.font) private var userFont
     @Environment(\.foregroundStyle) private var explicitForeground
+    @Environment(\.tvToolbarItem) private var inToolbar
+    @Environment(\.tvInSheet) private var inSheet
 
     private var focused: Bool { isFocused && isEnabled && !effectDisabled }
     private var destructive: Bool { role == .destructive }
@@ -67,12 +69,14 @@ struct _TVButtonVisual: View {
     }
 
     private func platterBody(prominent: Bool) -> some View {
-        let height = TVMetrics.buttonHeight(size)
+        // tvOS 26 toolbar items beside the title: smaller capsules with white headline labels (measured).
+        let toolbar = design.isGlass && inToolbar && size == .regular
+        let height = toolbar ? TVMetrics.glassToolbarItemHeight : TVMetrics.buttonHeight(size)
         let accent = (explicitAccent ?? Color.accentColor)
         let disabledLabel = Color(SystemColor.tertiaryLabel)
         var content = label
-        if let font = TVMetrics.buttonFont(size) { content = AnyView(content.font(userFont ?? font)) }
-        content = AnyView(content.lineLimit(1))
+        if let font = toolbar ? .headline : TVMetrics.buttonFont(size) { content = AnyView(content.font(userFont ?? font)) }
+        content = AnyView(content.lineLimit(1).env { $0.tvInButtonPlatter = true })
         // tvOS 26 draws a prominent button like a bordered one (measured: grey platter, primary label).
         let accentPlatter = prominent && !design.isGlass
 
@@ -81,8 +85,10 @@ struct _TVButtonVisual: View {
         let foreground: Color
         if !isEnabled { foreground = design.isGlass ? Color(SystemColor.secondaryLabel) : disabledLabel }
         else if accentPlatter { foreground = .white }
-        else if destructive { foreground = Color(SystemColor.red) }
-        else if focused { foreground = Color(TVColors.focusedLabel) }
+        else if destructive { foreground = design.isGlass && scheme == .dark ? Color(TVColors.glassDestructiveLabelDark) : Color(SystemColor.red) }
+        else if focused { foreground = Color(TVColors.focusedLabel(glass: design.isGlass)) }
+        else if toolbar { foreground = .white }
+        else if design.isGlass && scheme == .dark && inSheet { foreground = Color(TVMetrics.glassSheetButtonLabelDark) }
         else { foreground = Color(SystemColor.label) }
         // An explicit foreground style of the surroundings colors the label until the platter turns white.
         let keepsExplicit = explicitForeground != nil && !focused && !accentPlatter && !destructive && isEnabled
@@ -93,7 +99,7 @@ struct _TVButtonVisual: View {
         if circle {
             padded = AnyView(styledLabel.frame(width: height, height: height))
         } else {
-            let p = styledLabel.padding(.horizontal, TVMetrics.buttonPadding(size)).frame(minHeight: height)
+            let p = styledLabel.padding(.horizontal, toolbar ? TVMetrics.glassToolbarItemPadding : TVMetrics.buttonPadding(size)).frame(minHeight: height)
             padded = sizing.kind == .flexible ? AnyView(p.frame(maxWidth: .infinity)) : AnyView(p)
         }
 
@@ -105,10 +111,12 @@ struct _TVButtonVisual: View {
             let fill = isEnabled ? (focused ? accentRGBA.mix(.white, 0.12) : accentRGBA) : TVColors.platter(scheme)
             style.platter = .color(fill)
         } else if focused {
-            style.platter = design.isGlass ? .focusedGlass : .color(TVColors.focusedPlatter)
+            style.platter = .color(design.isGlass ? TVColors.glassFocusedPlatter(scheme) : TVColors.focusedPlatter)
             if design.isGlass { style.useGlassFocus() }
+        } else if toolbar && !(destructive && isEnabled) {
+            style.platter = .color(TVColors.glassToolbarItem(scheme))
         } else if design.isGlass {
-            style.platter = .color(destructive && isEnabled ? TVColors.glassDestructivePlatter : TVColors.glassPlatter(scheme))
+            style.platter = .color(destructive && isEnabled ? TVColors.glassDestructivePlatter(scheme) : TVColors.glassPlatter(scheme))
         } else {
             style.platter = .color(TVColors.platter(scheme))
         }

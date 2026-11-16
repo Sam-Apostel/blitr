@@ -100,6 +100,9 @@ enum TVMetrics {
 
     // MARK: Lists (measured: tvOS 26.5 Form, rows 66 pt on an 80 pt pitch, labels 20 pt in)
     static let rowMinHeight: CGFloat = 66
+    /// A `Toggle` row in a plain `List` (not a `Form`) is 79 pt high, still 14 pt apart (measured: tvOS 26.5
+    /// simulator, the focus recording of a List in a TabView: rows at 302 and 395, 79 pt high).
+    static let listToggleRowHeight: CGFloat = 79
     static let rowHorizontalInset: CGFloat = 20
     static let rowVerticalInset: CGFloat = 15.5
     static let rowSpacing: CGFloat = 14
@@ -110,6 +113,11 @@ enum TVMetrics {
     /// From the last row to the footer.
     static let footerTopGap: CGFloat = 20
     static let chevronSize = CGSize(width: 12, height: 22) // est.
+    /// tvOS 26 rows that open something: the chevron's tip 3 pt further in than the row's text inset, the trailing
+    /// value ending 81 pt before that inset (measured: tvOS 26.5 simulator, "12" ends at 1739, the tip at 1817.5,
+    /// in a row whose text runs to 1820).
+    static let glassChevronInset: CGFloat = 3
+    static let glassChevronReserve: CGFloat = 81
     /// Headers: uppercase on tvOS 26, 29 pt (35 pt line), the dimmed title color; footers 29 pt secondary.
     static let headerFontSize: CGFloat = 29
     static let footerFontSize: CGFloat = 29
@@ -145,6 +153,11 @@ enum TVMetrics {
     /// Black over the screen behind an alert or dialog (measured: the backdrop at 55%), and behind a sheet (80%).
     static let glassAlertDim: Double = 0.45
     static let glassSheetDim: Double = 0.2
+    /// In dark mode the presenter is dimmed by 48% black (measured: tvOS 26.5 simulator, the backdrop 50 -> 26.4, a
+    /// poster 187.5 -> 97).
+    static func glassSheetDim(_ scheme: ColorScheme) -> Double { scheme == .dark ? 0.48 : glassSheetDim }
+    /// Unfocused button labels in a dark tvOS 26 sheet are a softer white (measured: tvOS 26.5 simulator, 214).
+    static let glassSheetButtonLabelDark = RGBA(214 / 255.0, 214 / 255.0, 214 / 255.0, 1)
     /// A tvOS 26 sheet is a glass card fitted to its content, 5 pt above and below it (measured).
     static let glassSheetVerticalPadding: CGFloat = 5
 
@@ -163,6 +176,10 @@ enum TVColors {
     static let focusedPlatter = RGBA(1, 1, 1, 1)
     /// Label on the focused white platter.
     static let focusedLabel = RGBA(0, 0, 0, 0.88)
+    /// tvOS 26: labels on a focused platter, and the tab bar's titles in light, are black (measured: tvOS 26.5
+    /// simulator, (0, 0, 0) on focused buttons, rows, alert actions, tabs and sidebar rows).
+    static let glassFocusedLabel = RGBA(0, 0, 0, 1)
+    static func focusedLabel(glass: Bool) -> RGBA { glass ? glassFocusedLabel : focusedLabel }
     /// A card's platter before it is focused (est.).
     static func cardPlatter(_ scheme: ColorScheme) -> RGBA {
         scheme == .dark ? RGBA(1, 1, 1, 0.12) : RGBA(0, 0, 0, 0.06)
@@ -175,54 +192,90 @@ enum TVColors {
     static func selectedTab(_ scheme: ColorScheme) -> RGBA {
         scheme == .dark ? RGBA(1, 1, 1, 0.24) : RGBA(1, 1, 1, 0.85)
     }
-    /// Unfocused tvOS 26 button, toggle or picker platter: a flat, slightly dark film over what is behind
-    /// (measured, light: the backdrop at 91%; dark est.).
+    /// Unfocused tvOS 26 button, toggle or picker platter: a flat film over what is behind (measured, light:
+    /// the backdrop at 91%; dark: white at 10%, (47, 49, 52) -> (67.5, 70, 73.5)).
     static func glassPlatter(_ scheme: ColorScheme) -> RGBA {
-        scheme == .dark ? RGBA(1, 1, 1, 0.12) : RGBA(0, 0, 0, 0.09)
+        scheme == .dark ? RGBA(1, 1, 1, 0.10) : RGBA(0, 0, 0, 0.09) // measured: tvOS 26.5 simulator
+    }
+    /// A focused tvOS 26 button, toggle, text field or segment (measured: tvOS 26.5 simulator): white in light,
+    /// a light grey (207, 212, 217) in dark. Focused list rows and alert actions stay white in dark.
+    static func glassFocusedPlatter(_ scheme: ColorScheme) -> RGBA {
+        scheme == .dark ? RGBA(207 / 255.0, 212 / 255.0, 217 / 255.0, 1) : RGBA(1, 1, 1, 1)
     }
     /// Unfocused tvOS 26 list row: a light film (measured: white at 15% in light, 10% in dark).
     static func glassRow(_ scheme: ColorScheme) -> RGBA {
         scheme == .dark ? RGBA(1, 1, 1, 0.10) : RGBA(1, 1, 1, 0.15)
     }
-    /// Unfocused tvOS 26 text field (measured, light: white at 55%; dark est.).
+    /// Unfocused tvOS 26 text field (measured: tvOS 26.5 simulator; light: white at 55%; dark: black at 32%,
+    /// (50, 53, 58) -> (33, 36, 41)).
     static func glassField(_ scheme: ColorScheme) -> RGBA {
-        scheme == .dark ? RGBA(1, 1, 1, 0.16) : RGBA(1, 1, 1, 0.55)
+        scheme == .dark ? RGBA(0, 0, 0, 0.32) : RGBA(1, 1, 1, 0.55)
     }
-    /// tvOS 26 segmented control track (measured, light: white at 60%) and its selected segment while focus
-    /// is elsewhere (black at 18% over the track).
+    /// tvOS 26 segmented control track and its selected segment while focus is elsewhere (measured: tvOS 26.5
+    /// simulator; light: white at 60%, the selected segment black at 18% over it; dark: no track, the
+    /// selected segment white at 20%, (42, 40, 33) -> (84, 82, 77)).
     static func glassSegmentTrack(_ scheme: ColorScheme) -> RGBA {
-        scheme == .dark ? RGBA(1, 1, 1, 0.16) : RGBA(1, 1, 1, 0.6)
+        scheme == .dark ? .clear : RGBA(1, 1, 1, 0.6)
     }
     static func glassSelectedSegment(_ scheme: ColorScheme) -> RGBA {
-        scheme == .dark ? RGBA(1, 1, 1, 0.24) : RGBA(0, 0, 0, 0.18)
+        scheme == .dark ? RGBA(1, 1, 1, 0.2) : RGBA(0, 0, 0, 0.18)
     }
-    /// A destructive bordered button on tvOS 26 is a red platter (measured: (237, 40, 48)).
-    static let glassDestructivePlatter = RGBA(237 / 255.0, 40 / 255.0, 48 / 255.0, 1)
+    /// A destructive bordered button on tvOS 26 is a red platter (measured: tvOS 26.5 simulator; light
+    /// (237, 40, 48) with a red label; dark (255, 92, 96) with a lighter label, (255, 112, 117)).
+    static func glassDestructivePlatter(_ scheme: ColorScheme) -> RGBA {
+        scheme == .dark ? RGBA(1, 92 / 255.0, 96 / 255.0, 1) : RGBA(237 / 255.0, 40 / 255.0, 48 / 255.0, 1)
+    }
+    static let glassDestructiveLabelDark = RGBA(1, 112 / 255.0, 117 / 255.0, 1) // measured: tvOS 26.5 simulator
     /// Destructive actions in alerts and dialogs: red at 20% over the card (measured).
     static let glassDestructiveAction = RGBA(1, 0.23, 0.19, 0.2)
-    /// Unfocused actions in alerts and dialogs: black at 10% over the card (measured).
+    /// Unfocused actions in alerts and dialogs (measured: tvOS 26.5 simulator; light: black at 10% over the card;
+    /// dark: white at 10%, (23, 23, 23) -> (48, 47, 45)).
     static func glassAction(_ scheme: ColorScheme) -> RGBA {
-        scheme == .dark ? RGBA(1, 1, 1, 0.12) : RGBA(0, 0, 0, 0.1)
+        scheme == .dark ? RGBA(1, 1, 1, 0.1) : RGBA(0, 0, 0, 0.1)
     }
     /// Navigation titles and section headers on tvOS 26 (measured: light (130, 135, 144) over the backdrop,
     /// black at about 42%; dark (103, 107, 111), white at about 27%).
     static func dimmedTitle(_ scheme: ColorScheme) -> RGBA {
         scheme == .dark ? RGBA(1, 1, 1, 0.3) : RGBA(0, 0, 0, 0.42)
     }
+    /// The value of a toggle outside a list (measured: tvOS 26.5 simulator; "Off" (49, 53, 63) over a (204, 208,
+    /// 219) platter, black at about 76%; dark (199, 202, 206) over 70, white at about 70%).
+    static func controlValue(_ scheme: ColorScheme) -> RGBA {
+        scheme == .dark ? RGBA(1, 1, 1, 0.7) : RGBA(0, 0, 0, 0.76)
+    }
+    /// A `.navigationLink` picker outside a list: no chevron, a dimmed label and a strong value (measured: tvOS
+    /// 26.5 simulator; light: label (89, 87, 86) and value (33, 27, 21) over 193; dark: label 142 and value 191
+    /// over 65).
+    static func outsidePickerLabel(_ scheme: ColorScheme) -> RGBA {
+        scheme == .dark ? RGBA(1, 1, 1, 0.4) : RGBA(0, 0, 0, 0.54)
+    }
+    static func outsidePickerValue(_ scheme: ColorScheme) -> RGBA {
+        scheme == .dark ? RGBA(1, 1, 1, 0.66) : RGBA(0, 0, 0, 0.83)
+    }
+    /// An unfocused tvOS 26 toolbar item beside the navigation title (measured: tvOS 26.5 simulator, see
+    /// TVMetrics.glassToolbarItemTop).
+    static func glassToolbarItem(_ scheme: ColorScheme) -> RGBA {
+        scheme == .dark ? RGBA(1, 1, 1, 0.105) : RGBA(0, 0, 0, 0.075)
+    }
     /// Trailing values of rows (measured: black at about 57%, white at about 55%).
     static func rowValue(_ scheme: ColorScheme) -> RGBA {
         scheme == .dark ? RGBA(1, 1, 1, 0.55) : RGBA(0, 0, 0, 0.57)
     }
-    /// The glass card of a tvOS 26 alert, dialog or sheet (measured, light: the dimmed screen behind, 107,
-    /// turns into 194 inside the card, about 60% white; dark est.).
+    /// The glass card of a tvOS 26 alert, dialog or sheet (measured: tvOS 26.5 simulator; light: the dimmed
+    /// screen behind, 107, turns into 194 inside the card, about 60% white; dark: the dimmed screen, 23, turns
+    /// into 25 inside the card).
     @MainActor static func glassCard(_ scheme: ColorScheme, design: DesignLanguage) -> GlassAppearance {
         var a = GlassAppearance.system(.regular, scheme: scheme, design: design)
-        a.tint = scheme == .dark ? RGBA(0.16, 0.16, 0.17, 0.6) : RGBA(1, 1, 1, 0.6)
+        a.tint = scheme == .dark ? RGBA(0.1, 0.1, 0.1, 0.6) : RGBA(1, 1, 1, 0.6)
         return a
     }
-    /// A `.card` button's platter on tvOS 26 (measured, light: white at about 28%; dark est.).
+    /// The message of a tvOS 26 alert in dark mode (measured: tvOS 26.5 simulator, (154, 154, 152) over the
+    /// card, white at about 56%).
+    static let glassAlertMessageDark = RGBA(1, 1, 1, 0.56)
+    /// A `.card` button's platter on tvOS 26 (measured: tvOS 26.5 simulator; light: white at about 28%; dark:
+    /// white at 11%, (40, 40, 35) -> (65, 63, 59)).
     static func glassCardPlatter(_ scheme: ColorScheme) -> RGBA {
-        scheme == .dark ? RGBA(1, 1, 1, 0.12) : RGBA(1, 1, 1, 0.28)
+        scheme == .dark ? RGBA(1, 1, 1, 0.11) : RGBA(1, 1, 1, 0.28)
     }
     static func dim(_ scheme: ColorScheme) -> RGBA {
         scheme == .dark ? RGBA(0, 0, 0, 0.7) : RGBA(0.94, 0.94, 0.95, 0.75)
@@ -235,11 +288,29 @@ enum TVInListRowKey: EnvironmentKey { static let defaultValue = false }
 enum TVOnFocusedPlatterKey: EnvironmentKey { static let defaultValue = false }
 /// Rows of a `Form` (not a plain `List`): tvOS 26 draws an automatic picker there as a value row.
 enum TVInFormKey: EnvironmentKey { static let defaultValue = false }
+/// Content of a tvOS sheet.
+enum TVInSheetKey: EnvironmentKey { static let defaultValue = false }
+/// A tvOS navigation bar item.
+enum TVToolbarItemKey: EnvironmentKey { static let defaultValue = false }
+/// Content of a tvOS bordered button's platter.
+enum TVInButtonPlatterKey: EnvironmentKey { static let defaultValue = false }
 /// `.hoverEffect(_:)` written on a view.
 enum TVHoverEffectKey: EnvironmentKey { static let defaultValue: HoverEffect? = nil }
 
 extension EnvironmentValues {
     var isTV: Bool { renderPlatform == .tvOS }
+    var tvInSheet: Bool {
+        get { self[TVInSheetKey.self] }
+        set { self[TVInSheetKey.self] = newValue }
+    }
+    var tvToolbarItem: Bool {
+        get { self[TVToolbarItemKey.self] }
+        set { self[TVToolbarItemKey.self] = newValue }
+    }
+    var tvInButtonPlatter: Bool {
+        get { self[TVInButtonPlatterKey.self] }
+        set { self[TVInButtonPlatterKey.self] = newValue }
+    }
     var tvOnFocusedPlatter: Bool {
         get { self[TVOnFocusedPlatterKey.self] }
         set { self[TVOnFocusedPlatterKey.self] = newValue }
@@ -263,8 +334,6 @@ enum TVPlatter {
     case none
     case color(RGBA)
     case glass(GlassAppearance)
-    /// White with a glassy rim (a focused tvOS 26 control).
-    case focusedGlass
 }
 
 struct TVLiftStyle {
@@ -391,9 +460,6 @@ final class TVLiftNode: WrapperNode {
         case .glass(let a):
             let radius = min(style.cornerRadius ?? rect.height / 2, min(rect.width, rect.height) / 2)
             p.fillGlass(.roundedRect(rect, radius: radius), appearance: a)
-        case .focusedGlass:
-            // measured: tvOS 26.5, a flat white platter (253-255 throughout, no rim).
-            p.fill(shape(rect), with: .color(RGBA(1, 1, 1, 1)), in: rect)
         }
     }
 }
