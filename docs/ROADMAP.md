@@ -20,7 +20,7 @@ Where the renderer stands, what is open (in priority order), and which items nee
 | Set | Typical screen difference |
 |---|---|
 | iOS 27.0 | under 1.5% |
-| tvOS 26.5 light, dark | under 1.6%, under 1.4% |
+| tvOS 26.5 light, dark | under 1.3%, under 1.4% |
 | watchOS 26.5 (46mm, 42mm, Ultra 2) | under 0.9%, the clock masked |
 
 The iOS 27 sum over all screens is 26.6% in light and 30.5% in dark.
